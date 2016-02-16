@@ -1,0 +1,1154 @@
+The hooks that are included in these examples implement various
+ways of dealing with Request and Reply attributes according to
+different criteria.
+
+The first two examples are designed to work together, with a
+StartupHook to initialiase a GlobalVar array, and a PostAuthHook to
+add selected attributes according to a "Profile" pseudo-attribute
+definition.
+
+The StartupHook getProfiles is a hook which reads a file and stores
+Profile definitions in an internal memory array. Each Profile is a
+single colon (":") delimited line of the form:
+
+Profile:Identifier:Attributes
+
+Profile is the symbolic name of this Profile. Identifer is a key which
+in this case is the Identifer that has been set on a per Client
+basis. And Attributes is a list of attribute = value pairs seperated
+by commas (",").
+
+The PostAuthHook replaceProfiles replaces the symbolic Profile name
+that was returned for the user in an SQL query, with the corresponding
+attributes for the Client that the request was received from.
+
+The way these hooks are used is as follows. Each Client clause has an
+Identifer set for it which indicates what sort of NAS it is - Ascend,
+Cisco, etc. Each user record has a symbolic Profile name which
+indicates what type of customer this is - ie. mail only, local web
+only, VPN, etc.
+
+The ProfileDefs file read by getProfiles contains the corresponding
+attributes required for each combination of NAS type and customer
+type. The file is read once at Startup (or restart).
+
+The symbolic Profile name is replaced by the corresponding attribute
+strings by the PostAuthHook replaceProfiles after a successful
+authentication (assuming that both the Client Identifer and customer
+Profile have been set correctly).
+
+The hooks are designed for use with Radiator 2.15 or later, 
+and are used as follows:
+
+# configuration using getProfiles and replaceProfiles
+
+.....
+
+DefineGlobalVar ProfileDefsFilename %D/profile_definitions_file
+
+StartupHook file:"%D/getProfiles"
+
+....
+
+<Client 1.2.3.4>
+	Identifer Ascend
+	Secret ....
+</Client>
+
+<Client 5.6.7.8>
+	Identifier Cisco
+	Secret ....
+</Client>
+
+....
+
+<Handler ....>
+	<AuthBy ....>
+		....
+	</AuthBy>
+	PostAuthHook file:"%D/replaceProfiles"
+</Handler>
+
+....
+
+Here is the code for getProfiles:
+
+# -*- mode: Perl -*-
+# getProfiles
+#
+# Get Profiles StartupHook
+# For use with later PostAuthHook
+# Each Profile is a colon (":") delimited record with
+# ProfileName:Identifier:ReplyAttributes
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# 
+
+sub 
+{
+
+    # Configurable variables
+
+    my $filename;
+
+    if ($filename = &main::getVariable('ProfileDefsFilename'))
+    {
+	$filename = &Radius::Util::format_special($filename);
+    }
+    else
+    {
+	$filename = '/usr/local/etc/raddb/profile-defs';
+    }
+
+    # End of configurable variables
+
+    open(FILE, $filename) ||
+	(&main::log($main::LOG_ERR, "Could not open $filename") 
+	 && return);
+
+    my $record;
+    my $oldrs = $/;
+    $/ = "\n\n";  # CAUTION: OK for Unix. Use "\r\n\r\n" for Windows?
+    while (<FILE>)
+    {
+	# Join input to one line
+	s/\\\n//g;
+
+        # Skip comment lines and blank lines
+        next if /^#/ || /^\s*$/;
+
+	chomp($record = $_);
+	
+	# Format: $profile:$identifier:$attributes
+	# We cannot use split due to ':' in attributes like cisco-avpair
+	if ($record =~ /^([^:]+)\s*:\s*([^:]+)\s*:\s*(.*)/) 
+	{
+	    # add Profile to GlobalVars for use by PostAuthHook
+	    &main::log($main::LOG_DEBUG,"setVariable |$1|.|$2|=|$3|");
+	    &main::setVariable($1.$2, $3);
+	}
+    }
+    close(FILE);
+
+    # reset $INPUT_RECORD_SEPERATOR. 
+    $/ = $oldrs;
+
+    return;
+}
+
+And here is the code for replaceProfiles:
+
+# -*- mode: Perl -*-
+# replaceProfiles
+#
+# Replace Profiles PostAuthHook
+# A Profile name is added to the reply packet by 
+# AuthBy SQL using a pseudo-attribute
+# The reply attributes for this Profile replace the
+# pseudo-attribute in the reply packet
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# 
+
+sub 
+{
+    my $p = ${$_[0]};
+    my $rp = ${$_[1]};
+    my $result = ${$_[2]};
+
+    my $profile;
+    my $identifier;
+
+    if (($result == $main::ACCEPT) && 
+        ($profile = $rp->get_attr('Profile')) &&
+        ($identifier = $p->{Client}->{Identifier}))
+    {
+	&main::log($main::LOG_DEBUG, 
+            "Profile = $profile, Identifier = $identifier"); 
+	$rp->delete_attr('Profile');
+	$rp->parse(&main::getVariable($profile.$identifier));
+    }
+    return;
+}
+
+--------------------------------------------------------------------
+
+The third example hook is a PreClientHook that can be used with Cisco 5800
+NAS's and other Cisco equipment that sends Cisco-NAS-Port attributes
+instead of NAS-Port attributes in Radius requests. This is useful to
+avoid changing existing Radiator functionality that makes use of the
+NAS-Port attribute (SQL session database for example).
+
+This hook is used in the configuration file like this:
+
+# configuration using PreClientHook alterNASPort
+
+....
+
+PreClientHook file:"%D/alterNASPort"
+
+....
+
+<Client 1.2.3.4>
+	Identifer Cisco
+	Secret ....
+</Client>
+
+The code for alterNASPort is:
+
+# -*- mode: Perl -*-
+# alterNASPort
+#
+# PreClientHook to alter NAS-Port attribute
+#  
+# The Cisco 5800 sends Cisco-NAS-Port
+# (it may also send NAS-Port)
+# If Cisco-NAS-Port is present, replace
+# (or add) NAS-Port with its value
+# (optionally delete Cisco-NAS-Port)
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# 
+
+sub 
+{
+    my $p = ${$_[0]};
+
+    my $nasport;
+
+    if ($nasport = $p->get_attr('Cisco-NAS-Port'))
+    {
+	&main::log($main::LOG_DEBUG, 
+            "Cisco-NAS-Port = $nasport"); 
+	$p->change_attr('NAS-Port', $nasport);
+#	$p->delete_attr('Cisco-NAS-Port');
+    }
+    return;
+}
+
+--------------------------------------------------------------------
+
+The fourth example hook is a PostAuthHook to strip a selected attribute
+from a Reply.  In this case the user database includes all possible
+attributes for all possible NAS equipment and the PostAuthHook removes
+a selected attribute depending on the NAS that sent the request. This
+hook can be easily modified to remove any number of attributes.
+
+This hook is used in the configuration file like this:
+
+# configuration using PostAuthHook stripSelectedAttribute
+
+....
+
+<Handler ....>
+	<AuthBy ....>
+		....
+	</AuthBy>
+	PostAuthHook file:"%D/stripSelectedAttribute"
+</Handler>
+
+....
+
+The code for stripSelectedAttribute is:
+
+# -*- mode: Perl -*-
+# stripSelectedAttribute
+#
+# PostAuthHook to strip a selected attribute
+# The attribute to strip is determined by  
+# Client Identifier
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# 
+
+sub 
+{
+    my $p = ${$_[0]};
+    my $rp = ${$_[1]};
+    my $result = ${$_[2]};
+
+    my $identifier;
+
+    if (($result == $main::ACCEPT) && 
+        ($identifier = $p->{Client}->{Identifier}))
+    {
+        &main::log($main::LOG_DEBUG, "Client Identifier = $identifier");
+	if ($identifier eq "StripFramedRoute")
+        {
+            $rp->delete_attr('Framed-Route');
+        }
+        elsif ($identifier eq "StripFramedIPAddress")
+        {
+            $rp->delete_attr('Framed-IP-Address');
+        }
+    }
+    return;
+}
+
+--------------------------------------------------------------------
+
+This hook can be used to allocate an IP address from an
+AuthBy DYNADDRESS clause after querying a remote radius proxy.
+The hook is configured in one or more AuthBy RADIUS clauses.
+NOTE: the hook expects the Realm or Handler to include the
+same Identifier as the AuthBy DYNADDRESS to be called.
+
+# configuration for proxy radius and address allocation
+
+<AuthBy RADIUS>
+	Identifier CheckRemoteRadius
+	Host .....
+	Secret .....
+	.....
+	ReplyHook file:"%D/AllocateIPAddressOnReplyFromProxy"
+</AuthBy>
+
+<AddressAllocatorSQL>
+	Identifier SQLAllocator
+	.....
+</AddressAllocator>
+
+<AuthBy DYNADDRESS>
+	Identifier AllocateIPAddress
+	Allocator SQLAllocator
+	.....
+</AuthBy>
+
+<Realm .....>
+       Identifier AllocateIPAddress
+       .....
+       AuthBy CheckRemoteRadius
+</Realm>
+
+Here is the code for the hook.
+
+# -*- mode: Perl -*-
+# AllocateIPAddressOnReplyFromProxy
+#
+# ReplyHook to (de)allocate an IP address
+# when an AuthBy RADIUS reply is received.
+# The Realm/Handler must use the same Identifier
+# as the AuthBy DYNADDRESS Identifier.
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# $Id: hooks.txt,v 1.24 2013/12/13 21:55:14 hvn Exp $
+
+sub 
+{
+    my $p = ${$_[0]};	# proxy reply packet
+    my $rp = ${$_[1]};	# reply packet to NAS
+    my $op = ${$_[2]};	# original request packet
+    my $sp = ${$_[3]};	# packet sent to proxy 
+
+    # Get the Identifier for this Realm/Handler
+    my $identifier = Radius::Util::format_special('%{Handler:Identifier}', $op, $rp);
+    &main::log($main::LOG_DEBUG, "Using Identifier $identifier");
+
+    # Find the AuthBy clause with the same Identifier        
+    my $authby = Radius::AuthGeneric::find($identifier);
+    &main::log($main::LOG_DEBUG, "Found AuthBy with Identifier $identifier");
+
+    # Get the request code from the proxy reply.
+    my $code = $p->code;
+
+    if ($code eq 'Access-Accept')
+    {
+        # Set the correct reply code in the reply packet
+        # or if the AuthBy is undefined set to Access-Reject.
+        
+        if (defined $authby)
+        {
+            # Strip any Framed-IP-Address and Framed-IP-Netmask
+            # just in case the upstream proxy has sent one by mistake
+            $rp->delete_attr('Framed-IP-Address');
+            $rp->delete_attr('Framed-IP-Netmask');
+
+            # Call handle_request for this AuthBy DYNADDRESS
+            my ($rc, $reason) = $authby->handle_request($op, $rp);
+
+            if ($rc != $main::ACCEPT)
+            {
+                &main::log($main::LOG_ERR, "Allocate IP address failed: $reason");  
+                $op->{RadiusResult} = $main::REJECT;
+            }
+        }
+        else
+        {
+            &main::log($main::LOG_ERR, "No AuthBy with Identifier $identifier");  
+            $op->{RadiusResult} = $main::REJECT;
+        }
+    }
+    elsif ($code eq 'Accounting-Response')
+    {
+        # Call handle_request for this AuthBy DYNADDRESS
+        if (defined $authby)
+        {
+            my ($rc, $reason) = $authby->handle_request($op, $rp);
+
+            if ($rc != $main::ACCEPT)
+            {
+                &main::log($main::LOG_ERR, "De-allocate IP address failed: $reason");  
+            }
+        }
+        else
+        {
+            &main::log($main::LOG_ERR, "No AuthBy with Identifier $identifier");  
+        }
+    }
+    return;
+}
+
+--------------------------------------------------------------------
+
+This hook can be used to call a local AuthBy clause if a radius proxy
+does not respond. This example is set up to call a local AuthBy UNIX
+clause, however any local AuthBy could be used.
+NOTE: the hook expects the Realm or Handler to include the
+same Identifier as the local AuthBy to be called.
+
+The configuration file would look something like this:
+
+# configuration to check a local AuthBy
+# if a remote proxy fails to reply
+
+<AuthBy RADIUS>
+	Identifier CheckProxy
+	Host .....
+	Secret .....
+	.....
+	NoReplyHook file:"%D/noReplyFromProxy"
+</AuthBy>
+
+<AuthBy UNIX>
+	Identifier CheckLocal
+	.....
+</AuthBy>
+
+<Realm .....>
+       Identifier CheckLocal 
+       .....
+       AuthBy CheckProxy
+       .....
+</Realm>
+
+
+Here is the hook code.
+
+# -*- mode: Perl -*-
+# noReplyFromProxy
+#
+# NoReplyHook to check a local UNIX shadow file
+# if an AuthBy RADIUS does not respond.
+# The Realm/Handler must include the same Identifier
+# as the AuthBy UNIX Identifier.
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# $Id: hooks.txt,v 1.24 2013/12/13 21:55:14 hvn Exp $ 
+
+sub 
+{
+    my $p = ${$_[0]};
+    my $fp = ${$_[1]};
+    my $rp = ${$_[2]};
+
+    # Get the Identifier for this Realm/Handler
+    my $identifier = Radius::Util::format_special('%{Handler:Identifier}', $p, $rp);
+    &main::log($main::LOG_DEBUG, "Using Identifier $identifier");
+
+    # Now find the AuthBy clause with the same Identifier
+    # and call its handle_request function.
+    # Set the correct reply code in the reply packet
+    # or if the AuthBy is not found set to Access-Reject.
+    my $authby;
+    if ($authby = Radius::AuthGeneric::find($identifier))
+    {
+	&main::log($main::LOG_DEBUG, "Found AuthBy with Identifier $identifier");
+	my ($rc, $reason) = $authby->handle_request($p, $rp);
+
+        if ($rc == $main::ACCEPT)
+        {
+            $rp->set_code('Access-Accept');
+        }
+        else
+        {
+	    $rp->set_code('Access-Reject');
+        }
+    }
+    else
+    {
+	&main::log($main::LOG_ERR, "No AuthBy with Identifier $identifier");  
+	$rp->set_code('Access-Reject');
+    }
+
+    # Reply to the Client that sent the request.
+    $p->{Client}->replyTo($p);
+    return;
+}
+
+--------------------------------------------------------------------
+
+# cisco-nas-port.pl
+# PreClientHook to extract NAS-Port information.
+#
+# Cisco encodes information in the NAS-Port attribute as follows:
+#
+# nl-rt-sh-vpn-aer11(config)#radius-server attribute nas-port format ?
+#  a  Format is type, channel, port
+#  b  Either interface(16) or isdn(16), async(16)
+#  c  Data format(bits): shelf(2), slot(4), port(5), channel(5)
+#  d  Data format(bits): slot(4), module(1), port(3), vpi(8), vci(16)
+#
+# This hook is written for Cisco format "d" above (ATM vpi/vci).
+#
+# The encoded information is extracted and the individual data elements
+# are added to the request packet as pseudo-attributes.
+#
+# Hugh Irvine, Open System Consultants, 20010622
+
+sub
+{
+	my $p = ${$_[0]};
+
+	my $nasport = $p->get_attr('NAS-Port');
+
+	if (defined($nasport))
+	{
+		my ($slot, $module, $port, $vpi, $vci);
+		$vci = $nasport & 0xffff;
+		$nasport = $nasport >> 16;
+		$vpi = $nasport & 0xff;
+		$nasport = $nasport >> 8;
+		$port = $nasport & 0x7;
+		$nasport = $nasport >> 3;
+		$module = $nasport & 0x1;
+		$nasport = $nasport >> 1;
+		$slot = $nasport & 0xf;
+		$p->add_attr('Cisco-NAS-Port-Vci', $vci)
+			if defined $vci;
+		$p->add_attr('Cisco-NAS-Port-Vpi', $vpi)
+			if defined $vpi;
+		$p->add_attr('Cisco-NAS-Port-Port', $port)
+			if defined $port;
+		$p->add_attr('Cisco-NAS-Port-Module', $module)
+			if defined $module;
+		$p->add_attr('Cisco-NAS-Port-Slot', $slot)
+			if defined $slot;
+	}
+}
+
+----------------------------------------------------------------------
+
+This hook can be used to add User-Name attributes to accounting requests 
+that may not contain them.
+
+
+At the top level of the configuration file add this:
+
+
+.......
+PreClientHook file:"%D/addUserName"
+.......
+
+
+Then in the authentication AuthBy, add this:
+
+
+        <AuthBy ...>
+                .....
+                AddToReply ....... ,
+                        Class = %{User-Name}
+        </AuthBy>
+
+
+This will add a reply attribute called "Class" that will contain a copy 
+of the User-Name, and this attribute will be included in all subsequent 
+accounting requests for this session. Then add a single PreClientHook 
+that will check for the presence of the User-Name and Class attributes, 
+and if the Class is present but the User-Name is not, then add a 
+User-Name attribute to the request using the contents of the Class 
+attribute.
+
+
+Here is the hook code in the file addUserName:
+
+
+# -*- mode: Perl -*-
+# addUserName
+#
+# PreClientHook to add a User-Name attribute to accounting requests
+#
+# The Class attribute is used to store a copy of the User-Name
+# when the initial access request is processed.
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2002 Open System Consultants
+#
+sub
+{
+     my $p = ${$_[0]};
+
+
+     my $code = $p->code();
+
+
+     if ($code eq 'Accounting-Request')
+     {
+         my $username = $p->get_attr('User-Name');
+         my $class = $p->get_attr('Class');
+         if (defined $class && !defined $username)
+         {
+             $p->add_attr('User-Name', $class);
+         }
+     }
+     return;
+}
+
+----------------------------------------------------------------------
+
+This AuthBy RADIUS ReplyHook can be used to decode and reencode a custom vendor-specific attribute
+that is encrypted the same was as the standars radius password attribute, using the shared
+secret for each hop.
+UPDATE: as of 2007-08-02, it is easier to add encryption flags to the
+dictionary to handle this kind of custom VSA like this:
+VENDORATTR      9999 my-vsa    9999 binary encrypt=1
+
+Change 2 instances of my-vsa in the code below to the name of your custom VSA.
+     <AuthBy RADIUS>
+	     ......
+		# Decode and reencode an attribute for the next hop upstream
+		# $p is the reply we just received from the remote
+		# $op is the original request from the NAS
+		# $host is the Radius::Host structure for the downstream
+		ReplyHook sub { \
+		my $p = ${$_[0]};my $op = ${$_[2]};my $sp = ${$_[3]}; my $host=$_[4]; my $attr;\
+		if (defined ($attr = $p->get_attr('my-vsa'))) \
+    		{ \
+	    	    $p->change_attr('my-vsa', $p->encode_password \
+			    ($sp->decode_password($attr, $host->{Secret}), \
+			     $op->{Client}->{Secret}));\
+    		}}
+
+        </AuthBy>
+
+----------------------------------------------------------------------
+
+This hook is designed to parse multiple cisco-avpairs.
+
+Contributed by:
+
+Chris.Patterson@transact.com.au
+
+All I'm doing here is taking each cisco-avpair attribute from the incoming packet and adding new attributes onto the same incoming packet.
+
+eg:
+        cisco-avpair = "task_id=62"
+        cisco-avpair = "timezone=UTC"
+        cisco-avpair = "service=shell"
+        cisco-avpair = "priv-lvl=0"
+        cisco-avpair = "cmd=exit <cr>"
+
+become:
+		task_id = 62
+		timezone = UTC
+		service = shell
+		priv-lvl = 0
+		cmd = "exit <cr>"
+
+Hope this assists people in their endeavours!
+
+Cheers
+Chris.
+
+
+radiator.cfg
+
+<Handler>
+	PreProcessingHook	file:"%D/createavpairs"
+	<AuthBy SQL>
+		DBSource	dbi:mysql:radius
+		DBUsername	test
+		DBAuth		test
+
+		AccountingTable	ACCOUNTING
+		AcctColumnDef		TIMESTAMP,Timestamp,integer
+		AcctColumnDef		NASIP,NAS-IP-Address
+		AcctColumnDef		USERNAME,User-Name
+		AcctColumnDef		CALLLINGID,Calling-Station-Id
+		AcctColumnDef		PRIVLVL,priv-lvl
+		AcctColumnDef		CMD,cmd
+	</AuthBy>
+</Handler>
+
+
+createavpairs
+
+sub {
+	my $p=${$_[0]};
+	if (my @avpair = $p->get_attr('cisco-avpair')) {
+		foreach my $avpair (@avpair) {
+			$p->add_attr(split('=',$avpair));
+		}
+	}
+}
+
+----------------------------------------------------------------------
+
+This is an example PostAuthHook showing how to cause a REJECT.
+Note the definition of $handled and $reason.
+Also note the use of $$handled and $$reason.
+
+sub 
+{
+    my $p = ${$_[0]};
+    my $rp = ${$_[1]};
+    my $handled = $_[2];
+    my $reason = $_[3];
+
+    my $code = $p->code;
+
+    return unless $code eq 'Access-Request';
+
+    my $timeout = $rp->get_attr('Session-Timeout');
+
+    if($timeout <= 0)
+    {
+        $$handled = $main::REJECT;
+        $$reason = 'No time remaining';
+    }
+}
+
+
+----------------------------------------------------------------------
+
+Here is a simple WINCHHook that logs the contents of the internal session database to the debug log.
+
+Copy the code to a file called "dump" in the directory defined by DbDir and add the following to your configuration file:
+
+WINCHHook file:"%D/dump"
+
+
+#
+# dump
+# WINCHHook to dump internal session database
+#
+
+sub
+{
+        &main::log($main::LOG_DEBUG,"WINCHHook: dumping internal session database");
+
+        my $sessdb = $Radius::SessGeneric::db;
+
+        foreach my $key (keys (%{$sessdb->{Sessions}}))
+        {
+                my $session = $sessdb->{Sessions}{$key};
+                $session =~ s/\001/ /g;
+                &main::log($main::LOG_DEBUG,"Session: $key $session");
+        }
+}
+
+
+You would fire the hook by sending a -WINCH signal to the radiusd process:
+
+kill -WINCH ###
+
+where ### is the pid number of the radiusd process.
+ 
+
+----------------------------------------------------------------------
+
+This is an example hook to parse multiple Digest-Attributes into
+individual attributes which are added to the incoming request.
+
+Contributed by:
+
+Igor BriÅ¡ki - igor.briski@iskon.hr
+
+
+# -*- mode: Perl -*-
+#
+# DigestHook, (c)2004. Igor Briski, Iskon Internet d.d.
+# 
+# Used as a PreHandlerHook to unpack inner attributes from 
+# Digest-Attributes as per draft-sterman-aaa-sip-00.txt 
+# and insert them as standalone attributes in current packet
+# 
+
+sub 
+{
+   my $p = ${$_[0]};
+
+   if (defined($p->get_attr('Digest-Response'))) 
+   {
+      my ($username, $realm, $nonce, $uri, $qop, $method, $nc, $cnonce, $algorithm, $body_digest);
+
+      my $sipattrs = join('', $p->get_attr('Digest-Attributes')); # May be multiple instances
+      if (defined $sipattrs)
+      {
+         my @attrs;
+
+         # Unpack inner attributes from Digest-Attributes as per draft-sterman-aaa-sip-00.txt
+         while (length($sipattrs))
+         {
+             my ($subtype, $sublength) = unpack('C C', $sipattrs);
+             last if $sublength < 3;
+             my $vallen = $sublength - 2;
+             $attrs[$subtype] = unpack("x x a$vallen", $sipattrs);
+             substr($sipattrs, 0, $sublength) = undef; # Strip that one off
+         }
+         $realm       = $attrs[1];
+         $nonce       = $attrs[2];
+         $method      = $attrs[3];
+         $uri         = $attrs[4];
+         $qop         = $attrs[5];
+         $algorithm   = $attrs[6];
+         $body_digest = $attrs[7];
+         $cnonce      = $attrs[8];
+         $nc          = $attrs[9];
+         $username    = $attrs[10];
+
+         $p->add_attr('Digest-Realm', $realm) if defined $realm;
+         $p->add_attr('Digest-Nonce', $nonce) if defined $nonce;
+         $p->add_attr('Digest-Method', $method) if defined $method;
+         $p->add_attr('Digest-URI', $uri) if defined $uri;
+         $p->add_attr('Digest-QOP', $qop) if defined $qop;
+         $p->add_attr('Digest-Algorithm', $algorithm) if defined $algorithm;
+         $p->add_attr('Digest-Body-Digest', $body_digest) if defined $body_digest;
+         $p->add_attr('Digest-CNonce', $cnonce) if defined $cnonce;
+         $p->add_attr('Digest-Nonce-Count', $nc) if defined $nc;
+         $p->add_attr('Digest-User-Name', $username) if defined $username;
+	 
+         &main::log($main::LOG_DEBUG,"Digest-Attributes parsed to:");
+         &main::log($main::LOG_DEBUG,"Digest-Realm = $realm");
+         &main::log($main::LOG_DEBUG,"Digest-Nonce = $nonce");
+         &main::log($main::LOG_DEBUG,"Digest-Method = $method");      
+         &main::log($main::LOG_DEBUG,"Digest-URI = $uri");
+         &main::log($main::LOG_DEBUG,"Digest-QOP = $qop");
+         &main::log($main::LOG_DEBUG,"Digest-Algorithm = $algorithm");
+         &main::log($main::LOG_DEBUG,"Digest-Body-Digest = $body_digest");
+         &main::log($main::LOG_DEBUG,"Digest-CNonce = $cnonce");
+         &main::log($main::LOG_DEBUG,"Digest-Nonce-Count = $nc");
+         &main::log($main::LOG_DEBUG,"Digest-User-Name = $username");
+      }
+   }
+   return;
+}
+
+
+
+----------------------------------------------------------------------
+
+This hook shows how to extract the IP address of the interface that received the currect radius request.
+
+Contributed by Miko <miko@yournetplus.com>.
+
+Thanks Mike, I was able to use the {RecvSocket} reference.
+
+Here is an example of the code I came up with in testing, 
+using a PreProcessingHook to display the info in a log. 
+The only stipulation on this working tho is that you must use BindAddress and 
+force Rradiator to bind on the IPs of the machine. 
+Allowing it to bind to 0.0.0.0 ends up returning a null for the localipaddress for some reason...
+
+PreProcessingHook sub {                                      \
+ my $p = ${$_[0]};                                           \
+ my $insockaddr = getsockname($p->{RecvSocket});             \ 
+ my ($inport,$inaddr) = Radius::Util::unpack_sockaddr_in($insockaddr); \
+ $inaddr = Radius::Util::inet_ntop($inaddr);                              \
+ &main::log($main::LOG_DEBUG, "LocalAddr: $inaddr,$inport");              \
+}
+
+
+----------------------------------------------------------------------
+
+This hook allows you to do conditional flood control to rate limit radius requests.
+
+The hook counts the number of access requests received in each second for each NAS
+and conditionally returns an Access-Accept if the count exceeds a preset limit.
+Special reply attributes can be added to the conditional access accept by using
+an AddToReply to restrict access to a maintenance web site for example.
+
+
+# RequestHook for AuthBy INTERNAL
+# This hook counts the number of access requests that are received for a
+# particular NAS, and returns an ACCEPT if there are more than 100 per second.
+# A Session-Timeout reply attribute is added to the reply with a random
+# value between 1 and 1200 seconds (20 minutes).
+#
+# Note: these values should be altered as required.
+#
+# Hugh Irvine, Open System Consultants, 20050829
+
+sub
+{
+        my $p = $_[0];
+
+        my $time = time;
+        my $code = $p->code;
+        my $nas = $p->{Client};
+
+        if ($time == $nas->{last_throttle_time} && $code eq 'Access-Request')
+        {
+                if (++$nas->{throttle_count} > 100)
+                {
+                        $p->{rp}->add_attr('Session-Timeout', int(rand(1200) + 1));
+                        return ($main::ACCEPT, 'Conditional flood control');
+                }
+        }
+        else
+        {
+                $nas->{throttle_count} = 0;
+        }
+        $nas->{last_throttle_time} = $time;
+        return ($main::IGNORE, 'Continue to proxy');
+}
+
+
+
+Here is an example of how to use the hook.
+
+
+<Handler .....>
+
+        AuthByPolicy ContinueWhileIgnore
+
+        <AuthBy INTERNAL>
+                RequestHook file:"throttle.pl"
+		AddToReply .....
+        </AuthBy>
+
+	# normal AuthBy
+        <AuthBy .....>
+                .....
+        </AuthBy>
+
+</Handler>
+
+
+----------------------------------------------------------------------
+
+This is an alternative version of the hook shown above.
+
+The hook saves the time of the last Access-Request for each user
+and conditionally returns an Access-Accept if the time is less than a preset limit.
+Special reply attributes can be added to the conditional access accept by using
+an AddToReply to restrict access to a maintenance web site for example.
+
+NB: this version will use memory in direct proportion to the number of users.
+
+# RequestHook for AuthBy INTERNAL
+# This hook saves the time of the last Access-Request for each user, and returns
+# Access-Accept if the time difference between requests is less than 5 seconds.
+# A Session-Timeout reply attribute is added to the reply with a random
+# value between 1 and 1200 seconds (20 minutes).
+#
+# Note: these values should be altered as per local requirements.
+# This code uses memory in direct proportion to the number of users.
+# ==================================================================
+#
+# Hugh Irvine, Open System Consultants, 20060202
+
+sub
+{
+    my $p = $_[0];
+
+    my $code = $p->code;
+
+    return ($main::IGNORE, 'Continue processing other requests')
+        unless $code eq 'Access-Request';
+
+    my $user = $p->get_attr('User-Name');
+    my $this_request_time = time;
+    my $last_request_time = &main::getVariable($user);
+
+    # save the time of this request for this user
+    &main::setVariable($user, $this_request_time);
+
+    if ($this_request_time - $last_request_time < 5)
+    {
+        $p->{rp}->add_attr('Session-Timeout', int(rand(1200) + 1));
+        return ($main::ACCEPT, 'Conditional flood control');
+    }
+
+    return ($main::IGNORE, 'Continue normal processing');
+}
+
+
+----------------------------------------------------------------------
+
+
+When using FarmSize n to enable multiple children, clauses like Monitor and SNMPAgent incorrectly share their Port with the parent process.
+
+This hook runs in each child and closes the Monitor and SNMPAgent ports and reopens them on a different port number.
+
+Requires Radiator 4.4 plus patches (September 22, 2009).
+
+Add Identifier's to both clauses together with appropriate Port's (%O is the child number)  and a FarmChildHook:
+
+
+.....
+
+FarmSize 2
+FarmChildHook file:"%D/etc/scripts/child-hook.pl"
+
+<Monitor>
+       Identifier MyMonitor
+       Port 907%O
+</Monitor>
+
+<SNMPAgent>
+       Identifier MySNMPAgent
+       Port 908%O
+       ROCommunity blahblah
+</SNMPAgent>
+
+......
+
+
+Here is the hook code:
+
+
+# child-hook.pl
+# Hugh Irvine, Open System Consultants, 20090922
+
+sub
+{
+       my $monitor = Radius::Configurable::find('Monitor', 'MyMonitor');
+       if (defined $monitor)
+       {
+               $monitor->destroy();
+               $monitor->activate();
+       }
+
+       my $snmpagent = Radius::Configurable::find('SNMPAgent', 'MySNMPAgent');
+       if (defined $snmpagent)
+       {
+               $snmpagent->reinitialize();
+               $snmpagent->activate();
+       }
+
+       return;
+}
+
+
+Here is the result:
+
+-bash-3.2$ netstat -na
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address               Foreign Address             State
+.....
+tcp        0      0 0.0.0.0:9070                0.0.0.0:*                   LISTEN
+tcp        0      0 0.0.0.0:9071                0.0.0.0:*                   LISTEN
+tcp        0      0 0.0.0.0:9072                0.0.0.0:*                   LISTEN
+.....
+udp        0      0 0.0.0.0:9080                0.0.0.0:*
+udp        0      0 0.0.0.0:9081                0.0.0.0:*
+udp        0      0 0.0.0.0:9082                0.0.0.0:*
+
+
+----------------------------------------------------------------------
+
+This hook is a PreHandlerHook for use in a ServerTACACSPLUS clause.
+The code adds an "OSC-Client-Identifier" attribute to the request
+to differenciate between Client devices.
+
+Contributed by "Andrew D. Clark" <adc@umn.edu>.
+
+# PreHandlerHook to pull the Identifier out of the client clause
+# for TACACS+ clients.  The Identifier is then added to the request
+# in the 'OSC-Client-Identifier' VSA
+
+sub {
+       my $p = ${$_[0]};
+       my $hook_name = 'tacacs_client_identifier';
+
+       &main::log($main::LOG_DEBUG, "Hook $hook_name called");
+
+       my $client_addr = $p->get_attr('NAS-IP-Address');
+       my $client = Radius::Client::findAddress($client_addr);
+
+       &main::log($main::LOG_DEBUG, "Hook $hook_name searching for client <$client_addr>");
+       &main::log($main::LOG_DEBUG, "Hook $hook_name got client ident <$client->{'Identifier'}>");
+
+       $p->add_attr('OSC-Client-Identifier', $client->{'Identifier'});
+
+       return;
+}
+
+
+----------------------------------------------------------------------
+If you need to pass additional arguments to Hooks, you could consider
+the following example. Here the PostAuthHook requires two additional
+arguments which depend on the chosen Handler. The two Hook specific
+values are passed first in case the number or type of values passed
+by Radiator will change in the future. 
+
+# radiusd config file
+.....
+StartupHook sub { require "/etc/radiator/MyHooks.pm"; }
+<Handler ...>
+   # AuthBys
+   PostAuthHook sub { MyHooks::sendSMS('account1', 'otherparam1', @_); }
+</Handler>
+<Handler ...>
+   # AuthBys
+   PostAuthHook sub { MyHooks::sendSMS('account2', 'otherparam2', @_); }
+</Handler>
+.....
+
+File MyHooks.pm would be something like this:
+
+# start of MyHooks.pm
+package MyHooks;
+use strict;
+use warnings;
+# PostAuthHook
+#
+sub sendSMS {
+    my $account = $_[0];   # Account name
+    my $param = $_[1];     # Some other param
+    my $p = ${$_[2]};      # Request packet
+    my $rp = ${$_[3]};     # Response packet
+    my $result = $_[4];    # Verdict: success or not
+    my $reason = $_[5];    # String that tells reason for a reject
+
+    # your code goes here
+}
+
+1;
+# end of MyHooks.pm
+
+----------------------------------------------------------------------
+
+You can control the Trace level based on e.g., the current request
+like below. The example shows how to switch to DEBUG if the user
+is 'mikem' and switch back to INFO otherwise.
+
+# radiusd configuration file
+# Note: PreClientHook is called before binary attributes are decoded
+PreClientHook file:"%D/debug-mikem-hook.pl"
+
+# debug-mikem-hook.pl
+# Checks the current Trace to minimise calls to setTrace
+sub
+{
+    my $p=${$_[0]};
+    my $u = $p->get_attr('User-Name');
+    if ($u eq 'mikem')
+    {
+        return if $main::config->{Trace} == $main::LOG_DEBUG;
+        $main::config->{Trace} = Radius::Log::setTrace($main::LOG_DEBUG);
+    }
+    elsif ($main::config->{Trace} != $main::LOG_INFO)
+    {
+        $main::config->{Trace} = Radius::Log::setTrace($main::LOG_INFO);
+    }
+}
+
+----------------------------------------------------------------------
+

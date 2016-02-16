@@ -1,0 +1,176 @@
+#!/bin/sh
+#
+# radiator      This shell script takes care of starting and stopping
+#               Radiator (radius daemon).
+#
+# chkconfig: 2345 90 15
+# description: radiator is the radius daemon required for RAS AAA.
+# processname: /usr/bin/radiusd
+# pidfile: /var/log/radius/radiusd.pid
+# config: /etc/radiator/radius.cfg
+# config: /etc/sysconfig/radiator
+#
+# Next section is required for LSB by http://wiki.debian.org/LSBInitScripts
+### BEGIN INIT INFO
+# Provides:          radiator
+# Required-Start:    $remote_fs $syslog $named $network
+# Required-Stop:     $remote_fs $syslog $named $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+#
+# Startup script for Radiator on Linux. Install this as 
+# /etc/init.d/radiator. If you have chkconfig, you can use
+# chkconfig -add radiator
+# to generate the required start asnd stop entries in /etc/rc[2345].d/
+# Otherwise, you need to add symlinks to /etc/rc[2345].d/
+#
+# config: /etc/radiator/radius.cfg
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2000-2005 Open System Consultants
+# $Id: linux-radiator.init,v 1.25 2012/12/14 03:28:45 mikem Exp $
+
+# You can override defaults by setting variables in /etc/sysconfig/PROGNAME where PROGNAME
+# is the name of this script (eg /etc/sysconfig/radiator)
+# readlink gets the real init file name, just in case it is invoked from a symlink:
+PROGRAM=`readlink -f $0`
+PROGRAM=`basename ${PROGRAM}`
+SYSCONFIG=/etc/sysconfig/${PROGRAM}
+
+[ -f "${SYSCONFIG}" ] && . "${SYSCONFIG}"
+
+[ -z "${RADIUSD}" ] && RADIUSD=/usr/bin/radiusd
+[ -z "${RADIATOR_CONFIG}" ] && RADIATOR_CONFIG=/etc/radiator/radius.cfg
+[ -z "${RADIUSD_PIDFILE}" ] && RADIUSD_PIDFILE="/var/log/radius/radiusd.pid"
+[ -z "${RADIATOR_ARGS}" ] && RADIATOR_ARGS=""
+[ -z "${RADIUSD_ARGS}" ] && RADIUSD_ARGS="-pid_file $RADIUSD_PIDFILE -config_file $RADIATOR_CONFIG -daemon $RADIATOR_ARGS"
+
+# Source 'em up
+if [ -f /etc/init.d/functions ]; then
+# LSB, RedHat, Mandrake etc:
+. /etc/init.d/functions
+STARTPROC="daemon $RADIUSD $RADIUSD_ARGS"
+CHECKPROC="status -p ${RADIUSD_PIDFILE} ${PROGRAM}"
+KILLPROC="killproc -p ${RADIUSD_PIDFILE} -d 5 ${PROGRAM}"
+RELOADPROC="killproc -p ${RADIUSD_PIDFILE} ${PROGRAM} -HUP"
+TRACEUPPROC="killproc -p ${RADIUSD_PIDFILE} ${PROGRAM} -USR1"
+TRACEDOWNPROC="killproc -p ${RADIUSD_PIDFILE} ${PROGRAM} -USR2"
+elif  [ -x /sbin/start-stop-daemon ]; then
+# Debian, Ubuntu
+STARTPROC="/sbin/start-stop-daemon --start --pidfile ${RADIUSD_PIDFILE} --exec $RADIUSD -- $RADIUSD_ARGS"
+CHECKPROC='ps -fp `cat ${RADIUSD_PIDFILE}`'
+KILLPROC="/sbin/start-stop-daemon --stop --retry 6 --pidfile ${RADIUSD_PIDFILE}"
+RELOADPROC="/sbin/start-stop-daemon --stop --signal HUP --pidfile ${RADIUSD_PIDFILE}"
+TRACEUPPROC="/sbin/start-stop-daemon --stop --signal USR1 --pidfile ${RADIUSD_PIDFILE}"
+TRACEDOWNPROC="/sbin/start-stop-daemon --stop --signal USR2 --pidfile ${RADIUSD_PIDFILE}"
+elif [ -x /sbin/startproc ]; then
+# SuSE etc
+STARTPROC="/sbin/startproc $RADIUSD $RADIUSD_ARGS"
+CHECKPROC='ps -fp `cat ${RADIUSD_PIDFILE}`'
+KILLPROC="killproc -p ${RADIUSD_PIDFILE} $RADIUSD"
+RELOADPROC="killproc -p ${RADIUSD_PIDFILE} -HUP $RADIUSD"
+TRACEUPPROC="killproc -p ${RADIUSD_PIDFILE} -USR1 $RADIUSD"
+TRACEDOWNPROC="killproc -p ${RADIUSD_PIDFILE} -USR2 $RADIUSD"
+else
+# No daemon starter; Slackware?
+STARTPROC="$RADIUSD $RADIUSD_ARGS"
+CHECKPROC=
+KILLPROC="killproc -p ${RADIUSD_PIDFILE}"
+RELOADPROC="killproc -p ${RADIUSD_PIDFILE} -HUP"
+TRACEUPPROC="killproc -p ${RADIUSD_PIDFILE} -USR1"
+TRACEDOWNPROC="killproc -p ${RADIUSD_PIDFILE} -USR2"
+fi
+
+
+# Source additional OPTIONS if we have them.
+if [ -f /etc/sysconfig/radiator ] ; then
+	. /etc/sysconfig/radiator
+fi
+
+if [ ! -x $RADIUSD ]; then
+	exit 0
+fi
+
+start() {
+    # don't do squat if we don't have the config file
+    if [ -f $RADIATOR_CONFIG ]; then
+	echo -n "Starting Radiator: "
+	$STARTPROC
+	RETVAL=$?
+	echo
+    else
+	echo Unable to find config file $RADIATOR_CONFIG!
+    fi
+    return $RETVAL
+}
+
+stop() {
+    echo -n "Shutting down Radiator: "
+    $KILLPROC
+    RETVAL=$?
+    echo
+    return $RETVAL
+}
+
+getstatus() {
+        eval $CHECKPROC
+	RETVAL=$?
+	return $RETVAL
+}
+
+reload() {
+	echo -n "Reloading Radiator configuration (via SIGHUP): "
+	$RELOADPROC
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+traceup() {
+	echo -n "Increasing Trace Level by 1 (via USR1): "
+	$TRACEUPPROC
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+tracedown() {
+	echo -n "Decreasing Trace Level by 1 (via USR2): "
+	$TRACEDOWNPROC
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+case "$1" in
+  start)
+       start
+    ;;
+  stop)
+       stop
+    ;;
+  reload)
+	reload
+    ;;
+  restart)
+        stop
+        start
+    ;;
+  status)
+	getstatus
+    ;;
+  traceup)
+  	traceup
+    ;;
+  tracedown)
+  	tracedown
+    ;;
+  *)
+	echo "Usage: $0 {start|stop|restart|reload|status|traceup|tracedown}"
+	exit 1
+esac
+
+exit $RETVAL
+

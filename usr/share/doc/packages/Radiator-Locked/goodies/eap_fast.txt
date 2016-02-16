@@ -1,0 +1,127 @@
+This document describes how to enable suport for EAP-FAST in Radaitor
+4.8+patches, as at September 2011.
+
+EAP-FAST is an EAP authentication protocol invented by Cisco and documented in
+RFC 4851 and draft-cam-winget-eap-fast-provisioning-04. It is similar to TTLS
+and PEAP, in that it establishes a TLS tunnel over Radius, and through the
+tunnel, inner EAP authentication protocols (such as EAP-MSCHAPV2 or EAP-GTC)
+can be used to authenticate the user. In contrast to TTLS and PEAP, there is a
+mechanism for establishing and distributing Protected Access Credentials
+(PACs) from a Radius server to 802.1X supplicants. These PACS are basically
+reusable keys to allow EAP-FAST sessions to be reestablished securely.
+
+Radiator 3.17.1+patches and later versions support EAP-FAST, 
+but in order to do so, it requires
+a number of recently added features in OpenSSL and Net-SSLeay. OSC provides a
+precompiled Net::SSLeay+OpenSSL+EAP-FAST-patches bundles for Linux and
+Windows.
+
+
+The rest of this document describes how to install EAP-FAST support in
+Radiator.
+
+1. If you intend to run Radiator on i386 Linux (32 bit) with Perl 5.8.7, download
+   and install the precompiled RPM with:
+   rpm -Uvh  http://www.open.com.au/radiator/free-downloads/Net-SSLeay-1.32-1.i386.rpm
+   goto step 5
+
+2. Otherwise, if you intend to run Radiator on x86 Windows with ActiveState
+   ActivePerl 5.6 or 5.8, download and install the precompiled PPD with
+   ppm install http://www.open.com.au/radiator/free-downloads/Net-SSLeay.ppd
+   goto step 5
+
+3. Else you must build and install OpenSSL with Jouni Malinen's Session Secret
+   patches.
+
+   Jouni Malinenen, as part of the wpa_supplicant project has made patches for
+   OpenSSL that add support for a new SSL_set_session_secret_cb, which is
+   required for EAP-FAST support. Patches are available for OpenSSL 0.9.8d,
+   0.9.8e and the currently under development 0.9.9-dev. Patches are available
+   here in the Radiator goodies directory as:
+   openssl-0.9.8d-session-ticket-osc.patch
+   openssl-0.9.8e-session-ticket-osc.patch
+   openssl-0.9.8i-tls-extensions.patch
+   openssl-0.9.9-session-ticket.patch
+   The 0.9.9 patch installs cleanly against the 0.9.9-dev snapshot in
+   openssl-SNAP-20070816.tar.gz.
+
+   The preferred version is currently the latest stable verison 0.9.8i
+   In order to build OpenSSL with these patches, do something like:
+   tar zxvf openssl-0.9.8i.tar.gz
+   cd openssl-0.9.8i
+   (if using GCC4.2 see below)
+   patch -p 1 < ../openssl-0.9.8i-tls-extensions.patch
+   Then compile and install OpenSSL as per the instructions in the OpenSSL
+   INSTALL file. You must use the enable-tlsext flag:
+   ./config enable-tlsext ...whatever....
+   make
+   make install
+
+   It is hoped and expected that these patches will be incorporated into the
+   OpenSSL mainline soon. (As at 2011-09-24, they stillhave not been
+   incorporated into OPneSSL 1.0.)
+   goto step 4
+
+   Hint: if you are building openssl 0.9.8e or earlier with GCC4.2, you will
+   need to apply openssl-0.9.8e-gcc42.patch (from
+   http://bugs.gentoo.org/attachment.cgi?id=119315 among other places), else
+   you wil get crashes with 'Illegal instruction'. 
+   Apply the patch before openssl-0.9.8e-session-ticket-osc.patch
+
+4. Then build and install Net-SSLeay
+
+   tar zxvf Net-SSLeay-1.40.tar.gz
+   cd Net-SSLeay-1.40
+   perl Makefile.PL
+   make
+   make install
+
+   goto step 5
+
+
+   (Caution: Net-SSLeay 1.32 does not include support for the 
+   SSL_set_session_secret_cb,
+   and requires patching too with this comand:
+   patch -p 1 <../net-ssleay-1.32-session-ticket.patch
+   This patch is not required for Net-SSLeay 1.33 and later (available at CPAN
+   www.cpan.org)
+   )
+   Hint: On some 64 bit Linux distros (eg Red Hat EL5), you may get link
+   errors from Net-SSLeay. In this case, you need to rebuild openssl as
+   shared (./config -shared), and then rebuild Net-SSLeay. You may also need
+   to specify LD_LIBRARY_PATH=/usr/local/ssl/lib when you run Radiator so it
+   finds the OpenSSL shared library.
+
+5. Configure Radiator to use EAP-FAST.
+
+   Support for EAP-FAST is included in the 3.17.1 full source patch set, and
+   in later versions of Radiator. For 3.17.1, use the full source distribution
+   and the patch set. EAP-FAST is not available for the 3.17.1 RPM and binary
+   distributions):
+
+   tar zxvf Radiator-4.8.tgz 
+   cd Radiator-4.8
+   perl Makefile.PL 
+   .... etc as per Radiator installation instructions.
+
+   Configuring Radiator for EAP-FAST is similar to configuring for EAP-TTLS or
+   EAP-PEAP support. EAP-FAST can also be supported alongside other
+   EAP authentication protocols simultaneously.
+   The only extra configuration parameter required is EAPTLS_DHFile which must
+   specify a Diffie Helman parameters file. A suitable DH params file is
+   included in dh2048.pem in the certificates directory in your Radiator
+   distribution. This file is known to work with Odyssey Access Client
+   Manager, which is very picky about the DH params it will accept.
+   EAPTLS_DHFile %D/certificates/dh2048.pem
+
+   Some optional parameters allow you to configure the PAC 
+   There is a sample configuration file that shows how to configure for just
+   EAP-FAST support in goodies/eap_fast.cfg in your configuration. And
+   goodies/eap_multi.cfg shows one way to configure multiple EAP protocol suport,
+   including EAP-FAST.
+
+   Radiator EAP-FAST has been tested against the following supplicants:
+   Juniper Odyssey Acccess Client Manager 4.60.49455.0
+   Cisco Secure Services Client 4.2.0.6187
+   wpa_supplicant 0.6.0 and 0.7.3
+

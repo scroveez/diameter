@@ -1,0 +1,527 @@
+#
+# $Id: dictionary.acc,v 1.1 2002/12/12 05:21:24 mikem Exp $
+#
+#	This file contains dictionary translations for parsing
+#	requests and generating responses.  All transactions are
+#	composed of Attribute/Value Pairs.  The value of each
+#	attribute is specified as one of five data types.
+#	Valid data types are:
+#
+#	string	-- 0-253 octets of plain-text
+#	hidden	-- 0-253 octest of cipher-text
+#	ipaddr	-- 4 octets in network byte order
+#	integer -- 32 bit value in big endian order (high byte first)
+#	date	-- 32 bit value in big endian order - seconds since
+#		   00:00:00 GMT, Jan 1, 1970
+#
+#	Attributes may also be tagged.	Tagged attributes are indicated
+#	by prepending "tagged-" to the data types listed above:
+#
+#	tagged-string
+#	tagged-hidden
+#	tagged-ipaddr
+#	tagged-integer
+#	tagged-date
+#
+#	Enumerated values are stored in the users file with dictionary
+#	VALUE translations for easy administration.
+#
+#	Integer values listed below with the same dictionary VALUE "name"
+#	MUST be assigned the same numerical value.
+#
+#	Example:
+#
+#	ATTRIBUTE	  VALUE
+#	---------------	  -----
+#	Framed-Protocol = PPP
+#	7		= 1	(integer encoding)
+#
+#	ATTRIBUTE names and VALUE names should be limited to 31
+#	characters or less as this is the limit supported by
+#	most server implementations based on the Livingston 1.16
+#	public-domain code.  If the name text does not fit in the
+#	space provided below, then it is too long.
+#
+
+ATTRIBUTE	User-Name			1	string
+ATTRIBUTE	User-Password			2	string
+ATTRIBUTE	CHAP-Password			3	binary
+ATTRIBUTE	NAS-IP-Address			4	ipaddr
+ATTRIBUTE	NAS-Port			5	integer
+ATTRIBUTE	Service-Type			6	integer
+ATTRIBUTE	Framed-Protocol			7	integer
+ATTRIBUTE	Framed-IP-Address		8	ipaddr
+ATTRIBUTE	Framed-IP-Netmask		9	ipaddr
+ATTRIBUTE	Framed-Routing			10	integer
+ATTRIBUTE	Filter-Id			11	string
+ATTRIBUTE	Framed-MTU			12	integer
+ATTRIBUTE	Framed-Compression		13	integer
+ATTRIBUTE	Login-IP-Host			14	ipaddr
+ATTRIBUTE	Login-Service			15	integer
+ATTRIBUTE	Login-Port			16	integer
+#ATTRIBUTE	Old-Password			17	string	### deprecated
+ATTRIBUTE	Reply-Message			18	string
+ATTRIBUTE	Callback-Number			19	string
+ATTRIBUTE	Callback-Id			20	string
+#ATTRIBUTE	Expiration			21	date	### deprecated
+ATTRIBUTE	Framed-Route			22	string
+ATTRIBUTE	Framed-IPX-Network		23	integer
+ATTRIBUTE	State				24	string
+ATTRIBUTE	Class				25	string
+ATTRIBUTE	Vendor-Specific			26	string
+ATTRIBUTE	Session-Timeout			27	integer
+ATTRIBUTE	Idle-Timeout			28	integer
+ATTRIBUTE	Termination-Action		29	integer
+ATTRIBUTE	Called-Station-Id		30	string
+ATTRIBUTE	Calling-Station-Id		31	string
+ATTRIBUTE	NAS-Identifier			32	string
+ATTRIBUTE	Proxy-State			33	string
+ATTRIBUTE	Login-LAT-Service		34	string
+ATTRIBUTE	Login-LAT-Node			35	string
+ATTRIBUTE	Login-LAT-Group			36	string
+ATTRIBUTE	Framed-AppleTalk-Link		37	integer
+ATTRIBUTE	Framed-AppleTalk-Network	38	integer
+ATTRIBUTE	Framed-AppleTalk-Zone		39	string
+#
+#	Accounting Extensions
+#
+ATTRIBUTE	Acct-Status-Type		40	integer
+ATTRIBUTE	Acct-Delay-Time			41	integer
+ATTRIBUTE	Acct-Input-Octets		42	integer
+ATTRIBUTE	Acct-Output-Octets		43	integer
+ATTRIBUTE	Acct-Session-Id			44	string
+ATTRIBUTE	Acct-Authentic			45	integer
+ATTRIBUTE	Acct-Session-Time		46	integer
+ATTRIBUTE	Acct-Input-Packets		47	integer
+ATTRIBUTE	Acct-Output-Packets		48	integer
+ATTRIBUTE	Acct-Termination-Cause		49	integer
+ATTRIBUTE	Acct-Multi-Session-Id		50	string
+ATTRIBUTE	Acct-Link-Count			51	integer
+#
+#	Version "01" Extensions
+#
+ATTRIBUTE	CHAP-Challenge			60	binary
+ATTRIBUTE	NAS-Port-Type			61	integer
+ATTRIBUTE	Port-Limit			62	integer
+ATTRIBUTE	Login-LAT-Port			63	string
+#
+#	Version "xx" Extensions
+#
+#ATTRIBUTE	Tunnel-Type			64	tagged-integer
+#ATTRIBUTE	Tunnel-Medium-Type		65	tagged-integer
+#ATTRIBUTE	Tunnel-Client-Endpoint		66	string
+#ATTRIBUTE	Tunnel-Server-Endpoint		67	tagged-string
+ATTRIBUTE	Acct-Tunnel-Connection		68	integer
+#ATTRIBUTE	Tunnel-Password			69	tagged-hidden
+ATTRIBUTE	Prompt				72	integer
+ATTRIBUTE	Connect-Information		73	string
+#ATTRIBUTE	Tunnel-Private-Group-Id		81	tagged-string
+#ATTRIBUTE	Tunnel-Assignment-Id		82	tagged-string
+#ATTRIBUTE	Tunnel-Preference		83	tagged-integer
+ATTRIBUTE	Acct-Interim-Interval		85	integer
+
+# Support for GRIC roaming attributes
+# Gric specific attributes for radius dictionary
+ATTRIBUTE       Gric-ARS-Server-Id              100     ipaddr
+ATTRIBUTE       Gric-Roaming-Server-Id          101     string
+ATTRIBUTE       Gric-Isp-Id                     102     string
+ATTRIBUTE       Gric-Timestamp                  103     integer
+ATTRIBUTE       Timestamp                  	103     integer
+ATTRIBUTE       Gric-Timezone                   104     integer
+ATTRIBUTE       Gric-Request-Type               105     integer
+ATTRIBUTE       Gric-Proxy-Signature            106     string
+ATTRIBUTE       Gric-Destination-Server 	107     string
+ATTRIBUTE       Gric-Version                    108     string
+ATTRIBUTE       Gric-CRL-Location               109     string
+ATTRIBUTE       Gric-Acct-Delay-Time            110     integer
+
+#
+#       Integer Translations
+#
+#       Gric Roaming Service Type
+VALUE   Service-Type    Framed-User-Roaming     100
+VALUE   Service-Type    GRIC-PhoneHandset-User  102
+VALUE   Service-Type    GRIC-PhonePC-User       103
+VALUE   Service-Type    GRIC-Fax-User           104
+VALUE   Service-Type    GRIC-PhoneHandset-User-Roaming  105
+VALUE   Service-Type    GRIC-PhonePC-User-Roaming       106
+VALUE   Service-Type    GRIC-Fax-User-Roaming           107
+VALUE   Service-Type    GRIC-Login-User-Roaming         108
+
+#	Vendor Specific Attibutes
+
+#VENDORNAME	ACC	5
+
+VENDORATTR	5	Acc-Reason-Code			1	integer
+VENDORATTR	5	Acc-Ccp-Option			2	integer
+VENDORATTR	5	Acc-Input-Errors		3	integer
+VENDORATTR	5	Acc-Output-Errors		4	integer
+VENDORATTR	5	Acc-Access-Partition		5	string
+VENDORATTR	5	Acc-Customer-Id			6	string
+VENDORATTR	5	Acc-Ip-Gateway-Pri		7	ipaddr
+VENDORATTR	5	Acc-Ip-Gateway-Sec		8	ipaddr
+VENDORATTR	5	Acc-Route-Policy		9	integer
+VENDORATTR	5	Acc-ML-MLX-Admin-State		10	integer
+VENDORATTR	5	Acc-ML-Call-Threshold		11	integer
+VENDORATTR	5	Acc-ML-Clear-Threshold		12	integer
+VENDORATTR	5	Acc-ML-Damping-Factor		13	integer
+VENDORATTR	5	Acc-Tunnel-Secret		14	string
+VENDORATTR	5	Acc-Clearing-Cause		15	integer
+VENDORATTR	5	Acc-Clearing-Location		16	integer
+VENDORATTR	5	Acc-Service-Profile		17	string
+VENDORATTR	5	Acc-Request-Type		18	integer
+VENDORATTR	5	Acc-Framed-Bridge		19	integer
+VENDORATTR	5	Acc-Vpsm-Oversubscribed		20	integer
+VENDORATTR	5	Acc-Acct-On-Off-Reason		21	integer
+VENDORATTR	5	Acc-Tunnel-Port			22	integer
+VENDORATTR	5	Acc-Dns-Server-Pri		23	ipaddr
+VENDORATTR	5	Acc-Dns-Server-Sec		24	ipaddr
+VENDORATTR	5	Acc-Nbns-Server-Pri		25	ipaddr
+VENDORATTR	5	Acc-Nbns-Server-Sec		26	ipaddr
+VENDORATTR	5	Acc-Dial-Port-Index		27	integer
+VENDORATTR	5	Acc-Ip-Compression		28	integer
+VENDORATTR	5	Acc-Ipx-Compression		29	integer
+VENDORATTR      5     Acc-Connect-Tx-Speed    	30      integer
+VENDORATTR      5     Acc-Connect-Rx-Speed    	31      integer
+VENDORATTR      5     Acc-Modem_Modulation_Type       32      string
+VENDORATTR      5     Acc-Modem_Error_Protocol        33      string
+VENDORATTR      5     Acc-Callback-Delay	        34      integer
+VENDORATTR      5     Acc-Callback-Num-Valid	        35      string
+VENDORATTR      5     Acc-Callback-Mode	        36      integer
+VENDORATTR      5     Acc-Callback-CBCP-Type	        37      integer
+VENDORATTR      5     Acc-Dialout-Auth-Mode	        38      integer
+VENDORATTR      5     Acc-Dialout-Auth-Password	39      string
+VENDORATTR      5     Acc-Dialout-Auth-UserName	40      string
+VENDORATTR      5     Acc-Access-Community		42      integer
+
+#
+#	Integer Translations
+#
+
+#	Service Types
+
+VALUE	Service-Type			Login				1
+VALUE	Service-Type			Framed				2
+VALUE	Service-Type			Callback-Login			3
+VALUE	Service-Type			Callback-Framed			4
+VALUE	Service-Type			Outbound-User			5
+VALUE	Service-Type			Administrative-User		6
+VALUE	Service-Type			Shell-User			7
+VALUE	Service-Type			Authenticate-Only		8
+VALUE	Service-Type			Callback-Admin-User		9
+
+#	Framed Protocols
+
+VALUE	Framed-Protocol			PPP				1
+VALUE	Framed-Protocol			SLIP				2
+
+#	Framed Routing Values
+
+VALUE	Framed-Routing			None				0
+VALUE	Framed-Routing			Broadcast			1
+VALUE	Framed-Routing			Listen				2
+VALUE	Framed-Routing			Broadcast-Listen		3
+
+#	Framed Compression Types
+
+VALUE	Framed-Compression		None				0
+VALUE	Framed-Compression		Van-Jacobson-TCP-IP		1
+VALUE	Framed-Compression		IPX-Header-Compression		2
+VALUE	Framed-Compression		PPP-Compression			256
+
+#	Login Services
+
+VALUE	Login-Service			Telnet				0
+VALUE	Login-Service			Rlogin				1
+VALUE	Login-Service			TCP-Clear			2
+VALUE	Login-Service			PortMaster			3
+VALUE	Login-Service			LAT				4
+
+#	Termination Actions
+
+VALUE	Termination-Action		Default				0
+VALUE	Termination-Action		RADIUS-Request			1
+
+#	Accounting Status Types
+
+VALUE	Acct-Status-Type		Start				1
+VALUE	Acct-Status-Type		Stop				2
+VALUE	Acct-Status-Type		Interim				3
+VALUE	Acct-Status-Type		Accounting-On			7
+VALUE	Acct-Status-Type		Accounting-Off			8
+
+#	Authentication Types
+
+VALUE	Acct-Authentic			None				0
+VALUE	Acct-Authentic			RADIUS				1
+VALUE	Acct-Authentic			Local				2
+VALUE	Acct-Authentic			Remote				3
+
+#	Termination-Causes
+
+VALUE	Acct-Termination-Cause		User-Request			1
+VALUE	Acct-Termination-Cause		Lost-Carrier			2
+VALUE	Acct-Termination-Cause		Lost-Service			3
+VALUE	Acct-Termination-Cause		Idle-Timeout			4
+VALUE	Acct-Termination-Cause		Session-Timeout			5
+VALUE	Acct-Termination-Cause		Admin-Reset			6
+VALUE	Acct-Termination-Cause		Admin-Reboot			7
+VALUE	Acct-Termination-Cause		Port-Error			8
+VALUE	Acct-Termination-Cause		NAS-Error			9
+VALUE	Acct-Termination-Cause		NAS-Request			10
+VALUE	Acct-Termination-Cause		NAS-Reboot			11
+VALUE	Acct-Termination-Cause		Port-Unneeded			12
+VALUE	Acct-Termination-Cause		Port-Preempted			13
+VALUE	Acct-Termination-Cause		Port-Suspended			14
+VALUE	Acct-Termination-Cause		Service-Unavailable		15
+VALUE	Acct-Termination-Cause		Callback			16
+VALUE	Acct-Termination-Cause		User-Error			17
+VALUE	Acct-Termination-Cause		Host-Request			18
+
+#	NAS Port Types
+
+VALUE	NAS-Port-Type			Asynchronous			0
+VALUE	NAS-Port-Type			Synchronous			1
+VALUE	NAS-Port-Type			ISDN-Synchronous		2
+VALUE	NAS-Port-Type			ISDN-V.120			3
+VALUE	NAS-Port-Type			ISDN-V.110			4
+VALUE	NAS-Port-Type			Virtual				5
+VALUE	NAS-Port-Type			PIAFS				6
+VALUE	NAS-Port-Type			HDLC-Clear-Channel		7
+VALUE	NAS-Port-Type			X.25				8
+VALUE	NAS-Port-Type			X.75				9
+
+#	Tunnel Types
+
+VALUE	Tunnel-Type			PPTP				1
+VALUE	Tunnel-Type			L2F				2
+VALUE	Tunnel-Type			L2TP				3
+VALUE	Tunnel-Type			ATMP				4
+VALUE	Tunnel-Type			VTP				5
+VALUE	Tunnel-Type			AH				6
+VALUE	Tunnel-Type			IP-IP				7
+VALUE	Tunnel-Type			Min-IP-IP			8
+VALUE	Tunnel-Type			ESP				9
+VALUE	Tunnel-Type			GRE				10
+VALUE	Tunnel-Type			DVS				11
+VALUE	Tunnel-Type			IP-in-IP			12
+
+#	Tunnel Medium Types
+
+VALUE	Tunnel-Medium-Type		IP				1
+VALUE	Tunnel-Medium-Type		IP6				2
+VALUE	Tunnel-Medium-Type		NSAP				3
+VALUE	Tunnel-Medium-Type		HDLC				4
+VALUE	Tunnel-Medium-Type		1822				5
+VALUE	Tunnel-Medium-Type		802.x				6
+VALUE	Tunnel-Medium-Type		E.163				7
+VALUE	Tunnel-Medium-Type		E.164				8
+VALUE	Tunnel-Medium-Type		F.69				9
+VALUE	Tunnel-Medium-Type		X.121				10
+VALUE	Tunnel-Medium-Type		IPX				11
+VALUE	Tunnel-Medium-Type		Appletalk			12
+VALUE	Tunnel-Medium-Type		Decnet				13
+VALUE	Tunnel-Medium-Type		Vines				14
+VALUE	Tunnel-Medium-Type		E.164-NSAP			15
+
+#	Challenge Prompt Values
+
+VALUE	Prompt				No-Echo				0
+VALUE	Prompt				Echo				1
+
+#
+# The following values are implementation and site dependent
+# and not transmitted as part of the protocol
+#
+
+#	Configuration Values
+
+#VALUE	Server-Config			Password-Expiration		30
+#VALUE	Server-Config			Password-Warning		5
+
+#	ACC Enumerated Values
+
+VALUE	Acc-Reason-Code			No-Reason-Given			0
+VALUE	Acc-Reason-Code			Resource-Shortage		1
+VALUE	Acc-Reason-Code			Session-Already-Open		2
+VALUE	Acc-Reason-Code			Too-Many-Users			3
+VALUE	Acc-Reason-Code			No-Auth-Server			4
+VALUE	Acc-Reason-Code			No-Auth-Response		5
+VALUE	Acc-Reason-Code			NO-Acct-Server			6
+VALUE	Acc-Reason-Code			No-Acct-Response		7
+VALUE	Acc-Reason-Code			Access-Denied			8
+VALUE	Acc-Reason-Code			Temp-Buffer-Shortage		9
+VALUE	Acc-Reason-Code			Protocol-Error			10
+VALUE	Acc-Reason-Code			Invalid-Attribute		11
+VALUE	Acc-Reason-Code			Invalid-Service-type		12
+VALUE	Acc-Reason-Code			Invalid-Framed-Protocol		13
+VALUE	Acc-Reason-Code			Invalid-Attribute-Value		14
+VALUE	Acc-Reason-Code			Invalid-User-Info		15
+VALUE	Acc-Reason-Code			Invalid-Ip-Address		16
+VALUE	Acc-Reason-Code			Invalid-Integer-Syntax		17
+VALUE	Acc-Reason-Code			Invalid-NAS-port		18
+VALUE	Acc-Reason-Code			Requested-By-User		19
+VALUE	Acc-Reason-Code			Network-Disconnect		20
+VALUE	Acc-Reason-Code			Service-Interruption		21
+VALUE	Acc-Reason-Code			Physical-Port-Error		22
+VALUE	Acc-Reason-Code			Idle-Timeout			23
+VALUE	Acc-Reason-Code			Session-Timeout			24
+VALUE	Acc-Reason-Code			Administrative-Reset		25
+VALUE	Acc-Reason-Code			NAS-Reload-Or-Reset		26
+VALUE	Acc-Reason-Code			NAS-Error			27
+VALUE	Acc-Reason-Code			NAS-Request			28
+VALUE	Acc-Reason-Code			Undefined-Reason-Given		29
+VALUE	Acc-Reason-Code			Conflicting-Attributes		30
+VALUE	Acc-Reason-Code			Port-Limit-Exceeded		31
+VALUE	Acc-Reason-Code			Facility-Not-Available		32
+VALUE	Acc-Reason-Code			Internal-Config-Error		33
+VALUE	Acc-Reason-Code			Bad-Route-Specification		34
+VALUE	Acc-Reason-Code			AP-Bind-Failure			35
+VALUE	Acc-Reason-Code			Security-Violation		36
+VALUE	Acc-Reason-Code			Request-Type-Conflict		37
+VALUE	Acc-Reason-Code			Config-Disallowed		38
+VALUE	Acc-Reason-Code			Missing-Attribute		39
+VALUE	Acc-Reason-Code			Invalid-Request			40
+VALUE	Acc-Reason-Code			Missing-Open-Parameter		41
+VALUE	Acc-Reason-Code			Invalid-Open-Parameter		42
+VALUE	Acc-Reason-Code			Call-Cleared-With-Cause		43
+VALUE	Acc-Reason-Code			Inopportune-Config-Request	44
+VALUE	Acc-Reason-Code			Invalid-Config-Parameter	45
+VALUE	Acc-Reason-Code			Missing-Config-Parameter	46
+VALUE	Acc-Reason-Code			Incompatible-Service-Profile	47
+VALUE	Acc-Reason-Code			Administrative-Reset		48
+VALUE	Acc-Reason-Code			Administrative-Reload		49
+VALUE	Acc-Reason-Code			Port-Unneeded			50
+VALUE	Acc-Reason-Code			Port-Preempted			51
+VALUE	Acc-Reason-Code			Port-Suspended			52
+VALUE	Acc-Reason-Code			Service-Unavailable		53
+VALUE	Acc-Reason-Code			Callback			54
+VALUE	Acc-Reason-Code			User-Error			55
+VALUE	Acc-Reason-Code			Host-Request			56
+VALUE	Acc-Reason-Code			Incompatible-Multilink-Port	57
+
+VALUE	Acc-Ccp-Option			Disabled			1
+VALUE	Acc-Ccp-Option			Enabled				2
+
+VALUE	Acc-Route-Policy		Funnel				1
+VALUE	Acc-Route-Policy		Direct				2
+
+VALUE	Acc-ML-MLX-Admin-State		Enabled				1
+VALUE	Acc-ML-MLX-Admin-State		Disabled			2
+
+VALUE	Acc-Clearing-Cause		Cause-Unspecified		0
+VALUE	Acc-Clearing-Cause		Unassigned-Number		1
+VALUE	Acc-Clearing-Cause		No-Route-To-Transit-Network	2
+VALUE	Acc-Clearing-Cause		No-Route-To-Destination		3
+VALUE	Acc-Clearing-Cause		Channel-Unacceptable		6
+VALUE	Acc-Clearing-Cause		Call-Awarded-Being-Delivered	7
+VALUE	Acc-Clearing-Cause		Normal-Clearing			16
+VALUE	Acc-Clearing-Cause		User-Busy			17
+VALUE	Acc-Clearing-Cause		No-User-Responding		18
+VALUE	Acc-Clearing-Cause		User-Alerted-No-Answer		19
+VALUE	Acc-Clearing-Cause		Call-Rejected			21
+VALUE	Acc-Clearing-Cause		Number-Changed			22
+VALUE	Acc-Clearing-Cause		Non-Selected-User-Clearing	26
+VALUE	Acc-Clearing-Cause		Destination-Out-Of-Order	27
+VALUE	Acc-Clearing-Cause		Invalid-Or-Incomplete-Number	28
+VALUE	Acc-Clearing-Cause		Facility-Rejected		29
+VALUE	Acc-Clearing-Cause		Response-To-Status-Enquiry	30
+VALUE	Acc-Clearing-Cause		Normal-Unspecified-Cause	31
+VALUE	Acc-Clearing-Cause		No-Circuit-Or-Channel-Available 34
+VALUE	Acc-Clearing-Cause		Network-Out-Of-Order		38
+VALUE	Acc-Clearing-Cause		Temporary-Failure		41
+VALUE	Acc-Clearing-Cause		Switching-Equipment-Congestion	42
+VALUE	Acc-Clearing-Cause		Access-Information-Discarded	43
+VALUE	Acc-Clearing-Cause		Circuit-Or-Channel-Unavailable	44
+VALUE	Acc-Clearing-Cause		Circuit-Or-Channel-Preempted	45
+VALUE	Acc-Clearing-Cause		Resources-Unavailable		47
+VALUE	Acc-Clearing-Cause		Quality-Of-Service-Unavailable	49
+VALUE	Acc-Clearing-Cause		Facility-Not-Subscribed		50
+VALUE	Acc-Clearing-Cause		Outgoing-Calls-Barred		52
+VALUE	Acc-Clearing-Cause		Incoming-Calls-Barred		54
+VALUE	Acc-Clearing-Cause		Bearer-Capability-Unauthorized	57
+VALUE	Acc-Clearing-Cause		Bearer-Capability-Not-Available 58
+VALUE	Acc-Clearing-Cause		Service-Not-Available		63
+VALUE	Acc-Clearing-Cause		Bearer-Capability-Unimplemented 65
+VALUE	Acc-Clearing-Cause		Channel-Type-Not-Implemented	66
+VALUE	Acc-Clearing-Cause		Facility-Not-Implemented	69
+VALUE	Acc-Clearing-Cause		Restricted-Digital-Info-Only	70
+VALUE	Acc-Clearing-Cause		Service-Not-Implemented		79
+VALUE	Acc-Clearing-Cause		Invalid-Call-Reference		81
+VALUE	Acc-Clearing-Cause		Identified-Channel-Nonexistent	82
+VALUE	Acc-Clearing-Cause		Call-Identity-Nonexistent	83
+VALUE	Acc-Clearing-Cause		Call-Identity-In-Use		84
+VALUE	Acc-Clearing-Cause		No-Call-Suspended		85
+VALUE	Acc-Clearing-Cause		Suspended-Call-Cleared		86
+VALUE	Acc-Clearing-Cause		Incompatible-Destination	88
+VALUE	Acc-Clearing-Cause		Invalid-Transit-Net-Selection	91
+VALUE	Acc-Clearing-Cause		Invalid-Message			95
+VALUE	Acc-Clearing-Cause		Mandatory-IE-Missing		96
+VALUE	Acc-Clearing-Cause		Message-Not-Implemented		97
+VALUE	Acc-Clearing-Cause		Inopportune-Message		98
+VALUE	Acc-Clearing-Cause		IE-Not-Implemented		99
+VALUE	Acc-Clearing-Cause		Invalid-IE-Contents		100
+VALUE	Acc-Clearing-Cause		Message-Incompatible-With-State 101
+VALUE	Acc-Clearing-Cause		Recovery-On-Timer-Expiry	102
+VALUE	Acc-Clearing-Cause		Mandatory-IE-Length-Error	103
+VALUE	Acc-Clearing-Cause		Protocol-Error			111
+VALUE	Acc-Clearing-Cause		Interworking			127
+
+VALUE	Acc-Clearing-Location		Local-Or-Remote-User		0	
+VALUE	Acc-Clearing-Location		Private-Net-Serving-Local-User	1	
+VALUE	Acc-Clearing-Location		Public-Net-Serving-Local-User	2	
+VALUE	Acc-Clearing-Location		Transit-Network			3	
+VALUE	Acc-Clearing-Location		Private-Net-Serving-Remote-User 4	
+VALUE	Acc-Clearing-Location		Public-Net-Serving-Remote-User	5	
+VALUE	Acc-Clearing-Location		International-Network		7	
+VALUE	Acc-Clearing-Location		Beyond-Interworking-Point	10	
+
+VALUE	Acc-Request-Type		Ring-Indication			1
+VALUE	Acc-Request-Type		Dial-Request			2
+VALUE	Acc-Request-Type		User-Authentication		3
+VALUE	Acc-Request-Type		Tunnel-Authentication		4
+VALUE	Acc-Request-Type		User-Accounting			5
+VALUE	Acc-Request-Type		Tunnel-Accounting		6
+
+VALUE	Acc-Framed-Bridge		Disabled			0
+VALUE	Acc-Framed-Bridge		Enabled				1
+
+VALUE	Acc-Vpsm-Oversubscribed		False				1
+VALUE	Acc-Vpsm-Oversubscribed		True				2
+
+VALUE	Acc-Acct-On-Off-Reason		NAS-Reset			0
+VALUE	Acc-Acct-On-Off-Reason		NAS-Reload			1
+VALUE	Acc-Acct-On-Off-Reason		Configuration-Reset		2
+VALUE	Acc-Acct-On-Off-Reason		Configuration-Reload		3
+VALUE	Acc-Acct-On-Off-Reason		Enabled				4
+VALUE	Acc-Acct-On-Off-Reason		Disabled			5
+
+VALUE	Acc-Ip-Compression		Disabled			0
+VALUE	Acc-Ip-Compression		Enabled				1
+
+VALUE	Acc-Ipx-Compression		Disabled			0
+VALUE	Acc-Ipx-Compression		Enabled				1
+
+VALUE   Acc-Callback-Mode		User-Auth			0
+VALUE	Acc-Callback-Mode		Dialing-String			1
+VALUE   Acc-Callback-Mode		User-Specified-E-164 		3
+VALUE	Acc-Callback-Mode		CBCP-Callback			6
+VALUE   Acc-Callback-Mode		CLI-Callback			7
+
+VALUE   Acc-Callback-CBCP-Type		CBCP-None			1
+VALUE   Acc-Callback-CBCP-Type		CBCP-User-Specified		2
+VALUE   Acc-Callback-CBCP_Type		CBCP-Pre-Specified		3
+
+
+VALUE   Acc-Dialout-AuthMode		PAP				1
+VALUE   Acc-Dialout-AuthMode		CHAP				2
+VALUE   Acc-Dialout-AuthMode		CHAP-PAP			3
+VALUE   Acc-Dialout-AuthMode		NONE				4
+
+#	Access Community values
+
+VALUE	Acc-Access-Community		PUBLIC				1
+VALUE	Acc-Access-Community		NETMAN				2
+
+
+

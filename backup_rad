@@ -1,0 +1,14 @@
+#!/bin/bash
+
+for i in `cat filelist`
+do
+
+#j=`sed 's/^\///' $i`
+
+cp --parents $i ./
+
+
+
+
+
+done

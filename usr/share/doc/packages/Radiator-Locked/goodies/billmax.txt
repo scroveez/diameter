@@ -1,0 +1,90 @@
+Radiator works fine with BillMax, and can be configured to work 
+either directly or indirectly with BillMax.
+
+Indirect:
+
+Radiator works with users files exported from BillMax with the gen_radius
+program (see the BillMax docs for more details), and with accounting
+detail files imported into BillMax with radparse.
+
+Radiator can also be configured to proxy to the BillMax Radius server.
+
+Direct:
+Radiator can be used to integrate directly with BillMax. This means that
+Radiator will query directly to the BillMax MySQL database. You would
+do this if you wanted to use Radiator instead of the radius server
+provided with BillMax. You might want to use Radiator instead of the
+BillMax radius server becasue Radiator provides many more and more
+sophisticated features than their Merit variant.
+
+When you use Radiator directly with BillMax, you can run Radiator either
+on the same host as BillMax, or on one or more other hosts. 
+In either case, you need to install perl, DBI and DBD-mysql on the 
+Radiator host, followed by Radiator.
+
+Hint: If you install DBD-myql from RedHat rpms, you may also
+have to install the mysql rpms. If you do that you _must_ remove the 
+/etc/my.cnf that is installed by the mysql rpm. If you dont you will be 
+_unable_ to start the BillMax MySQL server, eg:
+
+rpm -Uvh mysql-3.23.36-1.i386.rpm   
+rpm -Uvh mysql-devel-3.23.36-1.i386.rpm      
+rpm -Uvh perl-DBD-MySQL-1.2215-1.i386.rpm 
+rm -f /etc/my.cnf   
+
+Hint:
+The BillMax MySQL server is configured to use /tmp/mysql.sock as its Unix
+socket.
+
+There is an example Radiator configuration file billmax.cfg that
+will work with BillMax on the same host as Radiator:
+
+   perl radiusd -config_file goodies/billmax.cfg trace 4  
+
+This config file assumes that you have not defined any Termianl Servers,
+but rather that you have defined Resource 1 to 
+represent dialup permission, and that the dialup Service has that Resource
+enabled, and that all your dialup users have the dialup Service.
+
+So to test with BillMax, you need to:
+
+1. Install BillMax.
+2. Start BillMax,
+3. Using the BillMax web interface, Settings menu, create a Resource
+   number 1.
+4. Under Settings menu, create a Service Definition, with the Resouce
+   you created above.
+5. Create an Account with a User, who has the Service you created above.
+
+
+If you are using a different Resource numbr for dialup, or if you
+have different resource numbers for different types of Radius
+controlled services, you can change the AuthSelect in billmax.cfg to suit.
+A Resource is basically a bit in the service.resources bitmask, where resource
+1 is the least significant bit, resource 2 is bit 2 etc.
+
+For example, if you want to permit users only if they have a service with
+Resource 3, you would need to change your AuthSelect to something like:
+
+	AuthSelect	select d02 from service, user, account \
+	where service.d01=%0 \
+	and (service.resources & 8) != 0 \
+	and service.user = user.number \
+	and user.account = account.number \
+	and account.state = 0 \
+	and user.state = 0 \
+	and service.state = 0
+
+
+If you wish to use the configured Terminal Server entries to define
+what services to use, you could use an AuthSelect like this:
+
+AuthSelect  service.d02, service.number \
+FROM service,termservers WHERE service.d01=%0 AND \
+service.state=0 AND service.resources&termservers.resources \
+AND termservers.ipnum='%N' ORDER BY number
+
+
+
+
+

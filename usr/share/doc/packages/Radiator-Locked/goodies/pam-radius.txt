@@ -1,0 +1,112 @@
+This document describes how to configure PAM and PAM Radius to
+authenticate from Radiator Radius server. 
+
+PAM stands for Pluggable Authentication Modules. It is the system that
+most modern Unix systems use to authenticate access to all Unix interactive
+services, such as login, su, ftp, ssh etc. Whenever you enter your
+passwrod to log in or to su to a different user, it is PAM that
+authenticates your password.
+
+With this technique, you can configure PAM to authenticate access to
+any or all Unix servers using Radiator Radius server. This means that
+you can authenticate using plaintext passwords in a file or SQL
+database, one-time passwords or SecurID or Digipass tokens or many
+other options.
+
+Hint: There is a system for Microsoft Windows that uses Radius to
+authenticate users logging on to a Windows machine. See pGina,
+http://sourceforge.net/projects/pgina. This means that you could configure all
+the Unix and Windows machines in your network to authyenticate from a
+centrally controlled and maintained Radiator Radius system.
+
+You must download, compile and install the pam_radius module from
+http://www.freeradius.org using something like this procedure:
+
+Make sure you have pam and the pam headers installed on your
+host. If you are using RPMS, make sure you have installed pam,
+libpam, and pam_devel.
+
+wget ftp://ftp.freeradius.org/pub/radius/pam_radius-1.3.16.tar
+tar xvf pam_radius-1.3.16.tar
+cd  pam_radius-1.3.16
+make
+# as root:
+cp pam_radius_auth.so /lib/security
+mkdir /etc/raddb/
+touch /etc/raddb/server
+chown root /etc/raddb
+chmod go-rwx /etc/raddb
+chmod go-rwx /etc/raddb/server
+
+Now add some lines to the list of servers that pam_radius will use in
+/etc/raddb/server. This example assumes your Radiator server is
+running on the same host (localhost)
+
+#########################
+# server[:port]	shared_secret      timeout (s)
+localhost:1645  mysecret             2
+
+#########################
+
+Now you can configure some or all PAM module to use Radius. In this
+example we show how to configure the ftp service (only) to us
+pam_radius. You can follow a similar technique for other
+services. Here is our /etc/pam.d/ftp file after modifying. We added 2
+'sufficient' lines to the standard ftp file.
+
+#%PAM-1.0
+auth       required     pam_listfile.so item=user sense=deny file=/etc/ftpusers onerr=succeed
+##### Added this line for RADIUS: #####
+auth    sufficient /lib/security/pam_radius_auth.so
+auth       required     pam_stack.so service=system-auth
+
+# If this is enabled, anonymous logins will fail because the 'ftp' user does
+# not have a "valid" shell, as listed in /etc/shells.
+#
+# If you enable this, it is recommended that you do *not* give the 'ftp'
+# user a real shell. Instead, give the 'ftp' user /bin/false for a shell and
+# add /bin/false to /etc/shells.
+#auth       required    pam_shells.so
+
+##### Added this line for RADIUS: #####
+account    sufficient   /lib/security/pam_radius_auth.so
+account    required     pam_stack.so service=system-auth
+session    required     pam_stack.so service=system-auth
+
+
+Your PAM system may have its files configured differently to this
+example. If you get in troble, follow the INSTALL directions in the
+pam_radius-1.3.16.tar package
+
+Now you can test:
+
+1. Select a test user name who has an account on the PAM host, and who
+would normally bew able to connect by ftp (or whatever service you are
+configuring for pam_radius)
+2. Make sure that the user name and password is configured into your Radiator user
+database (eg this example in the Radiator 'users' file:
+mikem	 User-Password=fred
+3. Start your Radiator Radius server:
+ cd .../wherever/Radiator-3.11
+ perl radiusd -config goodies/simple.cfg
+4. Attempt to log in to the ftp server:
+% ftp localhost
+Connected to localhost.
+220 ProFTPD 1.2.9 Server (ProFTPD Default Installation) [xyz.open.com.au]
+500 AUTH not understood
+500 AUTH not understood
+KERBEROS_V4 rejected as an authentication type
+Name (localhost:mikem): mikem                      <- enter the user name
+331 Password required for mikem.
+Password:                                          <- enter their password
+230 User mikem logged in.                          <- request is sent to Radiator
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> quit
+221 Goodbye.
+%
+
+If that is successful, add all the other users to your Radiatror
+database and configure other PAM services to use pam_radius.
+
+Hint: this system can successfully be used with token based passwords too

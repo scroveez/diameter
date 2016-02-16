@@ -1,0 +1,8 @@
+radius-server host 172.20.3.1 key 0 cisco auth-port 1645 acct-port 1646 authentication accounting
+aaa group server radius Lab
+    server 172.20.3.1
+    use-vrf management
+!
+aaa authentication login default group Lab
+aaa accounting default group Lab
+aaa authentication login error-enable

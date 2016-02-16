@@ -1,0 +1,574 @@
+From owner-radiator@open.com.au Mon Nov  2 20:12 EST 1998
+Received: (from majordom@localhost) by oscar.open.com.au (8.6.12/8.6.12) id UAA15696 for radiator-list; Mon, 2 Nov 1998 20:10:31 +1100
+Received: (from uucp@localhost) by oscar.open.com.au (8.6.12/8.6.12) id UAA15670 for radiator@open.com.au; Mon, 2 Nov 1998 20:10:24 +1100
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Mon, 2 Nov 1998 19:57:27 +1100 (EST)
+Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id TAA12250
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Mon, 2 Nov 1998 19:57:27 +1100 (EST)
+Received: from skycorp.skynet.be (skycorp.skynet.be [195.238.0.128]) by yarrina.connect.com.au with ESMTP id TAA10368
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Mon, 2 Nov 1998 19:57:25 +1100 (EST)
+Received: from staff.skynet.be (staff.skynet.be [195.238.1.25])
+	by skycorp.skynet.be (8.8.8/jovi-relay-1.1-vw) with ESMTP id JAA14196
+	for <radiator@open.com.au>; Mon, 2 Nov 1998 09:57:19 +0100 (MET)
+Received: from homer (homer.techos.skynet.be [195.238.1.74])
+	by staff.skynet.be (8.9.0/8.9.0) with SMTP id JAA17275
+	for <radiator@open.com.au>; Mon, 2 Nov 1998 09:54:08 +0100
+>Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id TAA12250
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Mon, 2 Nov 1998 19:57:27 +1100 (EST)
+Message-Id: <199811020854.JAA17275@staff.skynet.be>
+X-Sender: steph@staff.skynet.be
+X-Mailer: QUALCOMM Windows Eudora Pro Version 4.0
+Date: Mon, 02 Nov 1998 09:54:30 +0100
+To: radiator@open.com.au
+From: Stephan Forseilles <sf@staff.skynet.be>
+Subject: (RADIATOR) As requested
+Mime-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Sender: owner-radiator@open.com.au
+Precedence: bulk
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Length: 15813
+Status: OR
+
+Hello all.
+
+As requested here is my little utility that takes data out of the
+accounting table and fetches them into a data warehouse. It archived about
+3.700.000 connections Stops last month. Basically it works like that:
+
+for all Start {
+	if  user not received latest NewsMag	{
+		send newsmag
+		update user record
+	}
+	remove Start
+}
+remove Alives
+for all Stop {
+	if Stop not allready archived {
+		archive Stop
+		get user's total time from archive (table detXXYY)
+		update the user's total time (table totXXYY)
+		get user's max time from user database
+		if too much {
+			lock user in user database (type 4 to type -6)
+		}
+	}
+	Remove Stop from accounting
+}
+
+
+It is still full of debug and Performance logging (it's important to keep
+it as fast as possible to avoid backlogging). It surely cannot be used 'as
+is' as it's too close to my database design.
+
+#!/usr/bin/perl
+
+#
+# Insert connection statistics from DIALUP database (radius) to
+# contime database
+#
+# Done by steph at unknown date
+# Reveiwed by jfs at unknown date
+# Reviewed by steph 14/09/98: update totXXYY
+# Reviewed by Steph 28/10/98: clean up + Skynews first beta release
+# Reviewed by Steph 30/10/98: Skynet on Start, not on Stop anymore
+#
+
+require "timelocal.pl";
+use Mysql;
+# if limited time and current used time > threshold allowed time
+# then send email.
+$threshold =3D 0.85;
+
+$do_time_reminder =3D 0;
+$do_skynews =3D 0;
+$do_perf_log =3D 0;
+
+# Update totXXYY?
+$dototals =3D 1;
+
+# get year
+@stmp =3D localtime(time());
+$curyear =3D $stmp[5];
+$curyear =3D~ s/20|19|[ *]//g;
+$curmonth =3D $stmp[4]+1;
+print "Year is >$curyear<\n";
+
+system("date > /tmp/lastdone.acc");
+
+$| =3D 1;
+$debug =3D 0;
+$dbh =3D Mysql->connect("datawarehouse", "contime_archive", "XXX", "XXXX");
+unless($dbh) { die("Cannot connect : $Mysql::db_errstr"); }
+$dbh2 =3D Mysql->connect("Radiator Database", "XXXX");
+unless($dbh2) { die("Cannot connect : $Mysql::db_errstr"); }
+$dbh3 =3D Mysql->connect("datawarehouse", "newsmag_database", "XXXX",=
+ "XXXXX");
+unless($dbh3) { die("Cannot connect : $Mysql::db_errstr"); }
+
+# Get the latest news...
+$query =3D "select max(number) from news";
+$sth =3D $dbh3->query($query);
+@row =3D $sth->fetchrow();
+$news_last =3D $row[0];
+print "Last news is $news_last.\n";
+$query =3D "select date_in, made_by, seen, body from news where number =3D
+$news_last";
+$sth =3D $dbh3->query($query);
+@row =3D $sth->fetchrow();
+$news_date_in =3D $row[0];
+$news_made_by =3D $row[1];
+#$news_seen =3D $row[2];
+# I prefer to reget if after all and add numbr of hits here, in case of
+parallell runs.
+$news_seen =3D 0;
+$news_body =3D $row[3];
+$news_sdate =3D localtime($news_date_in);
+$news_length =3D length($news_body);
+print "Last news is $news_last (from $news_sdate by $news_made_by) -
+Allready seen by $row[2] people - Length is $news_length chars.\n";
+
+
+print "Connected...\n";
+$total =3D 0;
+$minintime =3D time();
+$maxintime =3D 0;
+$oldl =3D '';
+$month{"Jan"} =3D "01";
+$month{"Feb"} =3D "02";
+$month{"Mar"} =3D "03";
+$month{"Apr"} =3D "04";
+$month{"May"} =3D "05";
+$month{"Jun"} =3D "06";
+$month{"Jul"} =3D "07";
+$month{"Aug"} =3D "08";
+$month{"Sep"} =3D "09";
+$month{"Oct"} =3D "10";
+$month{"Nov"} =3D "11";
+$month{"Dec"} =3D "12";
+$wday{"Mon"} =3D "1";
+$wday{"Tue"} =3D "2";
+$wday{"Wed"} =3D "3";
+$wday{"Thu"} =3D "3";
+$wday{"Fri"} =3D "4";
+$wday{"Sat"} =3D "7";
+$wday{"Sun"} =3D "7";
+$total =3D 0;
+
+print "Connection OK, database server is UP.\n";
+$query =3D "select max(number) from news";
+
+
+print "Done\n";
+&process;
+print "\n$total login/out processed.\n";
+$dur =3D int($maxintime - $minintime)/3600;
+if($dur =3D=3D 0) { $dur =3D 1; }
+$ratio =3D ($total/$dur);
+print "Avg $ratio $ration login/out per hour\n";
+#system("echo \"$total login/out processed - Avg $ratio $ration login/out
+per hour\" | mail steph\@skynet.be");
+
+
+# The hard stuff
+sub process {
+	$cnt =3D 0;
+	# We don't care about ALIVEs
+	print "Removing ALIVE...";
+	$query =3D "delete from accounting where status_type =3D 'Alive'";
+	$sth2 =3D $dbh2->query($query);
+	unless($sth2) { print "Cannont $query\n";}
+	print "Done\n";
+
+	#
+	# SkyNews Stuff
+	#
+	$newsdebug =3D 1;
+	$query =3D "select login, time_stamp from accounting where status_type =3D
+'Start'";
+	$sth2 =3D $dbh2->query($query);
+	unless($sth2) { print "Cannont $query\n";}
+	while(@row =3D $sth2->fetchrow()) {
+			$user_name =3D $row[0];
+			$ts =3D $row[1];
+			$query =3D "select skynews, last_news from dialup where login =3D
+'$user_name'";
+			$sth3 =3D $dbh2->query($query);
+			unless($sth3) { print "Cannont $query\n";}
+			@row2 =3D $sth3->fetchrow();
+			$skynews =3D $row2[0];
+			$usr_last_news =3D $row2[1];
+			print "Last news for $user_name is $usr_last_news - current is
+$news_last\n" if($newsdebug);
+			unless($skynews) {
+				print "$user_name doesn't want SkyNews!\n" if($newsdebug);
+			} else {
+				print "$user_name wants SkyNews!\n" if($newsdebug);
+				if($usr_last_news < $news_last) {
+					print "Have to send news $news_last to $user_name.\n" if($newsdebug);
+					if($do_skynews) {
+						send_news($user_name);
+					}
+				}
+			}
+			$query =3D "delete from accounting where status_type =3D 'Start' and=
+ login =3D
+'$user_name' and time_stamp =3D $ts";
+			$sth3 =3D $dbh2->query($query);
+			unless($sth3) { print "Cannont $query\n";}
+=09
+	}
+
+
+=09
+	# We care about STOPs
+	$query =3D "select * from accounting where status_type=3D 'Stop' limit=
+ 1000";
+	$sth2 =3D $dbh2->query($query);
+	unless($sth2) { print "Cannont $query\n";}
+	while(@row =3D $sth2->fetchrow()) {
+		if($do_perf_log) { $perf_log[0] =3D time(); }
+		$intime =3D $row[1]-$row[7];
+		if($intime < 0) { $intime =3D time() - $row[7]; }
+		@tmls =3D localtime($intime);
+		$imonth =3D $tmls[4]+1;
+		if($imonth < 10) { $imonth =3D "0".$imonth; }
+		$iyear =3D $tmls[5];
+		$dbname =3D "det".$imonth.$iyear;
+		$totname =3D "tot".$imonth.$iyear;
+		#print "$imonth / $iyear =3D $dbname\n";
+		$user_name =3D $row[0];
+		$user_name =3D~tr/[A-Z]/[a-z]/;
+		$session_id =3D $row[6];
+
+		# Check if the line hasn't been inserted already
+		$query =3D "select login, intime from $dbname where login=3D\'$user_name\'
+and session_id=3D\'$session_id\'";
+RETRYCHECKSELECT:
+		$sth =3D $dbh->query($query);
+		unless($sth) {
+			print "Cannot $query : $Mysql::db_errstr\n";
+			if (($Mysql::db_errstr=3D~/Lost connection/) || ($Mysql::db_errstr=3D~/go=
+ne
+away/)) {
+				sleep 10;
+				goto RETRYCHECKSELECT;
+			}
+		}
+		if(@rowtmp =3D $sth->fetchrow()) {=20
+			if($do_perf_log) { $perf_log[1] =3D time(); }
+			$deltat=3Dabs($intime-$rowtmp[1]);
+			print "Allready inserted : $user_name - $intime ($deltat seconds away
+from this record)\n" if($debug);
+			$query2 =3D "delete from accounting where login=3D\'$user_name\' and
+session_id=3D\'$session_id\'";
+			$sth3 =3D $dbh2->query($query2);
+			unless($sth3) { print "Cannont $query2 : $Mysql::db_errstr";}
+			print "D";
+			#print "$query2\n";
+			if($do_perf_log) { $perf_log[2] =3D time(); }
+		} else { # Not inserted in detXXYY and totXXYY yet
+			if($do_perf_log) { $perf_log[3] =3D time(); }
+			foreach $ik (4, 5, 7) {
+				unless($row[$ik]) {
+					$row[$ik] =3D 0;
+				}
+			}
+
+			# insert in detXXYY
+			$query =3D "insert into $dbname values(\'$user_name\', \'$row[6]\',
+$intime, $row[4], $row[5], $row[7], \'$row[8]\', \'$row[9]\', \'$row[12]\',
+\'$row[11]\', \'$row[13]\')";
+			#print "$query\n";
+
+RETRYINSERT:
+			$sth =3D $dbh->query($query);
+			print "I";
+			#print "QUERY: $query\n";
+			#print ".";
+			if($do_perf_log) { $perf_log[4] =3D time(); }
+				=09
+			unless($sth) {=20
+				if($do_perf_log) { $perf_log[5] =3D time(); }
+				print "Cannot $query : $Mysql::db_errstr\n";=20
+				if (($Mysql::db_errstr=3D~/Lost connection/) || ($Mysql::db_errstr=3D~/g=
+one
+away/)) {
+					sleep 10;
+					goto RETRYINSERT;
+				}
+				if($do_perf_log) { $perf_log[6] =3D time(); }
+			} else { # Remove from temp table
+				if($do_perf_log) { $perf_log[7] =3D time(); }
+				$maxintime=3D$intime if ($intime > $maxintime);
+				$minintime=3D$intime if ($intime < $minintime);
+				$query =3D "delete from accounting where login=3D\'$user_name\' and
+session_id=3D\'$session_id\'";
+			        $sth3 =3D $dbh2->query($query);
+				unless($sth3) { print "Cannot $query : Mysql::db_errstr\n";}
+				print "D";
+				if($do_perf_log) { $perf_log[8] =3D time(); }
+
+			}
+			if($curmonth !=3D $imonth) {
+				print "$curmonth - $imonth: Old month\n";
+			} else {
+				if($do_perf_log) { $perf_log[9] =3D time(); }
+				$query =3D "select sum(duration) from $dbname where=
+ login=3D\'$user_name\'";
+RETRYTOTALSELECT:=09
+				$sth4 =3D $dbh->query($query);
+				unless($sth4) {
+					print "Cannot $query : $Mysql::db_errstr\n";
+					if (($Mysql::db_errstr=3D~/Lost connection/) ||
+($Mysql::db_errstr=3D~/gone away/)) {
+						sleep 10;
+						goto RETRYTOTALSELECT;
+					}
+				}
+				@row5 =3D $sth4->fetchrow();
+				if($do_perf_log) { $perf_log[10] =3D time(); }
+				print "$user_name - TOTS: @row5\n" if($debug);
+				$tot_sec =3D $row5[0];
+				#sleep 10;
+=09
+				$query =3D "select allowed_t, type, skynews, last_news from dialup where
+login =3D \'$user_name\'";
+				$sth3 =3D $dbh2->query($query);
+				unless($sth3) { print "Cannot $query : $Mysql::db_errstr\n";}
+				@row4 =3D $sth3->fetchrow();
+				$ustype =3D $row4[1]; # row4[1] : type from dialup
+				$skynews =3D $row4[2];
+				$usr_last_news =3D $row4[3];=09
+				unless($skynews) {
+					$skynews =3D 0;
+				}
+				$last_news =3D $row[3];
+				#
+				# CHeck if alloed time is out
+				#
+				if($do_perf_log) { $perf_log[11] =3D time(); }
+				if($row4[0] >=3D 0) { # row4[0] : allowed_t from dialup
+					print "Allow $user_name $row4[0] - type $ustype\n";
+					$allowt =3D $row4[0] * 60;
+					print "MONTH: $curmonth - $imonth\n";
+					print "--->$allowt - $row5[0]\n";
+					print "T";
+					$changed =3D 0;
+					if($allowt < $row5[0]) {
+						if($ustype =3D=3D 4) {=09
+							$ustype =3D -6;
+							$changed =3D 1;
+						}
+						if($changed) {
+							print "(LOCK: $user_name T=3D$ustype)";
+							open (FDL, ">>/tmp/locked.people");
+							print FDL "(LOCK: $user_name T=3D$ustype)\n";
+							close(FDL);
+							$query =3D "update dialup set type =3D $ustype where login =3D
+\'$user_name\'";
+							$sth3 =3D $dbh2->query($query);
+							unless($sth3) { print "Cannot $query : $Mysql::db_errstr\n";}
+						}
+						if($do_perf_log) { $perf_log[12] =3D time(); }
+					} else {
+						$tmpth =3D $row5[0]/$allowt;
+						#print "Threshold for $user_name: $tmpth\n";
+						if($tmpth > $threshold) {
+							print print "Threshold for $user_name: $tmpth --> WARN HIM\n";
+							if($do_time_reminder) {
+								locktime_email($user_name, $tmpth, $row5[0], $allowt);
+
+							}
+						}
+						if($do_perf_log) { $perf_log[13] =3D time(); }
+					}
+				}	=09
+				#sleep 3;
+			}
+			if($do_perf_log) { $perf_log[14] =3D time(); }
+			$query =3D "select login from $totname where login =3D \'$user_name\'";
+RETRYTOTXXYYSELECT:
+			$sth4 =3D $dbh->query($query);
+			unless($sth4) {
+				print "Cannot $query : $Mysql::db_errstr\n";
+				if (($Mysql::db_errstr=3D~/Lost connection/) || ($Mysql::db_errstr=3D~/g=
+one
+away/)) {
+					sleep 10;
+					goto RETRYTOTXXYYSELECT;
+				}
+			}
+			if($do_perf_log) { $perf_log[15] =3D time(); }
+			if(@row5 =3D $sth4->fetchrow()) {
+				print "E";
+				$query =3D "update $totname set tottime =3D $tot_sec where login =3D
+'$user_name'";
+UPDTOTSELECT:
+				print "\n$query\n" if($debug);
+				$sth4 =3D $dbh->query($query);
+				unless($sth4) {
+					print "Cannot $query : $Mysql::db_errstr\n";
+					if (($Mysql::db_errstr=3D~/Lost connection/) ||
+($Mysql::db_errstr=3D~/gone away/)) {
+						sleep 10;
+						goto UPDTOTSELECT
+					}
+				}
+				if($do_perf_log) { $perf_log[16] =3D time(); }
+			} else {
+				print "N";
+				$query =3D "insert into $totname values(\'$user_name\', $tot_sec,=
+ $ustype)";
+INSTOTSELECT:
+				$sth4 =3D $dbh->query($query);
+				unless($sth4) {
+					print "Cannot $query : $Mysql::db_errstr\n";
+					if (($Mysql::db_errstr=3D~/Lost connection/) ||
+($Mysql::db_errstr=3D~/gone away/)) {
+						sleep 10;
+						goto INSTOTSELECT
+					}
+				}
+				if($do_perf_log) { $perf_log[17] =3D time(); }
+			}
+			=09
+			=09
+		=09
+		=09
+		}
+		$cnt++;
+		#sleep 5;
+		if($do_perf_log) {=20
+			$plidx =3D 0;
+			open(FDPL, ">>/tmp/perflog");
+			while($plidx < 17) {
+				if($perf_log[$plidx]) {
+					$tdiff =3D $perf_log[$plidx] - $perf_log[0];
+				}
+				print FDPL "$plidx;$tdiff;";
+				$plidx++;
+			}
+			print FDPL "\n";
+			close(FDPL);
+		}
+	}
+	$oldl =3D $s;
+	$total +=3D $cnt;
+}
+# Update nulber of hits on  skynews
+$dbh3 =3D Mysql->connect("database2.skynet.be", "skynews", "root",=
+ "wcp17Z*");
+unless($dbh3) { die("Cannot connect : $Mysql::db_errstr"); }
+
+$query =3D "select seen from news where number =3D $news_last";
+$sthf =3D $dbh3->query($query);
+unless($sthf) {
+	print "Cannot $query\n";
+} else {
+	@row =3D $sthf->fetchrow();
+	$news_seen =3D $news_seen + $row[0];
+	print "News seen total $news_seen!\n";
+	$query =3D "update news set seen =3D $news_seen where number =3D=
+ $news_last";
+	$sth =3D $dbh3->query($query);
+}
+print "\n";
+close(ML);
+#system("/home/steph/radius/acct/sendtime.mysql");
+
+sub arrtime
+{
+	$stime =3D $_[0];
+#print "Time IN rad =3D $time...\n";
+	@tls1 =3D split(/ +/, $stime);
+	@tls2 =3D split(/:/, $tls1[3]);
+	$tsec =3D $tls2[2];
+	$tmin =3D $tls2[1];
+	$thor =3D $tls2[0];
+	$rmon =3D $month{$tls1[1]} - 1;
+	$ryea =3D $tls1[4];
+	$ryea =3D~ s/^19//g;
+	$ryea =3D~ s/^20//g;
+	$rday =3D $tls1[2];
+	$rwda =3D $tls1[0];
+	@atime =3D ($tsec, $tmin, $thor, $rday, $rmon, $ryea);
+}
+
+sub send_news {
+	local ($who) =3D @_;
+	print "Sending news to $who...";
+	open(FD, ">/tmp/newstmp");
+	print FD "To: $user_name\@skynet.be\n";
+	print FD "From: Skynet News Agent <info\@skynet.be>\n";
+	print FD "Subject: SkyNews number $news_last\n\n";
+	print FD "$news_body\n\n";
+	close(FD);
+	if($user_name =3D~ /^steph$/) {
+		print "Send to steph!\n";
+		#system("cat /tmp/newstmp | sendmail -t");
+
+	}
+	print "Done.\n";
+	$news_seen++;
+	$query =3D "update dialup set last_news =3D $news_last where login =3D
+'$user_name'";
+	$sth5 =3D $dbh2->query($query);
+	unless($sth5) {
+		print "$query\n";
+		print "Ooops cannot update last_news of $user_name\n";
+	}
+	#sleep 20;
+}
+
+sub locktime_email {
+	local($user, $th, $ro, $al) =3D @_;
+	$ro =3D int($ro/60);
+	$al =3D int($al/60);
+	print "$user, $th, $ro, $al\n";
+	$th =3D int(100*$th);
+	$rest =3D $al - $ro;
+	open (FD, ">/tmp/locktime_email");
+	print FD "To: steph\@staff.skynet.be\n";
+	print FD "From: Skynet Connections System  <info\@skynet.be>\n";
+	print FD "Subject: Your connection time\n\n";
+	print FD "Dear user $user,\n\n";
+	print FD "While storing your connection statistics in our database, I've
+seen that\n";
+	print FD "you allready have used $ro minutes out of the $al minutes of
+your\n";
+	print FD "monthly subscription (that's about $th %).\n\n";
+	print FD "I just wanted to warn you that your account will be locked after
+the next\n";
+	print FD "$rest minutes of connection. If you need more time, maybe you
+should\n";
+	print FD "consider upgrading to our NET ADDICT subscription \n(799BEF a
+month or 7500BEF a year).\n\n";
+	print FD "That type of subscription doesn't have any time-based
+restriction.\n\n";
+	print FD "Sincerely yours,\n\n";
+	print FD "Belgacom Skynet\n";
+	close(FD);
+	#system("cat /tmp/locktime_email | sendmail -t");
+	print "Time reminder sent to $user for $th %\n";
+	sleep 3;
+}=09
+=09
+
+
+The opinions expressed are personal.
+
+Frisbeetarianism, n.: The belief that when you die,=A0=A0 your soul goes up =
+the
+on roof and gets stuck.
+*********************************
+* BELGACOM-SKYNET NS/SA - Internet Service Provider
+* Stephan Forseilles, Operations Director - sf@staff.skynet.be
+* Rue Col Bourgstraat 124, 1140 Brussels - T/F +32 2 706.11.11/706.12.49
+*****************************************************************
+
+
+===
+To unsubscribe, email 'majordomo@open.com.au' with
+'unsubscribe radiator' in the body of the message.
+

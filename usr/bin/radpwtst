@@ -1,0 +1,1204 @@
+#!/usr/bin/perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+#
+# radpwtst
+# -*- mode: Perl -*-
+# Simple client for testing radius servers
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 1997 Open System Consultants
+# $Id: radpwtst,v 1.125 2014/08/06 20:58:29 hvn Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+}
+
+require 5.6.0;
+use Getopt::Long;
+use Radius::RDict;
+use Radius::Radius;
+use Radius::Log;
+use Socket;
+use Digest::MD5;
+use strict;
+#no warnings qw(redefine);
+
+my @options = 
+    (
+     'h',        # Print usage
+     'time',     # Get the total response time
+     'iterations=i',
+     'trace:i',	   # Emit trace of events
+     'notrace',  # No tracing
+     's=s',      # The server to send to 
+     'secret=s', # The secret to use with the server
+     'auth',     # Send authentication packet
+     'noauth',   # Dont send authentication packet
+     'acct',     # Send accounting packet
+     'noacct',   # Dont send accounting packet
+     'auth_port=s', # Port to use for auth requests
+     'acct_port=s', # Port to use for acct requests
+     'identifier=i', # Force this identifier
+     'user=s',   # Username
+     'password=s', # Users password
+     'nas_ip_address=s',
+     'nas_identifier=s',
+     'nas_port=i',
+     'nas_port_type=s',
+     'service_type=s',
+     'session_id=s',
+     'delay_time=i',
+     'session_time=i',
+     'input_octets=i',
+     'output_octets=i',
+     'timeout=i',
+     'message_authenticator', # Calculate and send Message-Authenticator
+     'start',      # Send a accounting starts
+     'nostart',    # Dont send a accounting starts
+     'alive',      # Send a accounting alive
+     'stop',       # Send accounting stops
+     'nostop',     # Dont send accounting stops
+     'status',     # send a Server-Status request
+     'raw=s',      # Send raw data literally
+     'rawfile=s',  # Hex data from a file literally
+     'rawfileseq=s',  # Hex data from a file literally for a sequence of packets
+     'nostatus',   # Dont send a Server-Status request
+     'eaphex=s',       # append a EAP message in hex format 
+     'chap',       # Authenticate with CHAP
+     'chap_nc',    # Authenticate with CHAP, but CHAP-CHallenge in the authenticator
+     'mschap',     # Authenticate with MS-CHAP
+     'mschapv2',     # Authenticate with MS-CHAP V2
+     'eapmd5',     # Authenticate with EAP-MD5
+     'eapotp',     # Authenticate with EAP-OTP
+     'eapgtc',     # Authenticate with EAP-GTC
+     'sip',        # Authenticate with SIP
+     'leap',       # Authenticate with EAP-LEAP
+     'dictionary=s', # Alternate dictionary file
+     'noreply',    # Dont wait for a reply
+     'gui',        # run with the gui
+     'accton',     # Send accounting-on
+     'acctoff',    # Send accounting-off
+     'framed_ip_address=s',
+     'state=s',    # Add this string as State
+     'useoldascendpasswords',
+     'class=s',    # Use this class
+     'incrementuser', # Increment user name each cycle
+     'code=s',     # Send a message with the given code
+     'calling_station_id=s',
+     'called_station_id=s',
+     'interactive',  # Prompt user if a Challenge is received
+     'outport=s',
+     'bind_address=s',
+     'options=s',
+     'decoded',    # Show decoded packet # OBSOLETE
+     'motp_secret=s', # Make a Mobile OTP from this secret and the password as the PIN
+     'retries=i',  #Number of retries
+     );
+
+&readFileOptions('/etc/radpwtstrc');
+&readFileOptions("$ENV{HOME}/.radpwtstrc");
+
+&GetOptions(@options) || &usage;
+if (defined $main::opt_options)
+{
+    &readFileOptions($main::opt_options);
+    &GetOptions(@options) || &usage;
+}
+&usage if $main::opt_h;
+
+$main::errors = 0;
+$main::reject = 0;
+$main::stopSending = 0;
+
+$main::replyTimeout = 5.0;
+$main::replyTimeout = $main::opt_timeout if defined $main::opt_timeout;
+
+# REVISIT: is this really what I want?
+$main::trace_level = (defined $main::opt_trace && $main::opt_trace eq 0) 
+    ? 4 : $main::opt_trace;
+$main::trace_level = 1 unless defined $main::trace_level;
+$main::trace_level = 0 if $main::opt_notrace;
+$main::config->{Trace} = $main::trace_level; # For compat with old lib versions
+$main::config->{LogStdout} = 1;
+
+$main::iterations = 1;
+$main::iterations = $main::opt_iterations if defined $main::opt_iterations;
+
+$main::secret = 'mysecret';  # Shared secret on the term server
+$main::secret = $main::opt_secret if defined $main::opt_secret;
+
+$main::user = 'mikem';
+$main::user = $main::opt_user if defined $main::opt_user;
+
+$main::password = 'fred';
+$main::password = $main::opt_password if defined $main::opt_password ;
+
+$main::chap = 0;
+$main::chap = $main::opt_chap if defined $main::opt_chap ;
+
+$main::chap_nc = 0;
+$main::chap_nc = $main::opt_chap_nc if defined $main::opt_chap_nc ;
+
+$main::nas_ip_address = '203.63.154.1';
+$main::nas_ip_address = $main::opt_nas_ip_address if defined $main::opt_nas_ip_address;
+
+$main::nas_identifier = '203.63.154.1';
+$main::nas_identifier = $main::opt_nas_identifier if defined $main::opt_nas_identifier;
+
+$main::nas_port = '1234';
+$main::nas_port = $main::opt_nas_port if defined $main::opt_nas_port;
+
+$main::nas_port_type = 'Async';
+$main::nas_port_type = $main::opt_nas_port_type if defined $main::opt_nas_port_type;
+
+$main::service_type = 'Framed-User';
+$main::service_type = $main::opt_service_type if defined $main::opt_service_type;
+
+$main::delay_time = '0';
+$main::delay_time = $main::opt_delay_time if defined $main::opt_delay_time;
+
+$main::session_time = '1000';
+$main::session_time = $main::opt_session_time if defined $main::opt_session_time;
+
+$main::input_octets = '20000';
+$main::input_octets = $main::opt_input_octets if defined $main::opt_input_octets;
+
+$main::output_octets = '30000';
+$main::output_octets = $main::opt_output_octets if defined $main::opt_output_octets;
+
+$main::session_id = '00001234';
+$main::session_id = $main::opt_session_id if defined $main::opt_session_id;
+
+# If its the same all the time, you can get confusing behaviour from
+# radiusd unless DupInterval is 0
+my $identifier = time % 255; 
+$identifier = $main::opt_identifier if defined $main::opt_identifier;
+
+my $outport = 0;
+$outport = $main::opt_outport if defined $main::opt_outport;
+
+$main::auth_port = 1645;
+$main::auth_port = $main::opt_auth_port if defined $main::opt_auth_port;
+
+$main::acct_port = 1646;
+$main::acct_port = $main::opt_acct_port if defined $main::opt_acct_port;
+
+$main::desthost = 'localhost';
+$main::desthost = $main::opt_s if defined $main::opt_s;
+
+$main::retries = 0;
+$main::retries = $main::opt_retries if defined $main::opt_retries;
+
+my $dictionary;
+if (defined $main::opt_dictionary)
+{
+    $dictionary = $main::opt_dictionary;
+}
+else
+{
+    # No explicit dict defined, look in the usual places
+    # Path to find a dictionary:
+    my @dictionaries = ('./dictionary', 
+		     '/etc/radiator/dictionary',  
+		     '/usr/local/etc/raddb/dictionary',
+		     '/usr/local/etc/radiator/dictionary',
+		     'c:/Program Files/Radiator/dictionary');
+    foreach (@dictionaries)
+    {
+	if  (-r $_)
+	{
+	    $dictionary = $_;
+	    last;
+	}
+    }
+}
+
+$main::dict = Radius::RDict->new(split(/,/, $dictionary))
+    or die "Couldn't create dictionary from file $dictionary";
+
+$main::send_auth = 1;
+$main::send_auth = 0 if defined $main::opt_noauth;
+$main::send_auth = 1 if defined $main::opt_auth;
+
+$main::send_acct_start = 1;
+$main::send_acct_start = 0 if defined $main::opt_nostart || defined $main::opt_noacct;
+$main::send_acct_start = 1 if defined $main::opt_start || defined $main::opt_acct;
+
+$main::send_acct_alive = 0;
+$main::send_acct_alive = 1 if defined $main::opt_alive;
+
+$main::send_acct_stop = 1;
+$main::send_acct_stop = 0 if defined $main::opt_nostop || defined $main::opt_noacct;
+$main::send_acct_stop = 1 if defined $main::opt_stop || defined $main::opt_acct;
+
+$main::send_acct_on = 0;
+$main::send_acct_on = 1 if defined $main::opt_accton;
+
+$main::send_acct_off = 0;
+$main::send_acct_off = 1 if defined $main::opt_acctoff;
+
+$main::send_server_status = 0;
+$main::send_server_status = 0 if defined $main::opt_nostatus;
+$main::send_server_status = 1 if defined $main::opt_status;
+
+$main::framed_ip_address = '0.0.0.0';
+$main::framed_ip_address = $main::opt_framed_ip_address 
+    if defined $main::opt_framed_ip_address;
+
+$main::called_station_id ='123456789';   #default
+$main::called_station_id = $main::opt_called_station_id
+    if defined $main::opt_called_station_id;
+
+$main::calling_station_id ='987654321';    #default
+$main::calling_station_id = $main::opt_calling_station_id
+    if defined $main::opt_calling_station_id;
+
+# Maybe we are doing MOTP?
+if (defined $main::opt_motp_secret)
+{
+    my $time = time;
+    chop($time);
+    $main::password = substr(Digest::MD5::md5_hex($time.$main::opt_motp_secret.$main::password), 0, 6);
+}
+
+my $eapid = 0;
+my ($class, $eapmd5challenge, $eapotpresponse, $eapgtcresponse, $leapmessage, $socket, 
+    $thisaddr, $that_auth_paddr, $that_acct_paddr, $pfamily, $proto);
+
+if ($main::opt_rawfile)
+{
+    open(RAW, $main::opt_rawfile) 
+	|| die "Could not open rawfile $main::opt_rawfile: $!";
+    # Slurp the whole file
+    local $/;
+    $main::opt_raw = <RAW>;
+    close RAW;
+}
+
+if ($main::opt_rawfileseq)
+{
+    open(RAW, $main::opt_rawfileseq)
+        || die "Could not open rawfile $main::opt_rawfileseq: $!";
+    # Slurp the whole file
+    local $/;
+    $main::opt_raw_seq = <RAW>;
+    close RAW;
+}
+
+if ($main::opt_gui)
+{
+    # Defer all subsequent processing to the gui
+    # It will return when the main window is destroyed
+    require "Radius/RadpwtstGui.pm";
+}
+else
+{
+    &sendAll;
+}
+
+# Exit with 2 if errors, 1 if a rejection, 0 if all ok
+exit ($main::errors ? 2 : ($main::reject ? 1 : 0));
+    
+#####################################################################
+# Send the requested number of iterations
+sub sendAll
+{
+    compute_addresses();
+    create_socket();
+
+    my $start_time = time;
+    my $i;
+    $main::stopSending = 0;
+    for ($i = 0; $i < $main::iterations && !$main::stopSending; $i++)
+    {
+	&sendOnce;
+    }
+    my $end_time = time;
+    my $elapsed_time = $end_time - $start_time;
+    print("time for $main::iterations iterations: $elapsed_time s\n")
+	if $main::opt_time;
+}
+
+#####################################################################
+# Send one iteration of the selected message types
+sub sendOnce
+{
+    $class = $main::opt_class;
+    &sendAuthReq if $main::send_auth;
+    return if $main::stopSending;
+    &sendAcctReq('Start') if $main::send_acct_start;
+    return if $main::stopSending;
+    &sendAcctReq('Alive') if $main::send_acct_alive;
+    return if $main::stopSending;
+    &sendAcctReq('Stop') if $main::send_acct_stop;
+    return if $main::stopSending;
+    &sendAcctReq('Accounting-On') if $main::send_acct_on;
+    return if $main::stopSending;
+    &sendAcctReq('Accounting-Off') if $main::send_acct_off;
+    return if $main::stopSending;
+    &sendStatusReq if $main::send_server_status;
+    &sendCode($main::opt_code) if $main::opt_code;
+    &sendRaw($main::opt_raw) if defined $main::opt_raw;
+    &sendRawSeq($main::opt_raw_seq) if defined $main::opt_raw_seq;
+    $main::user++ if $main::opt_incrementuser;
+}
+
+#####################################################################
+sub sendAuthReq
+{
+again:
+    my $p = new Radius::Radius $main::dict;
+    $p->set_code('Access-Request');
+    $p->set_identifier($identifier);
+    $identifier = ($identifier + 1) & 0xff;
+    $p->set_authenticator(&Radius::Util::random_string(16));
+    $p->addAttrByNum($Radius::Radius::USER_NAME, $main::user);
+    $p->addAttrByNum($Radius::Radius::SERVICE_TYPE, $main::service_type);
+    $p->addAttrByNum($Radius::Radius::NAS_IP_ADDRESS, $main::nas_ip_address);
+    $p->addAttrByNum($Radius::Radius::NAS_IDENTIFIER, $main::nas_identifier);
+    $p->addAttrByNum($Radius::Radius::NAS_PORT, $main::nas_port);
+    $p->addAttrByNum($Radius::Radius::CALLED_STATION_ID, $main::called_station_id)
+	if $main::called_station_id ne '';
+    $p->addAttrByNum($Radius::Radius::CALLING_STATION_ID, $main::calling_station_id)
+	if $main::calling_station_id ne '';
+#    $main::nas_port = ($main::nas_port + 1) % 64; # TEST
+    $p->addAttrByNum($Radius::Radius::NAS_PORT_TYPE, $main::nas_port_type);
+#    $p->addAttrByNum($Radius::Radius::CONNECT_INFO, '33600 LAPM/V42BIS');
+#    $p->addAttrByNum($Radius::Radius::PROXY_ACTION, 'AUTHENTICATE');
+#    $p->addAttrByNum($Radius::Radius::PROXY_STATE, "\000\000\001\000");
+    $p->addAttrByNum($Radius::Radius::STATE, $main::opt_state)
+	if defined $main::opt_state;
+    $p->addAttrByNum($Radius::Radius::CLASS, $class)
+	if defined $class;
+    $p->add_attr('Message-Authenticator', "\000" x 16)
+	if $main::opt_message_authenticator;
+    if ($main::framed_ip_address ne '0.0.0.0')
+    {
+	$p->addAttrByNum($Radius::Radius::FRAMED_IP_ADDRESS, 
+			 $main::framed_ip_address);
+    }
+    if ($main::chap)
+    {
+	my $chap_id = '5'; # Should be random
+	my $chap_challenge = '1234567890123456';
+	$p->addAttrByNum($Radius::Radius::CHAP_PASSWORD,
+		     $chap_id . Digest::MD5::md5($chap_id . $main::password . $chap_challenge));
+	$p->addAttrByNum($Radius::Radius::CHAP_CHALLENGE, $chap_challenge);
+    }
+    elsif ($main::chap_nc)
+    {
+	# Uses the authenticator instead of the Chap-hallenge
+	my $chap_id = '5'; # Should be random
+	my $chap_challenge = $p->authenticator();
+	$p->addAttrByNum($Radius::Radius::CHAP_PASSWORD,
+		     $chap_id . Digest::MD5::md5($chap_id . $main::password . $chap_challenge));
+    }
+    elsif ($main::opt_mschapv2)
+    {
+	# Pack as per draft-ietf-radius-ms-vsa-01.txt,
+	# and RFC 2548
+	require Radius::MSCHAP;
+	my $ident = 1;
+	my $authchallenge = pack('H*', '5B5D7C7D7B3F2F3E3C2C602132262628');
+	my $peerchallenge = pack('H*', '21402324255E262A28295F2B3A337C7E');
+	my $flags = 0;
+	my $ntresponse = 
+	  Radius::MSCHAP::GenerateNTResponse($authchallenge, $peerchallenge, $main::user, Radius::MSCHAP::ASCIItoUnicode($main::password));
+	$p->add_attr('MS-CHAP-Challenge', $authchallenge);
+	$p->add_attr('MS-CHAP2-Response',
+		     pack('C C a16 a8 a24', $ident, $flags, $peerchallenge, undef, $ntresponse));
+    }
+    elsif ($main::opt_mschap)
+    {
+	# Pack as per draft-ietf-radius-mschap-attr-01.txt
+	# We only use NT-Response type
+	require Radius::MSCHAP;
+	my $ident = 1;
+	my $challenge = pack('H*', '102DB5DF085D3041');
+	my $flags = 1; # use NT-Response
+	my $ntresponse = 
+	  Radius::MSCHAP::NtChallengeResponse
+	      ($challenge, 
+	     Radius::MSCHAP::ASCIItoUnicode($main::password));
+	$p->add_attr('MS-CHAP-Challenge', $challenge);
+	$p->add_attr('MS-CHAP-Response',
+		     pack('C C a24 a24', $ident, $flags, undef, $ntresponse));
+    }
+    elsif ($main::opt_sip)
+    {
+	my (@attrs, $attrs);
+	$attrs[1] = 'test realm'; # realm
+	$attrs[2] = unpack('h*', &Radius::Util::random_string(16)); # nonce
+	$attrs[3] = 'GET';   # method
+	$attrs[4] = '/test'; # uri
+	$attrs[10] = $main::user;
+	my $ha1 = Digest::MD5::md5_hex("$attrs[10]:$attrs[1]:$main::password");
+	my $ha2 = Digest::MD5::md5_hex("$attrs[3]:$attrs[4]");
+	my $response = Digest::MD5::md5_hex("$ha1:$attrs[2]:$ha2");
+	foreach (1 .. 10)
+	{
+	    next unless defined $attrs[$_];
+	    $attrs .= pack('C C a*', $_, length($attrs[$_]) + 2, $attrs[$_]);
+	}
+	$p->add_attr('Digest-Response', $response);
+	$p->add_attr('Digest-Attributes', $attrs);
+    }
+    elsif ($eapmd5challenge)
+    {
+	# Send an EAP MD5 response
+	my $response = Digest::MD5::md5(chr($eapid) . $main::password . $eapmd5challenge);
+	my $message = pack('C C n C C a16 a*',
+			  2,
+			  $eapid,
+			  length($main::user) + 22,
+			  4,
+			  16,
+			  $response,
+			  $main::user);
+	$p->add_attr('EAP-Message', $message);
+	$p->add_attr('Message-Authenticator', "\000" x 16);
+    }
+    elsif (defined $main::opt_eaphex)
+    {
+      $p->add_attr('EAP-Message', pack ("H*", $main::opt_eaphex));
+      $p->add_attr('Message-Authenticator', "\000" x 16);
+    
+    }	
+    elsif ($eapotpresponse)
+    {
+	# Send an EAP MD5 response
+	my $message = pack('C C n C a*',
+			   2,
+			   $eapid,
+			   length($eapotpresponse) + 5,
+			   5, # EAP type
+			   $eapotpresponse);
+	$p->add_attr('EAP-Message', $message);
+	$p->add_attr('Message-Authenticator', "\000" x 16);
+    }
+    elsif ($eapgtcresponse)
+    {
+	# Send an EAP GTC response
+	my $message = pack('C C n C a*',
+			   2,
+			   $eapid,
+			   length($eapotpresponse) + 5,
+			   6, # EAP type
+			   $eapgtcresponse);
+	$p->add_attr('EAP-Message', $message);
+	$p->add_attr('Message-Authenticator', "\000" x 16);
+    }
+    elsif (defined $leapmessage)
+    {
+	$p->add_attr('EAP-Message', $leapmessage);
+	$p->add_attr('Message-Authenticator', "\000" x 16);
+    }
+    elsif ($main::opt_eapmd5 || $main::opt_eapotp || $main::opt_eapgtc || $main::opt_leap)
+    {
+	# Send the EAP Identity
+	my $message = pack('C C n C a*', 2, $eapid++, length($main::user) + 5, 1, $main::user);
+	$eapid = $eapid % 256;
+	$p->add_attr('EAP-Message', $message);
+	$p->add_attr('Message-Authenticator', "\000" x 16);
+    }
+    else
+    {
+	$p->addAttrByNum($Radius::Radius::USER_PASSWORD, $p->encode_password($main::password, $main::secret, $main::opt_useoldascendpasswords));
+    }
+    &addExtraAttributes($p);
+
+    $p->assemble_packet($main::secret, $p);
+#    showdump($p) if $trace_level >= 2;
+    my ($count, $rp);
+    $rp = undef;
+    for ($count = 0; $count <= $main::retries && !$rp; $count++)
+    {
+	&announceSending('Access-Request');
+	$p->sendTo($socket, $that_auth_paddr);
+
+
+	return if $main::opt_noreply;
+	if ($rp = &waitRecv($socket, $main::replyTimeout, $p->identifier))
+	{
+	    $rp->decode_attrs($main::secret, $p);
+	    recv_debug_dump($rp);
+	    if ($rp->code eq 'Access-Accept'
+		|| $rp->code eq 'Access-Reject'
+		|| $rp->code eq 'Access-Challenge' )
+	    {
+		my $replyMessage = $rp->getAttrByNum
+		    ($Radius::Radius::REPLY_MESSAGE);
+		announceFailure("Bad identifier"), goto fail
+		    if $rp->identifier != $p->identifier;
+
+		announceFailure("Bad authenticator"), goto fail
+		    if !$rp->check_authenticator($main::secret, $p->sent_authenticator);
+		
+		announceRejection("Rejected: $replyMessage"), goto fail
+		    if $rp->code eq 'Access-Reject';
+
+		if ($rp->code eq 'Access-Challenge')
+		{
+		    my $eapmessage = $rp->get_attr('EAP-Message');
+		    # REVISIT: look for EAP NAK
+
+		    if ($main::opt_eapmd5)
+		    {
+			my ($code, $eapid, $length, $type, $chlen, $ch) 
+			    = unpack('C C n C C a*', $eapmessage);
+			announceFailure("Bad EAP-MD5 Challenge"), goto fail
+			    unless ($code == 1
+				    && $type == 4);
+			my ($challenge, $host) = unpack("a$chlen, a*", $ch);
+			$eapmd5challenge = $challenge;
+			my $state = $rp->getAttrByNum($Radius::Radius::STATE);
+			$main::opt_state = $state if $state ne '';
+			goto again;
+		    }
+		    elsif ($main::opt_eapotp)
+		    {
+			my ($code, $eapid, $length, $type, $ch) 
+			    = unpack('C C n C a*', $eapmessage);
+			announceFailure("Bad EAP-OTP Challenge"), goto fail
+			    unless ($code == 1
+				    && $type == 5);
+			print "$ch: ";
+			$eapotpresponse = <STDIN>;
+			chomp $eapotpresponse;
+			my $state = $rp->getAttrByNum($Radius::Radius::STATE);
+			$main::opt_state = $state if $state ne '';
+			goto again;
+		    }
+		    elsif ($main::opt_eapgtc)
+		    {
+			my ($code, $eapid, $length, $type, $ch) 
+			    = unpack('C C n C a*', $eapmessage);
+			announceFailure("Bad EAP-GTC Challenge"), goto fail
+			    unless ($code == 1
+				    && $type == 6);
+			print "$ch: ";
+			$eapgtcresponse = <STDIN>;
+			chomp $eapgtcresponse;
+			my $state = $rp->getAttrByNum($Radius::Radius::STATE);
+			$main::opt_state = $state if $state ne '';
+			goto again;
+		    }
+		    elsif ($main::opt_leap)
+		    {
+			require Radius::MSCHAP;
+			my ($code, $eapid, $length, $type, $ch) 
+			    = unpack('C C n C a*', $eapmessage);
+
+			if ($code == 1 && $type == 17)
+			{
+			    # This should be the EAP request contaning the server challenge
+			    my ($version, $dummy, $challengebytecount, $challenge, $identity) 
+				= unpack('C C C a8 a*', $ch);
+			    announceFailure("Bad LEAP Challenge data"), goto fail
+				unless ($version == 1
+					&& $dummy == 0 
+					&& $challengebytecount == 8
+					&& length($challenge) == 8);
+			    
+			    my $nthash = Radius::MSCHAP::NtPasswordHash(Radius::MSCHAP::ASCIItoUnicode($main::password));
+			    my $peerresponse = Radius::MSCHAP::ChallengeResponse($challenge, $nthash);
+			    my $leapresponse = pack('C C C/a* a*', 1, 0, $peerresponse, $main::user);
+			    # This is an EAP response
+			    $leapmessage = pack('C C n C a*',
+						2,
+						$eapid,
+						length($leapresponse) + 5,
+						17, # EAP type
+						$leapresponse);
+			    my $state = $rp->getAttrByNum($Radius::Radius::STATE);
+			    $main::opt_state = $state if $state ne '';
+			    goto again;
+			}
+			elsif ($code == 3)
+			{
+			    # This should be the EAP success that follows 
+			    # from the client response. Send Access Point Challenge
+			    my $apc = &Radius::Util::random_string(8);
+			    my $leapresponse = pack('C C C/a*', 1, 0, $apc);
+			    # This is an EAP request
+			    $leapmessage = pack('C C n C a*',
+						1,
+						$eapid,
+						length($leapresponse) + 5,
+						17, # EAP type
+						$leapresponse);
+			    my $state = $rp->getAttrByNum($Radius::Radius::STATE);
+			    $main::opt_state = $state if $state ne '';
+			    goto again;
+			}
+			else
+			{
+			    announceRejection("LEAP Challenge: unknown code $code");
+			    goto fail;
+			}
+		    }
+		    elsif ($main::opt_interactive)
+		    {
+			print "$replyMessage\n";
+			$main::password = <STDIN>;
+			chomp $main::password;
+			my $state = $rp->getAttrByNum($Radius::Radius::STATE);
+			$main::opt_state = $state if $state ne '';
+			goto again;
+		    }
+		    else
+		    {
+			announceRejection("Challenge: $replyMessage");
+			goto fail;
+		    }
+		}
+
+		announceSuccess("OK");
+
+		# Take notice of the returned address unless we are forcing
+		# a particular framed address
+		my $address = $rp->get_attr('Framed-IP-Address');
+		$main::framed_ip_address = $address
+		    if defined $address and !defined $main::opt_framed_ip_address;
+
+		# Take notice of the returned class
+		$class = $rp->getAttrByNum($Radius::Radius::CLASS);
+
+
+	      fail:
+	    }
+	    else
+	    {
+		announceFailure("Unexpected reply type")
+	    }
+#	showdump($rp) if $trace_level >= 2;
+
+	}
+	else
+	{
+	    announceFailure("No reply")
+	}
+    }
+}
+
+#####################################################################
+sub sendStatusReq
+{
+    my $p = new Radius::Radius $main::dict;
+    $p->set_code('Status-Server');
+    $p->set_identifier($identifier);
+    $identifier = ($identifier + 1) & 0xff;
+    $p->set_authenticator(&Radius::Util::random_string(16));
+
+    $p->addAttrByNum($Radius::Radius::STATE, $main::opt_state)
+	if defined $main::opt_state;
+    $p->add_attr('Message-Authenticator', "\000" x 16)
+	if $main::opt_message_authenticator;
+
+    &addExtraAttributes($p);
+
+    $p->assemble_packet($main::secret, $p);
+#    showdump($p) if $trace_level >= 2;
+    my ($count, $rp);
+    for ($count = 0; $count <= $main::retries && !$rp; $count++)
+    {
+	&announceSending('Status-Request');
+	$p->sendTo($socket, $that_auth_paddr);
+
+	return if $main::opt_noreply;
+	if ($rp = &waitRecv($socket, $main::replyTimeout, $p->identifier))
+	{
+	    $rp->decode_attrs($main::secret, $p);
+	    recv_debug_dump($rp);
+	    if ($rp->code eq 'Access-Accept'
+		|| $rp->code eq 'Access-Reject')
+	    {
+		announceFailure("Bad identifier"), goto fail
+		    if $rp->identifier != $p->identifier;
+
+		announceFailure("Bad authenticator"), goto fail
+		    if !$rp->check_authenticator($main::secret, $p->sent_authenticator);
+		
+		announceRejection("Rejected"), goto fail
+		    if $rp->code eq 'Access-Reject';
+
+		announceSuccess("OK");
+	      fail:
+	    }
+	    else
+	    {
+		announceFailure("Unexpected reply type");
+	    }
+#	showdump($rp) if $trace_level >= 2;
+	}
+	else
+	{
+	    announceFailure("No reply");
+	}
+    }
+}
+
+#####################################################################
+sub sendAcctReq
+{
+    my ($type) = @_;
+
+    my $p = new Radius::Radius $main::dict;
+    $p->set_code('Accounting-Request');
+    $p->set_identifier($identifier);
+    $identifier = ($identifier + 1) & 0xff;
+    $p->set_authenticator("\000" x 16);
+    if ($type eq 'Start' || $type eq 'Alive' || $type eq 'Stop')
+    {
+        $p->addAttrByNum($Radius::Radius::USER_NAME, $main::user);
+        $p->addAttrByNum($Radius::Radius::SERVICE_TYPE, $main::service_type);
+        $p->addAttrByNum($Radius::Radius::NAS_IP_ADDRESS, $main::nas_ip_address);
+        $p->addAttrByNum($Radius::Radius::NAS_IDENTIFIER, $main::nas_identifier);
+        $p->addAttrByNum($Radius::Radius::NAS_PORT, $main::nas_port);
+	$p->addAttrByNum($Radius::Radius::NAS_PORT_TYPE, $main::nas_port_type);
+        $p->addAttrByNum($Radius::Radius::ACCT_SESSION_ID, $main::session_id);
+        $p->addAttrByNum($Radius::Radius::ACCT_STATUS_TYPE, $type);
+	$p->addAttrByNum($Radius::Radius::CALLED_STATION_ID, $main::called_station_id)
+	    if $main::called_station_id ne '';
+	$p->addAttrByNum($Radius::Radius::CALLING_STATION_ID, $main::calling_station_id)
+	    if $main::calling_station_id ne '';
+	if ($main::framed_ip_address ne '0.0.0.0')
+	{
+	    $p->addAttrByNum($Radius::Radius::FRAMED_IP_ADDRESS, 
+			     $main::framed_ip_address);
+	}
+    }
+    $p->addAttrByNum($Radius::Radius::ACCT_DELAY_TIME, $main::delay_time);
+    if ($type eq 'Alive' || $type eq 'Stop')
+    {
+	$p->addAttrByNum($Radius::Radius::ACCT_SESSION_TIME, $main::session_time++);
+	$p->addAttrByNum($Radius::Radius::ACCT_INPUT_OCTETS, $main::input_octets++);
+	$p->addAttrByNum($Radius::Radius::ACCT_OUTPUT_OCTETS, $main::output_octets++);
+	$main::session_id++;
+    }
+    elsif ($type eq 'Accounting-On' || $type eq 'Accounting-Off')
+    {
+        $p->addAttrByNum($Radius::Radius::NAS_IP_ADDRESS, $main::nas_ip_address);
+        $p->addAttrByNum($Radius::Radius::NAS_IDENTIFIER, $main::nas_identifier);
+
+	my $session_id = '0';
+	$session_id = $main::opt_session_id if defined $main::opt_session_id;
+        $p->addAttrByNum($Radius::Radius::ACCT_SESSION_ID, $session_id);
+        $p->addAttrByNum($Radius::Radius::ACCT_STATUS_TYPE, $type);
+	$p->addAttrByNum($Radius::Radius::CALLED_STATION_ID, $main::called_station_id)
+	    if $main::called_station_id ne '';
+	$p->addAttrByNum($Radius::Radius::CALLING_STATION_ID, $main::calling_station_id)
+	    if $main::calling_station_id ne '';
+    }
+    $p->addAttrByNum($Radius::Radius::STATE, $main::opt_state)
+	if defined $main::opt_state;
+    # Send any Class attribtue that we got from the most recent
+    # access-reply
+    $p->addAttrByNum($Radius::Radius::CLASS, $class)
+	if defined $class;
+
+    &addExtraAttributes($p);
+
+    $p->assemble_packet($main::secret, $p);
+#    showdump($p) if $trace_level >= 2;
+    my ($count, $rp);
+    for ($count = 0; $count <= $main::retries && !$rp; $count++)
+    {
+	&announceSending("Accounting-Request $type");
+	$p->sendTo($socket, $that_acct_paddr);
+
+	return if $main::opt_noreply;
+	if ($rp = &waitRecv($socket, $main::replyTimeout, $p->identifier))
+	{
+	    $rp->decode_attrs($main::secret, $p);
+	    recv_debug_dump($rp);
+	    if ($rp->code eq 'Accounting-Response')
+	    {
+		announceFailure("Bad identifier"), goto fail
+		    if $rp->identifier != $p->identifier;
+
+		announceFailure("Bad authenticator"), goto fail
+		    if !$rp->check_authenticator($main::secret, $p->sent_authenticator);
+		announceSuccess("OK");
+	      fail:
+	    }
+	    else
+	    {
+		announceFailure("Unexpected reply type");
+	    }
+#	showdump($rp) if $trace_level >= 2;
+	}
+	else
+	{
+	    announceFailure("No reply");
+	}
+    }
+}
+
+
+#####################################################################
+# Send an aribtrary request code
+sub sendCode
+{
+    my ($code) = @_;
+
+    my $p = new Radius::Radius $main::dict;
+    $p->set_code($code);
+    $p->set_identifier($identifier);
+    $identifier = ($identifier + 1) & 0xff;
+
+    if ($code eq 'Disconnect-Request' || $code eq 'Change-Filter-Request')
+    {
+	$p->set_authenticator("\000" x 16);
+    }
+    else
+    {
+	$p->set_authenticator(&Radius::Util::random_string(16));
+    }
+    $p->add_attr('Message-Authenticator', "\000" x 16)
+	if $main::opt_message_authenticator;
+    &addExtraAttributes($p);
+
+    $p->assemble_packet($main::secret, $p);
+#    showdump($p) if $trace_level >= 2;
+    my ($count, $rp);
+    for ($count = 0; $count <= $main::retries && !$rp; $count++)
+    {
+	&announceSending($code);
+	$p->sendTo($socket, $that_auth_paddr);
+
+	return if $main::opt_noreply;
+	if ($rp = &waitRecv($socket, $main::replyTimeout, $p->identifier))
+	{
+	    $rp->decode_attrs($main::secret, $p);
+	    recv_debug_dump($rp);
+	    announceFailure("Bad identifier"), goto fail
+		if $rp->identifier != $p->identifier;
+
+	    announceFailure("Bad authenticator"), goto fail
+		if !$rp->check_authenticator($main::secret, $p->sent_authenticator);
+	    announceSuccess("OK");
+	  fail:
+#	showdump($rp) if $trace_level >= 2;
+	}
+	else
+	{
+	    announceFailure("No reply");
+	}
+    }
+}
+
+
+#####################################################################
+# Send an aribtrary data
+sub sendRaw
+{
+    my ($raw) = @_;
+
+    my $p = new Radius::Radius $main::dict;
+    $raw =~ s/\s//g;
+    print "RAW is $raw\n";
+    $p->{Packet} = pack('H*', $raw);
+    my $identifier = unpack('x C', $p->{Packet});
+
+    my ($count, $rp);
+    for ($count = 0; $count <= $main::retries && !$rp; $count++)
+    {
+	&announceSending('raw');
+	$p->sendTo($socket, $that_auth_paddr);
+	return if $main::opt_noreply;
+	if ($rp = &waitRecv($socket, $main::replyTimeout, $identifier))
+	{
+	    $rp->decode_attrs($main::secret, $p);
+	    recv_debug_dump($rp);
+	    announceFailure("Bad identifier"), goto fail
+		if $rp->identifier != $identifier;
+
+	    announceFailure("Bad authenticator"), goto fail
+		if !$rp->check_authenticator($main::secret, $p->sent_authenticator);
+	    announceSuccess("OK");
+	  fail:
+#	showdump($rp) if $trace_level >= 2;
+	}
+	else
+	{
+	    announceFailure("No reply");
+	}
+    }
+}
+
+####################################################################
+sub sendRawSeq
+{
+    my ($raw_seq) = @_;
+
+    my $p = new Radius::Radius $main::dict;
+    
+    $raw_seq =~ s/\s//g;
+    my @raw_packets = split(/NewPacket/, $raw_seq);
+    my $NumOfPackets = $#raw_packets;
+    my $packet;
+    for ($packet=0; $packet < $NumOfPackets+1; $packet++)
+    {
+	&sendRaw ($raw_packets[$packet]);
+    }
+}
+
+#####################################################################
+# Add all the extra attributes described on the command line
+# each one is in the form name=value
+sub addExtraAttributes
+{
+    my ($p) = @_;
+
+    my $arg;
+
+    foreach $arg (@ARGV)
+    {
+	if ($arg =~ /([^=]*)=(.*)/)
+	{
+	    # Permit octal escapes in value
+	    my ($attr, $value) = ($1, $2);
+	    $value =~ s/\\(\d{3})/chr(oct($1))/ge; # Convert escaped octal
+	    $p->add_attr($attr, $value);
+	}
+    }
+}
+
+#####################################################################
+# Read command line args from a file, one arg per line
+# Its not an error if it does not exist.
+sub readFileOptions
+{
+    my ($file) = @_;
+
+    if (open(FILE, $file))
+    {
+	# Slurp the file, one arg per line
+	foreach my $line (<FILE>)
+	{
+	    # Strip leading and trailing white space.
+	    $line =~ s/^\s*//;
+	    $line =~ s/\s*$//;
+
+	    # Remove the outermoust double quotes
+	    $line =~ s/"{1}?//; # Non greedy substitution
+	    $line =~ s/(.*)"([^"]*)$/$1$2/;
+
+	    # Ignore blank lines and lines beginning with hash
+	    next if $line eq '';
+	    next if $line =~ /^#/;
+
+	    print "line: >$line<\n";
+	    # Split only lines that start with -. The others are in
+	    # attribute=value format.
+	    my @args;
+	    if ($line =~ /^-/)
+	    {
+		# Note: uses only one ' ' for delimiter preserving space
+		@args = split (/ /, $line, 2);
+	    }
+	    else
+	    {
+		push @args, $line;
+	    }
+
+	    # Append the args to the current command line args
+	    push @ARGV, @args;
+	}
+    }
+    return;
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h] [-time] [-iterations n]
+          [-trace [level]] [-notrace]
+          [-user username] [-password password]
+          [-s server] [-secret secret] [-auth_port port] [-acct_port port]
+          [-noauth] [-noacct] [-nostart] [-nostop] [-alive] [-status]
+          [-chap] [-chap_nc] [-mschap] [-mschapv2] [-eapmd5] [-eapotp] [-eapgtc] [-sip] [-leap]
+          [-motp_secret xxxxxxxxxxxxxxxx] [-eaphex xxxxxxxxxxxxx]
+          [-interactive] [-code requestcode] [-accton] [-acctoff]
+          [-identifier n] [-framed_ip_address address]
+          [-nas_ip_address address] [-nas_identifier string]
+          [-nas_port port] [-nas_port_type type] [-service_type service]
+          [-calling_station_id string] [-called_station_id string]
+          [-session_id string] [-session_time n]
+          [-delay_time n] [-input_octets n] [-output_octets n]
+          [-timeout n] [-retries n] [-dictionary file,file]
+          [-class string] [-message_authenticator]
+          [-raw data] [-rawfile filename] [-rawfileseq filename]
+          [-outport port] [-bind_address address]
+          [-options optionfile] [-gui]
+          [attribute=value]... \n";
+    exit;
+}
+
+#####################################################################
+# Wait for readable on the socekt $s for at most $timeout seconds
+sub waitForSocket
+{
+    my ($s, $timeout) = @_;
+
+    my ($rin, $rout) = ('', '');
+    vec($rin, fileno($s), 1) = 1;
+    return select($rout = $rin, undef, undef, $timeout);
+}
+
+#####################################################################
+# Wait for a packet on the socket and return it
+# Returns undef if no packet arrives within the timeout period
+sub waitRecv
+{
+    my ($s, $timeout, $expectedid) = @_;
+
+    my $p;
+    
+    while (!$p && &waitForSocket($s, $timeout) && !$main::stopSending)
+    {
+	$p = Radius::Radius->newRecvFrom($s, $main::dict);
+	# Only return when we get the one we expected
+	# protect against failures in newRecvFrom
+	if ($p && $p->identifier != $expectedid)
+	{
+	    print STDERR "received unexpected ID in reply to $expectedid\n";
+	    print $p->dump;
+
+	    $p = undef;
+	}
+    }
+    return $p;
+}
+
+sub announceSending
+{
+    my ($msg) = @_;
+
+    print 'sending ' . $msg . "...\n" if $main::trace_level;
+}
+
+sub announceSuccess
+{
+    my ($msg) = @_;
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub announceFailure
+{
+    my ($msg) = @_;
+    
+    $main::errors++;
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub announceRejection
+{
+    my ($msg) = @_;
+    
+    $main::reject++;
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub showdump
+{
+    my ($p) = @_;
+
+    print $p->dump;
+}
+
+sub announce
+{
+    my ($msg) = @_;
+    
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub compute_addresses
+{
+    my $bind_address = ($main::desthost =~ /^(ipv6:|[0-9a-f:]+$)/i) ? 'ipv6:::' : '0.0.0.0';
+    $bind_address = $main::opt_bind_address if defined $main::opt_bind_address;
+    # Convert port names to numbers
+    my $n_auth_port = Radius::Util::get_port($main::auth_port);
+    my $n_acct_port = Radius::Util::get_port($main::acct_port);
+
+    ($that_auth_paddr, $pfamily) = &Radius::Util::pack_sockaddr_pton($n_auth_port, $main::desthost);
+    ($that_acct_paddr, $pfamily) = &Radius::Util::pack_sockaddr_pton($n_acct_port, $main::desthost);
+    ($thisaddr, $pfamily) = &Radius::Util::pack_sockaddr_pton(&Radius::Util::get_port($outport), $bind_address);
+}
+
+sub create_socket
+{
+    $socket = \*SOCKET; # Need this for perl 5.005_03
+    $proto = getprotobyname('udp');
+    socket($socket, $pfamily, Socket::SOCK_DGRAM, $proto)
+	|| die "socket: $!";
+    # This eval is required otherwise we may get strange dies on some platforms with 804.027
+    eval {binmode($socket)}; # Make safe in UTF environments
+    bind($socket, $thisaddr)
+	|| die "bind: $!";
+}
+
+# Tell the library whether we want to log anything
+# This will be packet traces etc
+sub willLog
+{
+    my ($priority, $p) = @_;
+
+    return $priority <= $main::trace_level;
+}
+
+# Catch recursion in calls to log
+my $in_log = 0;
+sub log
+{
+    my ($priority, $s, $p) = @_;
+
+    # Catch recursion
+    return if $in_log++;
+
+    # Print to stdout as well, if required
+    print scalar localtime(time) . ': ' 
+	. $Radius::Log::priorityToString[$priority] . ': ' . $s . "\n"
+	if $main::config->{LogStdout} 
+           && ($priority <= $main::config->{Trace} 
+	       || ($p && $p->{PacketTrace}));
+
+    # Call each log module with $priority, $s
+    map $_->log($priority, $s, $p), @{$main::config->{Log}};
+
+    $in_log = 0;
+}
+
+sub recv_debug_dump
+{
+    my ($p) = @_;
+
+    my $addr = Radius::Util::inet_ntop($p->{RecvFromAddress}); 
+    my $text = "Packet dump:\n*** Received from $addr port $p->{RecvFromPort} ....\n";
+	
+    # Packet dump for debugging.
+    # Courtesy Aaron Nabil (nabil@spiritone.com)
+    if (main::willLog(5, $p))
+    {
+	my $rec = $p->{RecData};
+
+	$text .= "\nPacket length = " . length($rec) . "\n";
+	my $i;
+	for ($i = 0; $i < length($rec); $i += 16)
+	{
+	    $text .= join ' ', map {sprintf "%02x", $_} unpack('C16', substr($rec, $i, 16));
+	    $text .= "\n";
+	}
+    }
+    $text .= $p->dump;
+
+    main::log($main::LOG_DEBUG, $text, $p); 
+
+    return;
+}

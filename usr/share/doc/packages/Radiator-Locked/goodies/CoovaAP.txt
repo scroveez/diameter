@@ -1,0 +1,185 @@
+CoovaAP is a self contained RADIUS capable Wireless Access Point and captive
+portal. It consists of new firmware for a Linksys WRT54G wireless access
+point, which replaces the standard Linksys firmware with the open source Linux
+based OpenWRT and CoovaChilli software. CoovaChilli is the captive portal
+software that runs under OpenWRT, and which can be configured to force
+wireless users to authenticate via RADIUS before they can get access to the
+internet. It includes easy web configuration, ssh access and more.
+
+CoovaAP and installation instructions are available from http://coova.org/
+CoovaChilli project has taken over from the original ChilliSpot project, which
+is now defunct.
+
+The Linksys WRT54G is an inexpensive 802.11b/g wireless access point and
+router. On the back are 4 ethernet ports labelled 1 to 4: (CoovaAP calls these
+the LAN ports), and another ethernet port labelled 'Internet' (CoovaAP calls
+this the WAN).
+
+CoovaAP is extensively configurable to cover many types of requirements.  We
+tested CoovaAP 1.0-beta.7d with Radiator by configuring it as an 'Internal
+Hotspot'. In this configuration, end user wireless clients can connect to the
+open wireless network. When they first attempt to access an internet page,
+CoovaAP redirects them to a login web page. The user enters a username
+and password, which is passed to an internal CoovaChilli server, which in turn
+authenticates against an external Radiator RADIUS server connected on the WAN
+side the CoovaAP. If the authentication succeeds, the user then gets access to
+the internet on the WAN side of the AP (the WAN port was connected to a
+network that had Internet access through a gateway)
+
+In this configuration, the CoovaChilli software runs within the CoovaAP access
+point, and CoovaChilli connects authenticate from the external RADIUS
+server. It is possible to configure it to authenticate to an external
+CoovaChilli server, which in turn may configure via RADIUS or some other
+way. Many other options are possible, but we will not discuss them.
+
+CoovaAP was configured to have a static IP address on the WAN side, and was
+configured to authenticate from a RADIUS server address which was on the WAN
+side. The Wireless side was configured to do DHCP address allocation for
+wireless clients. LAN side access was disabled.
+
+The result was a simple, secure internet access hotspot which only permitted
+access by users who appeared in the Radiator user database.
+
+The Radiator configuration is very simple. CoovaAP has no special
+authentication requirements. It does CHAP authentication. We used the
+goodies/simple.cfg like this:
+perl radiusd -config goodies/simple.cfg
+
+
+
+
+
+
+
+
+
+
+
+Here is a typical trace of CoovaAP RADIUS authentication and accounting
+requests, as a user connected to the CoovaAP portal and entered 'mikem' 'fred'
+on the portal login page. After the authentication succeeded, the user was
+permitted access to the internet. The user was then forced to log off by using
+the CoovaAP Status->Hotspot page.
+
+Note that, depending on the settings in the Optional RADIUS Configurations
+section on the HotSpot->Radius page, CoovaAP will periodcically attempt to
+authenticate the RADIUS Admin Username. According to Coova: "it is ok if it
+fails. It is Chilli trying to pick up configurations that are stored centrally
+on the RADIUS server." using chilli_radconfig(1). If the reply contains
+ChilliSpot-Config attributes, they will be used.
+
+Wed Jan 16 17:16:44 2008: DEBUG: Packet dump:
+*** Received from 203.63.154.241 port 2070 ....
+Code:       Access-Request
+Identifier: 90
+Authentic:  r.H`^<28><127><248><238><30><161><21>G<181>fz
+Attributes:
+        ChilliSpot-Version = "1.0.11"
+        User-Name = "mikem"
+        CHAP-Challenge = <207>W<3><167><165><211>T<200><213>:<249><8>_v<9><194>
+        CHAP-Password = <0>;q<161>X<241>K<249><220><163><19>U<1>/'~<165>
+        NAS-IP-Address = 203.63.154.241
+        Service-Type = Login-User
+        Framed-IP-Address = 10.1.0.2
+        Calling-Station-Id = "00-11-95-4B-C8-34"
+        Called-Station-Id = "00-13-10-94-06-89"
+        NAS-Identifier = "00-13-10-94-06-89"
+        Acct-Session-Id = "478daf4c00000001"
+        NAS-Port-Type = Wireless-IEEE-802-11
+        NAS-Port = 1
+        WISPr-Location-ID = "isocc=,cc=,ac=,network=Coova,Coova"
+        WISPr-Location-Name = "My_HotSpot"
+        WISPr-Logoff-URL = "http://10.1.0.1:3660/logoff"
+        Message-Authenticator = 6E<31>\*h$<237><216><199><132><237>]<26><135><153>
+
+Wed Jan 16 17:16:44 2008: DEBUG: Handling request with Handler 'Realm=DEFAULT'
+Wed Jan 16 17:16:44 2008: DEBUG:  Deleting session for mikem, 203.63.154.241, 1
+Wed Jan 16 17:16:44 2008: DEBUG: Handling with Radius::AuthFILE:
+Wed Jan 16 17:16:44 2008: DEBUG: Radius::AuthFILE looks for match with mikem [mikem]
+Wed Jan 16 17:16:44 2008: DEBUG: Radius::AuthFILE ACCEPT: : mikem [mikem]
+Wed Jan 16 17:16:44 2008: DEBUG: AuthBy FILE result: ACCEPT,
+Wed Jan 16 17:16:44 2008: DEBUG: Access accepted for mikem
+Wed Jan 16 17:16:44 2008: WARNING: No such attribute Management-Policy-Id
+Wed Jan 16 17:16:44 2008: DEBUG: Packet dump:
+*** Sending to 203.63.154.241 port 2070 ....
+Code:       Access-Accept
+Identifier: 90
+Authentic:  r.H`^<28><127><248><238><30><161><21>G<181>fz
+Attributes:
+
+
+Wed Jan 16 17:16:44 2008: DEBUG: Packet dump:
+*** Received from 203.63.154.241 port 2069 ....
+Code:       Accounting-Request
+Identifier: 9
+Authentic:  Q-<137><208><215>a<31>M<211><255>N5XK:v
+Attributes:
+        ChilliSpot-Version = "1.0.11"
+        Acct-Status-Type = Start
+        User-Name = "mikem"
+        Calling-Station-Id = "00-11-95-4B-C8-34"
+        NAS-Port-Type = Wireless-IEEE-802-11
+        NAS-Port = 1
+        NAS-Port-Id = "00000001"
+        Framed-IP-Address = 10.1.0.2
+        Acct-Session-Id = "478daf4c00000001"
+        NAS-IP-Address = 203.63.154.241
+        Called-Station-Id = "00-13-10-94-06-89"
+        NAS-Identifier = "00-13-10-94-06-89"
+        WISPr-Location-ID = "isocc=,cc=,ac=,network=Coova,Coova"
+        WISPr-Location-Name = "My_HotSpot"
+
+Wed Jan 16 17:16:44 2008: DEBUG: Handling request with Handler 'Realm=DEFAULT'
+Wed Jan 16 17:16:44 2008: DEBUG:  Adding session for mikem, 203.63.154.241, 1
+Wed Jan 16 17:16:44 2008: DEBUG: Handling with Radius::AuthFILE:
+Wed Jan 16 17:16:44 2008: DEBUG: AuthBy FILE result: ACCEPT,
+Wed Jan 16 17:16:44 2008: DEBUG: Accounting accepted
+Wed Jan 16 17:16:44 2008: DEBUG: Packet dump:
+*** Sending to 203.63.154.241 port 2069 ....
+Code:       Accounting-Response
+Identifier: 9
+Authentic:  Q-<137><208><215>a<31>M<211><255>N5XK:v
+Attributes:
+
+Wed Jan 16 17:17:12 2008: DEBUG: Packet dump:
+*** Received from 203.63.154.241 port 2069 ....
+Code:       Accounting-Request
+Identifier: 10
+Authentic:  <20><194>%<192><193><190><10><134><156>7P<170>mR}<222>
+Attributes:
+        ChilliSpot-Version = "1.0.11"
+        Acct-Status-Type = Stop
+        User-Name = "mikem"
+        Calling-Station-Id = "00-11-95-4B-C8-34"
+        NAS-Port-Type = Wireless-IEEE-802-11
+        NAS-Port = 1
+        NAS-Port-Id = "00000001"
+        Framed-IP-Address = 10.1.0.2
+        Acct-Session-Id = "478daf4c00000001"
+        NAS-IP-Address = 203.63.154.241
+        Called-Station-Id = "00-13-10-94-06-89"
+        NAS-Identifier = "00-13-10-94-06-89"
+        Acct-Input-Octets = 58574
+        Acct-Output-Octets = 50069
+        Acct-Input-Gigawords = 0
+        Acct-Output-Gigawords = 0
+        Acct-Input-Packets = 366
+        Acct-Output-Packets = 368
+        Acct-Session-Time = 28
+        WISPr-Location-ID = "isocc=,cc=,ac=,network=Coova,Coova"
+        WISPr-Location-Name = "My_HotSpot"
+        Acct-Terminate-Cause = Admin-Reset
+
+Wed Jan 16 17:17:12 2008: DEBUG: Handling request with Handler 'Realm=DEFAULT'
+Wed Jan 16 17:17:12 2008: DEBUG:  Deleting session for mikem, 203.63.154.241, 1
+Wed Jan 16 17:17:12 2008: DEBUG: Handling with Radius::AuthFILE:
+Wed Jan 16 17:17:12 2008: DEBUG: AuthBy FILE result: ACCEPT,
+Wed Jan 16 17:17:12 2008: DEBUG: Accounting accepted
+Wed Jan 16 17:17:12 2008: DEBUG: Packet dump:
+*** Sending to 203.63.154.241 port 2069 ....
+Code:       Accounting-Response
+Identifier: 10
+Authentic:  <20><194>%<192><193><190><10><134><156>7P<170>mR}<222>
+Attributes:
+
+

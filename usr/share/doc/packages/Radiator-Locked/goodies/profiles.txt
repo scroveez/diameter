@@ -1,0 +1,70 @@
+Radiator 2.16 includes the ability for check items to match
+in the currenly contstructed reply, as well as the current request.
+If a check item begins with the string Reply: the match
+is done against the named attribtue in the current reply. This
+allows you to refer to the contents of partly constructed
+replies.
+
+This document is a brief description of how you can implement user
+profiles using check items that refer to reply attributes.
+
+Assume that you want to maintain a number of user 'profiles',
+sets of Radius reply attribtues that depend on the type of
+account that the user has purchased. For example, a premium account
+might have a very long session timeout, and a cheaper account, 
+a shorter Session-Timeout.
+
+You can implement this as follows. In your user authentication
+module, you set a pseudo reply item called Profile. And then in
+a following module, you have a number of DEFAULT users check
+the Profile attribute in the currently contructed _reply_. Finally
+you strip out the pseudo attribtue Profile before the real reply
+goes back to the nas.
+
+It should be noted that while this example uses FILE to hold
+the users and thier profiles, it could in fact be implemented with
+any other authentiocaitonm moduiles, like SQL, LDAP etc.
+
+Here is a sample extract from a Radiator configuration file:
+
+...
+<Realm DEFAULT>
+	AuthByPolicy ContinueWhileAccept
+	# This file checks passwords and sets the Profile
+	# in the reply
+	<AuthBy FILE>
+		Filename ./users
+	</AuthBy>
+
+	# Now add some real reply attributes that depend on the 
+	# Profile attribute added above, then strip the Profile
+	<AuthBy FILE>
+		Filename ./profiles
+		# Remove the Profile Pseudo attribute added
+		# above
+		StripFromReply Profile
+	</AuthBy>
+</Realm>
+
+
+And in the users authentication file:
+
+u1	Password=u1
+	Profile=premium
+
+u2	Password=u2
+	Profile=premium
+
+u3	Password=u3
+	Profile=cheap
+
+
+And in the profiles file:
+
+# Adds a session timeout that depends on the profile
+DEFAULT	Reply:Profile=cheap
+	Session-Timeout = 100
+
+DEFAULT	Reply:Profile=premium
+	Session-Timeout = 200
+

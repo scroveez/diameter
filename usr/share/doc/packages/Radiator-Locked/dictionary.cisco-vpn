@@ -1,0 +1,393 @@
+# Attributes for Cisco ASA VPN Concentrators (formerly PIX and Altiga).
+# This list has more for vendor 3076 than the default Radiator dictionary.
+# However, some of the attributes have been changed or replaced and
+# conflict the default dictionary entries.
+#
+# You may want consider using this as a supplemental dictionary for
+# new Cisco VPN deployments.
+#
+VENDOR	Altiga 3076
+VENDORATTR  3076  Cisco-VPN-Access-Hours                                           1  string
+VENDORATTR  3076  Cisco-VPN-Simultaneous-Logins                                    2  integer
+VENDORATTR  3076  Cisco-VPN-Primary-DNS                                            5  ipaddr
+VENDORATTR  3076  Cisco-VPN-Secondary-DNS                                          6  ipaddr
+VENDORATTR  3076  Cisco-VPN-Primary-WINS                                           7  ipaddr
+VENDORATTR  3076  Cisco-VPN-Secondary-WINS                                         8  ipaddr
+VENDORATTR  3076  Cisco-VPN-SEP-Card-Assignment                                    9  integer
+VENDORATTR  3076  Cisco-VPN-Tunneling-Protocols                                   11  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Sec-Association                                 12  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Authentication                                  13  integer
+VENDORATTR  3076  Cisco-VPN-Banner1                                               15  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Allow-Passwd-Store                              16  integer
+VENDORATTR  3076  Cisco-VPN-Use-Client-Address                                    17  integer
+VENDORATTR  3076  Cisco-VPN-PPTP-Encryption                                       20  integer
+VENDORATTR  3076  Cisco-VPN-L2TP-Encryption                                       21  integer
+VENDORATTR  3076  Cisco-VPN-Group-Policy                                          25  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Split-Tunnel-List                               27  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Default-Domain                                  28  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Split-DNS-Names                                 29  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Tunnel-Type                                     30  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Mode-Config                                     31  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-User-Group-Lock                                 33  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Over-UDP                                        34  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Over-UDP-Port                                   35  integer
+VENDORATTR  3076  Cisco-VPN-Banner2                                               36  string
+VENDORATTR  3076  Cisco-VPN-PPTP-MPPC-Compression                                 37  integer
+VENDORATTR  3076  Cisco-VPN-L2TP-MPPC-Compression                                 38  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-IP-Compression                                  39  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-IKE-Peer-ID-Check                               40  integer
+VENDORATTR  3076  Cisco-VPN-IKE-Keep-Alives                                       41  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Auth-On-Rekey                                   42  integer
+VENDORATTR  3076  Cisco-VPN-Required-Client--Firewall-Vendor-Code                 45  integer
+VENDORATTR  3076  Cisco-VPN-Required-Client-Firewall-Product-Code                 46  integer
+VENDORATTR  3076  Cisco-VPN-Required-Client-Firewall-Description                  47  string
+VENDORATTR  3076  Cisco-VPN-Require-HW-Client-Auth                                48  integer
+VENDORATTR  3076  Cisco-VPN-Required-Individual-User-Auth                         49  integer
+VENDORATTR  3076  Cisco-VPN-Authenticated-User-Idle-Timeout                       50  integer
+VENDORATTR  3076  Cisco-VPN-Cisco-IP-Phone-Bypass                                 51  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Split-Tunneling-Policy                          55  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Required-Client-Firewall-Capability             56  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Client-Firewall-Filter-Name                     57  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Client-Firewall-Filter-Optional                 58  integer
+VENDORATTR  3076  Cisco-VPN-IPsec-Backup-Servers                                  59  string
+VENDORATTR  3076  Cisco-VPN-IPsec-Backup-Server-List                              60  string
+VENDORATTR  3076  Cisco-VPN-DHCP-Network-Scope                                    61  string
+VENDORATTR  3076  Cisco-VPN-Intercept-DHCP-Configure-Msg                          62  integer
+VENDORATTR  3076  Cisco-VPN-MS-Client-Subnet-Mask                                 63  ipaddr
+VENDORATTR  3076  Cisco-VPN-Allow-Network-Extension-Mode                          64  integer
+VENDORATTR  3076  Cisco-VPN-Authorization-Type                                    65  integer
+VENDORATTR  3076  Cisco-VPN-Authorization-Required                                66  integer
+VENDORATTR  3076  Cisco-VPN-Authorization-DN-Field                                67  string
+VENDORATTR  3076  Cisco-VPN-IKE-KeepAlive-Confidence-Interval                     68  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Content-Filter-Parameters                      69  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-HTML-Filter                                    69  bitmap
+VENDORATTR  3076  Cisco-VPN-WebVPN-URL-List                                       71  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Port-Forwarding-List                           72  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Access-List                                    73  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-ACL                                            73  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-HTTP-Proxy-IP-Address                          74  string
+VENDORATTR  3076  Cisco-VPN-Cisco-LEAP-Bypass                                     75  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Default-Homepage                               76  string
+VENDORATTR  3076  Cisco-VPN-Client-Type-Version-Limiting                          77  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Group-based-HTTP-HTTPS-Proxy-Exception-List    78  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Port-Forwarding-Name                           79  string
+VENDORATTR  3076  Cisco-VPN-IE-Proxy-Server                                       80  ipaddr
+VENDORATTR  3076  Cisco-VPN-IE-Proxy-Server-Policy                                81  integer
+VENDORATTR  3076  Cisco-VPN-IE-Proxy-Exception-List                               82  string
+VENDORATTR  3076  Cisco-VPN-IE-Proxy-Bypass-Local                                 83  integer
+VENDORATTR  3076  Cisco-VPN-IKE-Keepalive-Retry-Interval                          84  integer
+VENDORATTR  3076  Cisco-VPN-Tunnel-Group-Lock                                     85  string
+VENDORATTR  3076  Cisco-VPN-Access-List-Inbound                                   86  string
+VENDORATTR  3076  Cisco-VPN-Access-List-Outbound                                  87  string
+VENDORATTR  3076  Cisco-VPN-Perfect-Forward-Secrecy-Enable                        88  integer
+VENDORATTR  3076  Cisco-VPN-NAC-Enable                                            89  integer
+VENDORATTR  3076  Cisco-VPN-NAC-Status-Query-Timer                                90  integer
+VENDORATTR  3076  Cisco-VPN-NAC-Revalidation-Timer                                91  integer
+VENDORATTR  3076  Cisco-VPN-NAC-Default-ACL                                       92  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-URL-Entry-Enable                               93  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-File-Access-Enable                             94  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-File-Server-Entry-Enable                       95  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-File-Server-Browsing-Enable                    96  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Port-Forwarding-Enable                         97  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Port-Forwarding-Exchange-Proxy-Enable          98  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Port-Forwarding-HTTP-Proxy                     99  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Citrix-Metaframe-Enable                       101  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Apply-ACL                                     102  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SSL-VPN-Client-Enable                         103  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SSL-VPN-Client-Required                       104  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SSL-VPN-Client-Keep--Installation             105  integer
+VENDORATTR  3076  Cisco-VPN-SVC-Keepalive                                        107  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-Keepalive-Frequency                       107  integer
+VENDORATTR  3076  Cisco-VPN-SVC-DPD-Interval-Client                              108  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-Client-DPD-Frequency                      108  integer
+VENDORATTR  3076  Cisco-VPN-SVC-DPD-Interval-Gateway                             109  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-Gateway-DPD-Frequency                     109  integer
+VENDORATTR  3076  Cisco-VPN-SVC-Rekey-Time                                       110  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-Rekey-Time                                110  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-Rekey-Method                              111  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-Compression                               112  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Customization                                 113  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-SSO-Server-Name                               114  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Deny-Message                                  116  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-HTTP-Compression                              120  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Keepalive-Ignore                              121  integer
+VENDORATTR  3076  Cisco-VPN-Extended-Authentication-On-Rekey                     122  integer
+VENDORATTR  3076  Cisco-VPN-SVC-DTLS                                             123  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-DTLS-Enable                               123  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Auto-HTTP-Signon                              124  string
+VENDORATTR  3076  Cisco-VPN-SVC-MTU                                              125  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-SVC-DTLS-MTU                                  125  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Hidden-Shares                                 126  integer
+VENDORATTR  3076  Cisco-VPN-SVC-Modules                                          127  string
+VENDORATTR  3076  Cisco-VPN-SVC-Profiles                                         128  string
+VENDORATTR  3076  Cisco-VPN-SVC-Ask                                              131  string
+VENDORATTR  3076  Cisco-VPN-SVC-Ask-Timeout                                      132  integer
+VENDORATTR  3076  Cisco-VPN-IE-Proxy-PAC-URL                                     133  string
+VENDORATTR  3076  Cisco-VPN-Strip-Realm                                          135  integer
+VENDORATTR  3076  Cisco-VPN-Smart-Tunnel                                         136  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Smart-Tunnel                                  136  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-ActiveX-Relay                                 137  integer
+VENDORATTR  3076  Cisco-VPN-Smart-Tunnel-Auto                                    138  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Smart-Tunnel-Auto-Start                       138  integer
+VENDORATTR  3076  Cisco-VPN-Smart-Tunnel-Auto-Signon-Enable                      139  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Smart-Tunnel-Auto-Sign-On                     139  string
+VENDORATTR  3076  Cisco-VPN-VLAN                                                 140  integer
+VENDORATTR  3076  Cisco-VPN-NAC-Settings                                         141  string
+VENDORATTR  3076  Cisco-VPN-Member-Of                                            145  string
+VENDORATTR  3076  Cisco-VPN-Tunnel-Group-Name                                    146  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Idle-Timeout-Alert-Interval                   148  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Session-Timeout-Alert-Interval                149  integer
+VENDORATTR  3076  Cisco-VPN-Client-Type                                          150  integer
+VENDORATTR  3076  Cisco-VPN-Session-Type                                         151  integer
+VENDORATTR  3076  Cisco-VPN-Session-Subtype                                      152  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Download-Max-Size                             157  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Upload-Max-Size                               158  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Post-Max-Size                                 159  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-User-Storage                                  160  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Storage-Objects                               161  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Storage-Key                                   162  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-VDI                                           163  string
+VENDORATTR  3076  Cisco-VPN-Address-Pools                                        217  string
+VENDORATTR  3076  Cisco-VPN-IPv6-Address-Pools                                   218  string
+VENDORATTR  3076  Cisco-VPN-IPv6-VPN-Filter                                      219  string
+VENDORATTR  3076  Cisco-VPN-Privilege-Level                                      220  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-UNIX-User-ID                                  221  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-UNIX-Group-ID                                 222  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Macro-Substitution                            223  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Macro-Substitution                            224  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Smart-Card-Removal-Disconnect                 225  integer
+VENDORATTR  3076  Cisco-VPN-WebVPN-Smart-Tunnel-Tunnel-Policy                    227  string
+VENDORATTR  3076  Cisco-VPN-WebVPN-Home-Page-Use-Smart-Tunnel                    228  integer
+
+VALUE  Cisco-VPN-Tunneling-Protocols                                  PPTP                                      1
+VALUE  Cisco-VPN-Tunneling-Protocols                                  L2TP                                      2
+VALUE  Cisco-VPN-Tunneling-Protocols                                  IPSec                                     4
+VALUE  Cisco-VPN-Tunneling-Protocols                                  L2TP-IPSec                                8
+
+VALUE  Cisco-VPN-IPsec-Authentication                                 None                                      0
+VALUE  Cisco-VPN-IPsec-Authentication                                 RADIUS                                    1
+VALUE  Cisco-VPN-IPsec-Authentication                                 LDAP                                      2
+VALUE  Cisco-VPN-IPsec-Authentication                                 NT-Domain                                 3
+VALUE  Cisco-VPN-IPsec-Authentication                                 SDI                                       4
+VALUE  Cisco-VPN-IPsec-Authentication                                 Internal                                  5
+VALUE  Cisco-VPN-IPsec-Authentication                                 RADIUS-with-Expiry                        6
+VALUE  Cisco-VPN-IPsec-Authentication                                 Kerberos-Active-Directory                 7
+
+VALUE  Cisco-VPN-IPsec-Allow-Passwd-Store                             Disabled                                  0
+VALUE  Cisco-VPN-IPsec-Allow-Passwd-Store                             Enabled                                   1
+
+VALUE  Cisco-VPN-Use-Client-Address                                   Disabled                                  0
+VALUE  Cisco-VPN-Use-Client-Address                                   Enabled                                   1
+
+VALUE  Cisco-VPN-PPTP-Encryption                                      Encryption-required                       1
+VALUE  Cisco-VPN-PPTP-Encryption                                      40-bits                                   2
+VALUE  Cisco-VPN-PPTP-Encryption                                      128-bits                                  4
+VALUE  Cisco-VPN-PPTP-Encryption                                      Stateless-Required                        8
+
+VALUE  Cisco-VPN-L2TP-Encryption                                      Encryption-required                       1
+VALUE  Cisco-VPN-L2TP-Encryption                                      40-bits                                   2
+VALUE  Cisco-VPN-L2TP-Encryption                                      128-bits                                  4
+VALUE  Cisco-VPN-L2TP-Encryption                                      Stateless-Req                             8
+
+VALUE  Cisco-VPN-IPsec-Tunnel-Type                                    LAN-to-LAN                                1
+VALUE  Cisco-VPN-IPsec-Tunnel-Type                                    Remote-access                             2
+
+VALUE  Cisco-VPN-IPsec-Mode-Config                                    Disabled                                  0
+VALUE  Cisco-VPN-IPsec-Mode-Config                                    Enabled                                   1
+
+VALUE  Cisco-VPN-IPsec-User-Group-Lock                                Disabled                                  0
+VALUE  Cisco-VPN-IPsec-User-Group-Lock                                Enabled                                   1
+
+VALUE  Cisco-VPN-IPsec-Over-UDP                                       Disabled                                  0
+VALUE  Cisco-VPN-IPsec-Over-UDP                                       Enabled                                   1
+
+VALUE  Cisco-VPN-PPTP-MPPC-Compression                                Disabled                                  0
+VALUE  Cisco-VPN-PPTP-MPPC-Compression                                Enabled                                   1
+
+VALUE  Cisco-VPN-L2TP-MPPC-Compression                                Disabled                                  0
+VALUE  Cisco-VPN-L2TP-MPPC-Compression                                Enabled                                   1
+
+VALUE  Cisco-VPN-IPsec-IP-Compression                                 Disabled                                  0
+VALUE  Cisco-VPN-IPsec-IP-Compression                                 Enabled                                   1
+
+VALUE  Cisco-VPN-IPsec-IKE-Peer-ID-Check                              Required                                  1
+VALUE  Cisco-VPN-IPsec-IKE-Peer-ID-Check                              If-supported-by-peer-certificate          2
+VALUE  Cisco-VPN-IPsec-IKE-Peer-ID-Check                              Do-not-check                              3
+
+VALUE  Cisco-VPN-IKE-Keep-Alives                                      Disabled                                  0
+VALUE  Cisco-VPN-IKE-Keep-Alives                                      Enabled                                   1
+
+VALUE  Cisco-VPN-IPsec-Auth-On-Rekey                                  Disabled                                  0
+VALUE  Cisco-VPN-IPsec-Auth-On-Rekey                                  Enabled                                   1
+
+VALUE  Cisco-VPN-Required-Client--Firewall-Vendor-Code                Cisco-Systems                             1
+VALUE  Cisco-VPN-Required-Client--Firewall-Vendor-Code                Zone-Labs                                 2
+VALUE  Cisco-VPN-Required-Client--Firewall-Vendor-Code                NetworkICE                                3
+VALUE  Cisco-VPN-Required-Client--Firewall-Vendor-Code                Sygate                                    4
+VALUE  Cisco-VPN-Required-Client--Firewall-Vendor-Code                Cisco-Systems                             5
+
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Cisco-Intrusion-Prevention-Security-Agent-or-Cisco-Integrated-Client  1
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Zone-Alarm                                1
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Zone-AlarmPro                             2
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Zone-Labs-Integrity                       3
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                BlackIce-Defender-Agent                   1
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Personal-Firewall                         1
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Personal-Firewall-Pro                     2
+VALUE  Cisco-VPN-Required-Client-Firewall-Product-Code                Security-Agent                            3
+
+VALUE  Cisco-VPN-Require-HW-Client-Auth                               Disabled                                  0
+VALUE  Cisco-VPN-Require-HW-Client-Auth                               Enabled                                   1
+
+VALUE  Cisco-VPN-Required-Individual-User-Auth                        Disabled                                  0
+VALUE  Cisco-VPN-Required-Individual-User-Auth                        Enabled                                   1
+
+VALUE  Cisco-VPN-Cisco-IP-Phone-Bypass                                Disabled                                  0
+VALUE  Cisco-VPN-Cisco-IP-Phone-Bypass                                Enabled                                   1
+
+VALUE  Cisco-VPN-IPsec-Split-Tunneling-Policy                         No-split-tunneling                        0
+VALUE  Cisco-VPN-IPsec-Split-Tunneling-Policy                         Split-tunneling                           1
+VALUE  Cisco-VPN-IPsec-Split-Tunneling-Policy                         Local-LAN-permitted                       2
+
+VALUE  Cisco-VPN-IPsec-Required-Client-Firewall-Capability            None                                      0
+VALUE  Cisco-VPN-IPsec-Required-Client-Firewall-Capability            Policy-defined-by-remote-FW-Are-You-There  1
+VALUE  Cisco-VPN-IPsec-Required-Client-Firewall-Capability            Policy-pushed-CPP                         2
+VALUE  Cisco-VPN-IPsec-Required-Client-Firewall-Capability            Policy-from-server                        4
+
+VALUE  Cisco-VPN-IPsec-Client-Firewall-Filter-Optional                Required                                  0
+VALUE  Cisco-VPN-IPsec-Client-Firewall-Filter-Optional                Optional                                  1
+
+VALUE  Cisco-VPN-IPsec-Backup-Servers                                 Use-Client-Configured-list                1
+VALUE  Cisco-VPN-IPsec-Backup-Servers                                 Disable-and-clear-client-list             2
+VALUE  Cisco-VPN-IPsec-Backup-Servers                                 Use-Backup-Server-list                    3
+
+VALUE  Cisco-VPN-Intercept-DHCP-Configure-Msg                         Disabled                                  0
+VALUE  Cisco-VPN-Intercept-DHCP-Configure-Msg                         Enabled                                   1
+
+VALUE  Cisco-VPN-Allow-Network-Extension-Mode                         Disabled                                  0
+VALUE  Cisco-VPN-Allow-Network-Extension-Mode                         Enabled                                   1
+
+VALUE  Cisco-VPN-Authorization-Type                                   None                                      0
+VALUE  Cisco-VPN-Authorization-Type                                   RADIUS                                    1
+VALUE  Cisco-VPN-Authorization-Type                                   LDAP                                      2
+
+VALUE  Cisco-VPN-Authorization-Required                               No                                        0
+VALUE  Cisco-VPN-Authorization-Required                               Yes                                       1
+
+VALUE  Cisco-VPN-WebVPN-Content-Filter-Parameters                     Java-ActiveX                              1
+VALUE  Cisco-VPN-WebVPN-Content-Filter-Parameters                     Java-Script                               2
+VALUE  Cisco-VPN-WebVPN-Content-Filter-Parameters                     Image                                     4
+VALUE  Cisco-VPN-WebVPN-Content-Filter-Parameters                     Cookies-in-images                         8
+
+VALUE  Cisco-VPN-WebVPN-HTML-Filter                                   Java-ActiveX                              1
+VALUE  Cisco-VPN-WebVPN-HTML-Filter                                   Scripts                                   2
+VALUE  Cisco-VPN-WebVPN-HTML-Filter                                   Image                                     4
+VALUE  Cisco-VPN-WebVPN-HTML-Filter                                   Cookies                                   8
+
+VALUE  Cisco-VPN-Cisco-LEAP-Bypass                                    Disabled                                  0
+VALUE  Cisco-VPN-Cisco-LEAP-Bypass                                    Enabled                                   1
+
+VALUE  Cisco-VPN-IE-Proxy-Server-Policy                               No-Modify                                 1
+VALUE  Cisco-VPN-IE-Proxy-Server-Policy                               No-Proxy                                  2
+VALUE  Cisco-VPN-IE-Proxy-Server-Policy                               Auto-detect                               3
+VALUE  Cisco-VPN-IE-Proxy-Server-Policy                               Use-Concentrator-Setting                  4
+
+VALUE  Cisco-VPN-IE-Proxy-Bypass-Local                                None                                      0
+VALUE  Cisco-VPN-IE-Proxy-Bypass-Local                                Local                                     1
+
+VALUE  Cisco-VPN-Perfect-Forward-Secrecy-Enable                       No                                        0
+VALUE  Cisco-VPN-Perfect-Forward-Secrecy-Enable                       Yes                                       1
+
+VALUE  Cisco-VPN-NAC-Enable                                           No                                        0
+VALUE  Cisco-VPN-NAC-Enable                                           Yes                                       1
+
+VALUE  Cisco-VPN-WebVPN-URL-Entry-Enable                              Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-URL-Entry-Enable                              Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-File-Access-Enable                            Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-File-Access-Enable                            Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-File-Server-Entry-Enable                      Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-File-Server-Entry-Enable                      Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-File-Server-Browsing-Enable                   Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-File-Server-Browsing-Enable                   Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-Port-Forwarding-Enable                        Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Port-Forwarding-Enable                        Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-Port-Forwarding-Exchange-Proxy-Enable         Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Port-Forwarding-Exchange-Proxy-Enable         Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-Port-Forwarding-HTTP-Proxy                    Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Port-Forwarding-HTTP-Proxy                    Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-Citrix-Metaframe-Enable                       Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Citrix-Metaframe-Enable                       Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-Apply-ACL                                     Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Apply-ACL                                     Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-SSL-VPN-Client-Enable                         Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-SSL-VPN-Client-Enable                         Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-SSL-VPN-Client-Required                       Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-SSL-VPN-Client-Required                       Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-SSL-VPN-Client-Keep--Installation             Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-SSL-VPN-Client-Keep--Installation             Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-HTTP-Compression                              Off                                       0
+VALUE  Cisco-VPN-WebVPN-HTTP-Compression                              Deflate-Compression                       1
+
+VALUE  Cisco-VPN-Extended-Authentication-On-Rekey                     Disabled                                  0
+VALUE  Cisco-VPN-Extended-Authentication-On-Rekey                     Enabled                                   1
+
+VALUE  Cisco-VPN-SVC-DTLS                                             False                                     0
+VALUE  Cisco-VPN-SVC-DTLS                                             True                                      1
+
+VALUE  Cisco-VPN-WebVPN-SVC-DTLS-Enable                               Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-SVC-DTLS-Enable                               Enabled                                   1
+
+VALUE  Cisco-VPN-WebVPN-Hidden-Shares                                 None                                      0
+VALUE  Cisco-VPN-WebVPN-Hidden-Shares                                 Visible                                   1
+
+VALUE  Cisco-VPN-SVC-Ask                                              Disabled                                  0
+VALUE  Cisco-VPN-SVC-Ask                                              Enabled                                   1
+VALUE  Cisco-VPN-SVC-Ask                                              Enable-default-service                    3
+VALUE  Cisco-VPN-SVC-Ask                                              Enable-default-clientless                 5
+
+VALUE  Cisco-VPN-Strip-Realm                                          Disabled                                  0
+VALUE  Cisco-VPN-Strip-Realm                                          Enabled                                   1
+
+VALUE  Cisco-VPN-Smart-Tunnel-Auto                                    Disabled                                  0
+VALUE  Cisco-VPN-Smart-Tunnel-Auto                                    Enabled                                   1
+VALUE  Cisco-VPN-Smart-Tunnel-Auto                                    AutoStart                                 2
+
+VALUE  Cisco-VPN-WebVPN-Smart-Tunnel-Auto-Start                       Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Smart-Tunnel-Auto-Start                       Enabled                                   1
+VALUE  Cisco-VPN-WebVPN-Smart-Tunnel-Auto-Start                       Auto-Start                                2
+
+VALUE  Cisco-VPN-Client-Type                                          Cisco-VPN-Client                          1
+VALUE  Cisco-VPN-Client-Type                                          AnyConnect-Client-SSL-VPN                 2
+VALUE  Cisco-VPN-Client-Type                                          Clientless-SSL-VPN                        3
+VALUE  Cisco-VPN-Client-Type                                          Cut-Through-Proxy                         4
+VALUE  Cisco-VPN-Client-Type                                          L2TP-IPsec-SSL-VPN                        5
+VALUE  Cisco-VPN-Client-Type                                          AnyConnect-Client-IPsec-VPN               6
+
+VALUE  Cisco-VPN-Session-Type                                         None                                      0
+VALUE  Cisco-VPN-Session-Type                                         AnyConnect-Client-SSL-VPN                 1
+VALUE  Cisco-VPN-Session-Type                                         AnyConnect-Client-IPSec-VPN               2
+VALUE  Cisco-VPN-Session-Type                                         Clientless-SSL-VPN                        3
+VALUE  Cisco-VPN-Session-Type                                         Clientless-Email-Proxy                    4
+VALUE  Cisco-VPN-Session-Type                                         Cisco-VPN-Client                          5
+VALUE  Cisco-VPN-Session-Type                                         IKEv1-LAN-LAN                             6
+VALUE  Cisco-VPN-Session-Type                                         IKEv2-LAN-LAN                             7
+VALUE  Cisco-VPN-Session-Type                                         VPN-Load-Balancing                        8
+
+VALUE  Cisco-VPN-Session-Subtype                                      None                                      0
+VALUE  Cisco-VPN-Session-Subtype                                      Clientless                                1
+VALUE  Cisco-VPN-Session-Subtype                                      Client                                    2
+VALUE  Cisco-VPN-Session-Subtype                                      Client-Only                               3
+
+VALUE  Cisco-VPN-WebVPN-Smart-Card-Removal-Disconnect                 Disabled                                  0
+VALUE  Cisco-VPN-WebVPN-Smart-Card-Removal-Disconnect                 Enabled                                   1

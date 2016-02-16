@@ -1,0 +1,90 @@
+#!/bin/sh
+
+PATH=/bin:/usr/bin:/usr/local/bin:/usr/local/radiator/bin
+export PATH
+
+rad=/usr/local/radiator
+pidf=radiator.pid
+online=online
+conf=conf/radiator.cfg
+proc=/proc
+inc=USR1
+dec=USR2
+reload=HUP
+stop=TERM
+xuser="root"
+
+if [ "x`id -un`" != "x$xuser" ]; then
+	echo "Not $xuser. Must run as $xuser."
+	exit 1
+fi
+
+usage() {
+	echo "Usage: $0 (start|stop|restart|reload|inc|dec)"
+	exit 1
+}
+
+killer() {
+	if [ $running = "no" ]; then
+		echo "Radiator is not running."
+		exit 1
+	fi
+	if kill "-$1" "$pid" ; then
+		echo "Radiator signalled."
+	else
+		echo "Failed so signal Radiator."
+		exit 1
+	fi
+}
+
+if [ $# -ne 1 ]; then
+	usage
+fi
+
+if [ -f "$rad/$pidf" ]; then
+	pid="`cat $rad/$pidf`"
+	if [ -z "$pid" ]; then
+		echo "Cannot read pid from '$rad/$pidf'."
+		exit 1
+	else
+		if [ -d "$proc/$pid" ]; then
+			running=yes
+		else
+			running=no
+			rm -f "$rad/$pidf"
+		fi
+	fi
+else
+	running=no
+fi
+
+case "$1" in
+	start)
+		if [ $running = "yes" ]; then
+			echo "Radiator is already running."
+			exit 1
+		fi
+		rm -f "$rad/$pidf" "$rad/$online"
+		radiusd -config_file "$rad/$conf"
+		;;
+	stop)
+		killer $stop
+		sleep 1
+		rm -f "$rad/$pidf" "$rad/$online"
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	reload)
+		killer $reload
+		;;
+	inc)
+		killer $inc
+		;;
+	dec)
+		killer $dec
+		;;
+	*)
+		usage
+esac

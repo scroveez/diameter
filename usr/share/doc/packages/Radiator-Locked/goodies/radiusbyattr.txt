@@ -1,0 +1,80 @@
+Basic synopsis is that I was looking for an easy way to test proxying 
+requests to other servers from mine. Usually this is done when I want to 
+test a new proxy customer's radius to make sure they have their 
+configuration ready on their end.
+
+To that end I created an AuthBy that allows me to specify Proxy 
+Information in Radius attributes and then dynamically build the Host 
+info for an AuthByRADIUS style authentication. Since there is no 
+standard Radius Attributes for this I am currently using OSC-AVPAIR and 
+using a hook to parse the list of attributes I dump into it.
+
+IE: OSC-AVPAIR=RadHost=1.2.3.4,AuthPort=1812,AcctPort=1813,BrokenHosts=1
+
+A hook then splits OSC-AVPAIR on the comma and runs a loop to 
+$p->add_Attr for each attr,value pair
+
+This does present a problem if your OSC-AVPAIR attribute exceeds 255 
+characters (I believe that is the max), but creative hook code should be 
+able to handle multiple OSC-AVPAIR lines...
+
+What this allows me to do then is test without having to add my new 
+customer's info into my config file and hup my processes. I could of 
+course use radpwtst, but doing it this way allows me to use my existing 
+test utilities that I use to run local radius tests with only a minor 
+change to how I do it.
+
+
+I also found that this AuthBy could help reduce some of the load on my 
+SQL server. By setting up a staruphook that loads the information needed 
+for proxying (hosts, ports, secret, etc) into a memory hash and then 
+running a prehandler hook to grab that information based on the Realm 
+portion of a username I could perform the same task that AuthBySQLRADIUS 
+does (which is the AuthBy that I based this on), with the drawback that 
+a restart is required if proxy information changes.
+
+
+Here are the new Keywords I am using:
+   HostsInfoAttribute - This is a special keyword that can be used to 
+list an attribute that contains specifically the 
+host,authport,acctport,secret definitions that are desired for a proxies 
+host entry. I did this so that multiple hosts can be defined with 
+seperate ports and shared secrets. The attribute's data however must be 
+in the following format:
+    host1:authport:acctport:secret|host2:authport:acctport:secret
+There can be more than 2 specified, or even only 1. This was the easiest 
+way I could handle desired multiple hosts with slightly different 
+information.
+
+   HostAttrDef - This is the attribute to keyword definition for the 
+authby to lookup what attributes contain the data for the associated 
+keywords. Format:
+     HostAttrDef    Keyword,Attribute
+
+Here is an example of what the AuthBy RADIUSBYATTR would look like:
+
+
+   <AuthBy RADIUSBYATTR>
+     Identifier RADIUS_CSI_RADINFO
+     NoDefault 1
+     NoDefaultIfFound 1
+
+     HostsInfoAttribute     RadiusHosts
+
+     HostAttrDef    RewriteUsername,cRewriteUsername
+     HostAttrDef    ServerHasBrokenAddresses,cBrokenAddresses
+     HostAttrDef    IgnoreReplySignature,cIgnoreReplySignature
+     HostAttrDef    NoForwardAccounting,cNoAccounting
+     HostAttrDef    Retries,cRadRetries
+     HostAttrDef    RetryTimeout,cRadRetryTO
+     HostAttrDef    StripFromRequest,cStripFromRequest
+     HostAttrDef    AddToRequest,cAddToRequest
+
+     ReplyHook file:"%D/hook_reply.hook"
+   </AuthBy>
+
+
+
+Questions, comments, critiques, all are welcome!
+
+-Miko

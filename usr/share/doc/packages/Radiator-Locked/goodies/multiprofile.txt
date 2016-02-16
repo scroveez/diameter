@@ -1,0 +1,152 @@
+This document contains a contribution from Matthias Wamser,
+showing how to provide different sets of reply items for
+different types of Dialup DSL services etc.
+
+
+We found a perhaps "nicer" or shorter way to do what
+we want, so if you want to put it on your FAQ here
+it is as an example:
+
+# First the Client Definitions
+#
+<ClientListSQL>
+         DBSource        dbi:mysql:rad_data
+         DBUsername      rad_data
+         DBAuth          topsecret
+         GetClientQuery SELECT nas_ip, secret, ignoreacctsignature, \
+          dupinterval, defaultrealm, nastype, snmpcommunity,  
+livingstonoffs, \
+          livingstonhole, framedgroupbaseaddress,  
+framedgroupmaxportsperclassc, \
+          rewriteusername, noignoreduplicates, prehandlerhook \
+          FROM radclientlist, nas_alias \
+          WHERE radclientlist.nas_alias=nas_alias.nas_alias
+</ClientListSQL>
+
+# This are the appropriate tables
+#
+mysql> desc radclientlist;
++------------------------------+-------------+------+-----+--------- 
++-------+
+| Field                        | Type        | Null | Key | Default |  
+Extra |
++------------------------------+-------------+------+-----+--------- 
++-------+
+| nas_alias                    | varchar(32) | YES  | MUL | NULL    |    
+     |
+| secret                       | varchar(50) |      |     |         |    
+     |
+| ignoreacctsignature          | int(11)     | YES  |     | NULL    |    
+     |
+| dupinterval                  | int(11)     | YES  |     | NULL    |    
+     |
+| defaultrealm                 | varchar(50) | YES  |     | NULL    |    
+     |
+| nastype                      | varchar(20) | YES  |     | NULL    |    
+     |
+| snmpcommunity                | varchar(20) | YES  |     | NULL    |    
+     |
+| livingstonoffs               | int(11)     | YES  |     | NULL    |    
+     |
+| livingstonhole               | int(11)     | YES  |     | NULL    |    
+     |
+| framedgroupbaseaddress       | varchar(50) | YES  |     | NULL    |    
+     |
+| framedgroupmaxportsperclassc | int(11)     | YES  |     | NULL    |    
+     |
+| rewriteusername              | varchar(50) | YES  |     | NULL    |    
+     |
+| noignoreduplicates           | varchar(50) | YES  |     | NULL    |    
+     |
+| prehandlerhook               | varchar(50) | YES  |     | NULL    |    
+     |
++------------------------------+-------------+------+-----+--------- 
++-------+
+
+# We use this table to get a centralized place
+# where nas ip addresses are managed (so it's easier to
+# change an address)
+#
+mysql> desc nas_alias;
++-----------+-------------+------+-----+---------+-------+
+| Field     | Type        | Null | Key | Default | Extra |
++-----------+-------------+------+-----+---------+-------+
+| nas_ip    | varchar(50) | YES  |     | NULL    |       |
+| nas_alias | varchar(32) |      | PRI |         |       |
++-----------+-------------+------+-----+---------+-------+
+
+# Then one Handler for all
+#
+<Handler>
+
+   AuthByPolicy ContinueAlways
+    <AuthBy SQL>
+         DBSource        dbi:mysql:rad_var
+         DBUsername      rad_var
+         DBAuth          secret
+         # Empty AuthSelect means accounting only.
+         AuthSelect
+         # Log accounting to a detail file if db is down
+         AcctFailedLogFileName   /var/radiator/db_down.detail
+    </AuthBy>
+
+    <AuthBy SQL>
+         DBSource        dbi:mysql:rad_data
+         DBUsername      rad_data
+         DBAuth          topsecret
+         # Empty AccountingTable cause accounting is extra DB.
+         AccountingTable
+         AuthSelect SELECT users.pass, profiles.checkattr,  
+profiles.replyattr \
+          FROM users, profiles, nas_alias \
+          WHERE users.u_id=profiles.u_id \
+          AND nas_alias.nas_alias=profiles.nas_alias \
+          AND users.user="%{User-Name}" \
+          AND nas_alias.nas_ip="%{NAS-IP-Address}"
+     </AuthBy>
+
+</Handler>
+
+
+# We use three tables to realize the above:
+
+mysql> desc users;
++--------------+------------------+------+-----+--------- 
++----------------+
+| Field        | Type             | Null | Key | Default | Extra         
+   |
++--------------+------------------+------+-----+--------- 
++----------------+
+| u_id         | int(11) unsigned |      | PRI | NULL    |  
+auto_increment |
+| user         | varchar(50)      |      | UNI |         |               
+   |
+| pass         | varchar(50)      | YES  |     | NULL    |               
+   |
+| crypt_pw     | varchar(50)      | YES  |     | NULL    |               
+   |
++--------------+------------------+------+-----+--------- 
++----------------+
+
+mysql> desc profiles;
++-----------+------------------+------+-----+---------+-------+
+| Field     | Type             | Null | Key | Default | Extra |
++-----------+------------------+------+-----+---------+-------+
+| u_id      | int(11) unsigned | YES  | MUL | NULL    |       |
+| nas_alias | varchar(25)      | YES  |     | NULL    |       |
+| checkattr | blob             | YES  |     | NULL    |       |
+| replyattr | blob             | YES  |     | NULL    |       |
+| timeleft  | int(11)          | YES  |     | NULL    |       |
+| active    | tinyint(1)       |      |     | 0       |       |
++-----------+------------------+------+-----+---------+-------+
+
+mysql> desc nas_alias;
++-----------+-------------+------+-----+---------+-------+
+| Field     | Type        | Null | Key | Default | Extra |
++-----------+-------------+------+-----+---------+-------+
+| nas_ip    | varchar(50) | YES  |     | NULL    |       |
+| nas_alias | varchar(32) |      | PRI |         |       |
++-----------+-------------+------+-----+---------+-------+
+
+
+Regards, Matthias

@@ -1,0 +1,117 @@
+This document outlines how to get Raditor working with the SecureMetric SecureOTP
+RADIUS Server, using the evaluation server provided with the SecureOTP
+Software Development Kit, which includes the SecureOTP 2.0 server.
+
+SecureMetric (www.securemetric.com) offer a range of authentication tokens and technologies.
+SecureOTP is their token based 1 or 2 factor authentication system, offering both time and 
+event based tokens, with or without PINs
+The Secure Metric OTP Server includes a RADIUS server, and Radiator can be used to 
+proxy some or all requests to the Secure Metric OTP Server RADIUS Server.
+
+The SDK comes with a CD and 2 demo tokens: an event-based token and a
+time-based token.
+
+0. Basic requirements: Linux (we used Ubuntu 8.04)
+
+1. Make a work area. Copy the necessary files to it
+
+cd ~
+mkdir tmp
+cd tmp
+cp /media/SecureOTPv2.3SDK/License\ Files/* .
+cp /media/SecureOTPv2.3SDK/Linux/Ubuntu-8/otpserver-2.0.tar .
+
+2. customer.tnk contains the token data for the sample tokens included with
+the SDK. OTPauth.lic is the license file for the server. Rename  OTPauth.lic
+to  otpauth.lic _and_ make it writable, otherwise, for some strange reason,
+the OTP server installation program will claim that it can't read it.
+
+mv OTPauth.lic otpauth.lic
+chmod a+w otpauth.lic
+cd 
+
+3. Unpack the distribution
+
+tar xvf otpserver-2.0.tar
+cd otpserver-2.0
+
+4. Install the software as root (it gets installed in /usr/local/otpserver, plus some
+startup files in /etc/init.d) It also includes prebuilt PostgreSQL database
+and postgresql programs in /usr/local/otpserver
+
+su
+sh install.sh
+
+when the installer asks for the license file give the full pathname to the
+otpauth.lic you made above
+
+5. start the servers:
+/etc/init.d/otpdbmgr start
+/etc/init.d/otpserver start
+/etc/init.d/otpwebmgr start
+
+6. Connect to the web manager with a browser
+
+http://localhost
+
+You should get a OTP Server Manager page
+
+log in with 
+username: admin
+password: 1234
+
+7. Configure the web manager to use the PostgreSQL database:
+Click on Setting, Database Configuration
+Edit:
+Database Type: PostgreSQL
+ODBC Driver: PostgreSQL      (note that the default is 'PostgreSQL ANSI')
+Database Host: 127.0.0.1
+Database Port: 5432
+Database Name: otpserver_db
+Username: otpdbmgr
+Password: 12345
+
+Click on Connect Test. If it works accept the update configuration.
+
+7. Import the test tokens
+
+Click on Token Management, Import Token(s)
+Select or enter the name of the customer.tnk file you saved above
+Click Import. This will add the tokens to the database
+
+8. Create a test user 'mikem'
+
+Click on User Management, Add User
+Enter username: mikem
+Click on one of the available tokens, it will be copied to the Token: field
+Click Add
+
+
+8. Add your Radiator proxy server as an Authentication Agent
+
+Click on Authentication Agents, Add Agent
+Enter the IP address of the Radiator RADIUS Server host
+Enter the RADIUS shared secret 'mysecret' into Public Key:
+Click on Add
+
+9. Start the SecureOTP RADIUS server
+
+/etc/init.d/otpradserver start
+
+10. Use radpwtst on the Radiator server host to test
+
+press the button on the token, you will get a 6 digit tokencode
+
+radpwst -noacct -s <IPAddressOfSecureOTPServer> -user mikem -password <thetokencode>
+
+You should get an Access-Accept
+
+11. Configure and run Radiator using the sample configuration file
+securementricotpserver.cfg included in the Radiator distribution as a starting
+point.
+
+
+
+
+
+

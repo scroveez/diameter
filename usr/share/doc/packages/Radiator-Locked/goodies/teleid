@@ -1,0 +1,10 @@
+#%PAM-1.0
+# teleid
+# Example PAM file for teleid authentication
+# copy to /etc/pam.d/telid, and you can then use
+# Service teleid in your Radiator AuthBy PAM clause
+auth		required	/lib/security/pam_teleid.so
+account		required	/lib/security/pam_teleid.so
+password	required	/lib/security/pam_teleid.so
+session		required	/lib/security/pam_teleid.so
+

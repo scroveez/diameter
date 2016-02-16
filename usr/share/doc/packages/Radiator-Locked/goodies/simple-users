@@ -1,0 +1,19 @@
+# users
+# This is an example of how to set up simple user for
+# AuthBy FILE.
+# The example user mikem has a password of fred, and will
+# receive reply attributes suitable for most NASs.
+# You can do many more interesting things. See the Radiator reference
+# manual for more details
+#
+# You can test this user with the command
+#  perl radpwtst
+
+mikem	User-Password=fred
+	Service-Type = Framed-User,
+        Framed-Protocol = PPP,
+        Framed-IP-Netmask = 255.255.255.255,
+        Framed-Routing = None,
+        Framed-MTU = 1500,
+        Framed-Compression = Van-Jacobson-TCP-IP	
+

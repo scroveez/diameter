@@ -1,0 +1,233 @@
+This document describes how to install and configure support for Vasco
+Digipass tokens in Radiator.
+
+Introduction
+------------
+
+Vasco (http://www.vasco.com) supply harware tokens for
+one-time-password and two factor authentication. The device displays a
+password which changes every minute, and which can be used to log on
+to dialup, wireless or wired networks. Each token has a unique serial
+number and other information associated with it.
+
+Radiator includes the AuthBy SQLDIGIPASS authentication module which can
+authenticate Vasco Digipass tokens. AuthBy SQLDIGIPASS requires the
+Authen-Digipass module to be installed on the Radiator
+host. Authen-Digipass is a precompiled Perl module that contains the
+Vasco Controller software necessary for Digipass
+authentication. Authen-Digipass is available for Solaris Sparc, Linux
+x86and Windows platforms. This document includes instructions for
+obtaining and installing Authen-Digipass.
+
+AuthBy SQLDIGIPASS also requires an SQL database to hold information
+about each Digipass token that your system knows about. When you
+purchase a Digipass token from Vasco, you will also be supplied with a
+DPX file that contains important data about the token. This DPX file must be
+imported into the AuthBy SQLDIGIPASS database before the token can be
+authenticated by Radiator. You can use any free or commercial SQL
+database with AuthBy SQLDIGIPASS.
+
+Acquiring Digipass tokens
+-------------------------
+
+Digipass tokens can be acquired from your local Vasco distributor. 
+See https://www.vasco.com/buy/where_to_buy/buy.aspx
+
+You can order tokens in small or large quantities. Caution: when you order
+tokens to work with your Radiator system, you do not need to include fees for
+the Vasco server, but you *do* need to include the 'Digipass User Data
+Subscription Fee' (DUD) option, as well as the cost of the basic token. The
+DUD is in effect the Vasco license fee for the Vasco compatibility API.
+
+You will receive from Vasco a DPX file for each token or batch of tokens,
+which is the data you need to import into the Radiator Digipass database in
+order to authenticate those tokens. If you do not order the DUD option, you
+will not receive the DPX files, and therefore the tokens will not be able to
+be used.
+
+
+Types of Digipass systems
+-------------------------
+
+AuthBy SQLDIGIPASS can be configured in several ways including:
+
+1. As a simple stand-alone system. A single SQL table contains
+   information about each Digipass token and the user it is assigned
+   to. You can use the digipass.pl program supplied with
+   Authen-Digipass to import tokens, assign them to users and
+   otherwise administer tokens and users. The example digipass.cfg
+   Radiator configuration file shows a simple example of how to
+   configure Radiator for such a system. Sample SQL database table
+   definition files are provided with Radiator for a range of free and
+   commercial SQL databases.
+
+2. As an addition to a Radiator-compatible user-management system or
+   ISP billing system. In this mode, Radiator is configured to
+   authenticate using AuthBy SQLDIGIPASS from an SQL table, but also uses
+   other information from the user-management system to save usage
+   data, get user- or service-specific Radius reply items etc.
+
+3. In conjunction with OSC's RAdmin Radius user management system
+   (http://www.open.com.au/radmin). RAdmin provides an
+   easy-to-install, easy-to-use web-based graphical system for
+   managing Radius users for dialup, wired and wireless
+   authentication. RAdmin version 1.9 includes support for importing,
+   allocating and administering Digipass tokens for authenticating
+   users against Digipass tokens instead of static passwords. RAdmin
+   also works with any free or commercial SQL database.
+
+
+Installing Authen-Digipass on Linux
+-----------------------------------
+
+This Radiator distribution includes a precompiled binary RPM of
+Authen-Digipass module suitable for use with Perl 5.8.0 or later on
+Linux Intel x86 and x86 platforms.
+
+Prior to this step, you will need to instal the Perl DBI and DBD
+modules suitable for your selected SQL database. Full source for those
+modules is available from your nearest CPAN archive
+(http://www.cpan.org). Many Linux distributions have precompiled
+biaries availabel for DBI and DBD.
+
+# cd to your Radiator 3.9 (plus patches) or later distribution directory
+cd blah/blahblah/Radiator-3.9
+# install the RPM (as root). See goodies/README for all available RPMs.
+su root
+rpm -Uvh goodies/Authen-Digipass-1.11-1.el6.x86_64.rpm
+
+# Following assumes you will use MySQL for your test database:
+# Create a sample MySQL database and test user 'mikem'
+# (you may also need to specify the MySQL root username and password)
+mysql <<EOF
+CREATE DATABASE radius;
+GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,LOCK TABLES,CREATE TEMPORARY TABLES ON radius.* TO mikem@localhost IDENTIFIED BY 'fred';
+EOF
+mysqladmin reload
+# Create a number tables useful for testing Radiator
+mysql -umikem -pfred radius <goodies/mysqlCreate.sql
+
+# Now import a token using the digipass.pl program that
+# comes with Authen-Digipass. Requires
+# a DPX file from Vasco for your token
+digipass.pl import nnnnnnn.dpx
+# The import will print the serial number(s) of the token(s) it imported:
+#   imported '0097123456APPL 1      '
+# Now assign the token to a user.
+# Make sure you use the token serial number printed during the import
+digipass.pl assign '0097123456APPL 1      ' mikem
+
+# Now run Radiator so it uses the Digipass authenticator
+perl radiusd -config goodies/digipass.cfg
+
+# And test it from another window, where 999999 is
+# the number currently displayed on your Digipass token.
+cd blah/blahblah/Radiator-3.9
+perl radpwtst -noacct -user mikem -password 999999
+
+The digipass.pl program also provides a number of other token
+administration features. Type
+digipass.pl -h
+for usage help.
+
+Installing Authen-Digipass on Windows
+-----------------------------------
+
+This Radiator distribution includes a precompiled binary PPM of
+Authen-Digipass module suitable for use with ActiveState
+(http://www.activestate.com) ActivePerl or Strawberry Perl on
+Windows Intel x86 platforms.
+
+# cd to your Radiator 3.9 (plus patches) or later distribution directory
+cd blah\blahblah\Radiator-3.9
+ppm install ppm\Authen-Digipass.ppd
+
+# Now create an SQL database and tables using your preferred SQL
+#  database. It wil be convenient for testing if the database is called
+# 'radius', the test user is called 'mikem' with password 'fred',
+# however, other combinations can be accomodated using the dbsource,
+# dbusername and dbauth arguments to digipass.pl
+
+.... whatever....
+
+# Now create the sample tables, using one of the scripts in
+# goodies\*.sql and your preferred SQL database utilities.
+
+.... whatever.... 
+
+
+# Now import a token using the digipass.pl program that
+# comes with Authen-Digipass. Requires
+# a DPX file from Vasco for your token
+digipass.pl import nnnnnnn.dpx
+# The import will print the serial number(s) of the token(s) it imported:
+#   imported '0097123456APPL 1      '
+# Now assign the token to a user.
+# Make sure you use the token serial number printed during the import
+digipass.pl assign '0097123456APPL 1      ' mikem
+
+# Now run Radiator so it uses the Digipass authenticator
+perl radiusd -config goodies/digipass.cfg
+
+# And test it from another window, where 999999 is
+# the number currently displayed on your Digipass token.
+cd blah\blahblah\Radiator-3.9
+perl radpwtst -noacct -user mikem -password 999999
+
+The digipass.pl program also provides a number of other token
+administration features. Type
+digipass.pl -h
+for usage help.
+
+
+Installing Authen-Digipass on Solaris Sparc
+-------------------------------------------
+
+This Radiator distribution includes a precompiled binary Solaris package of
+Authen-Digipass module suitable for use with Perl 5.8.5 on Sparc
+Solaris 8 or later. Perl 5.8.5 or later from Sunfreeware
+(http://www.sunfreeware.com) is recommended.
+
+cd  blah/blahblah/Radiator-3.9/goodies
+su root
+pkgadd -d OSCAuthDP-sparc.pkg
+
+
+# Now create an SQL database and tables using your preferred SQL
+#  database. It wil be convenient for testing if the database is called
+# 'radius', the test user is called 'mikem' with password 'fred',
+# however, other combinations can be accomodated using the dbsource,
+# dbusername and dbauth arguments to digipass.pl
+
+.... whatever....
+
+# Now create the sample tables, using one of the scripts in
+# goodies/*.sql and your preferred SQL database utilities.
+
+.... whatever.... 
+
+
+# Now import a token using the digipass.pl program that
+# comes with Authen-Digipass. Requires
+# a DPX file from Vasco for your token
+digipass.pl import nnnnnnn.dpx
+# The import will print the serial number(s) of the token(s) it imported:
+#   imported '0097123456APPL 1      '
+# Now assign the token to a user.
+# Make sure you use the token serial number printed during the import
+digipass.pl assign '0097123456APPL 1      ' mikem
+
+# Now run Radiator so it uses the Digipass authenticator
+perl radiusd -config goodies/digipass.cfg
+
+# And test it from another window, where 999999 is
+# the number currently displayed on your Digipass token.
+cd blah/blahblah/Radiator-3.9
+perl radpwtst -noacct -user mikem -password 999999
+
+The digipass.pl program also provides a number of other token
+administration features. Type
+digipass.pl -h
+for usage help.
+
+

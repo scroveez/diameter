@@ -1,0 +1,216 @@
+This document discusses how to use Radiator and the AuthBy FIDELIO module to
+handle authentication and accounting for the Freeswitch VOIP switch
+(http://www.freeswitch.org). It can be used authenticate and to bill VOIP
+calls to a Micros-Fidelio Opera Hotel Property Management System
+(http://www.micros.com).
+
+Freeswitch is a very configurable, open source, free Multi-Protocol Soft
+Switch that runs on Linux, Windows and other operating systems.
+
+Micros-Fidelio Opera is a widely used commercial Hotel Property Management
+System, which is supported by Radiator RADIUS Server.
+
+The goal of this sample configuration is to implement a user-pays VOIP system
+in a hotel environment:
+Before a user can make a call from a hotel room VOIP phone, there must be
+someone checked into the room. When the call is completed, the call is billed
+to the hotel room.
+
+In this scenario, every VOIP phone in each room is configured so that
+the phone registers as the Opera room number.
+
+In order to achive this, Freeswitch must be compiled with the mod_perl
+and mod_radius_cdr modules. To do this, follow the instructions at:
+http://wiki.freeswitch.org/wiki/Mod_radius_cdr
+http://wiki.freeswitch.org/wiki/Mod_perl
+
+Dont forget to edit mod_radius_cdr.conf.xml and set the acctserver lines to
+the address, port and shared secret of your Radiator RADIUS server host. After
+you do this, and restart freeswitch, freeswitch will send RADIUS accounting
+data before and after each call.
+
+CAUTION: if Freeswitch is configured with mod_radius_cdr and if none of the
+RADIUS accounting servers configured into the mod_radius_cdr acctserver lines
+is contactable, no calls can be completed.
+
+I order to verify that someone is checked in to a room before a call is
+permitted, you need to edit your Freeswitch dialplan (typically in
+/usr/local/freeswitch/conf/dialplan/default.xml) and add a line like this to
+the extension clause for the type of calls you wish to check:
+
+<action application="perl" data="/usr/local/freeswitch/scripts/freeswitch-fidelio.pl"/>
+
+The freeswitch-fidelio.pl script is provided in the Radiator goodies
+directory. Copy it to /usr/local/freeswitch/scripts/ on the freeswitch host
+and restart freeswitch. 
+
+For example, in the sample dialplan/default.xml provided with freeswitch is an
+extension clause for playing some tones when you dial 9198. As a test, you can add the
+application="perl" line so that there must be someone checked in to the room
+before they can call the 9198 number.
+(In production you would add the application="perl" line to any destination
+numbers that you wish to restrict to rooms where there is a user checked in,
+such as external outbound calls.)
+
+    <extension name="tone_stream">
+      <condition field="destination_number" expression="^9198$">
+         <action application="perl" data="/usr/local/freeswitch/scripts/freeswitch-fidelio.pl"/>
+        <action application="log" data="INFO  AUTH_RESULT=${AUTH_RESULT}"/>
+
+        <action application="answer"/>
+        <action application="playback" data="tone_stream://path=${base_dir}/conf/tetris.ttml;loops=10"/>
+      </condition>
+    </extension>
+
+The freeswitch-fidelio.pl script uses the Radius::SimpleClient modules that
+are part of Radiator, so it requires Radiator to be installed on the
+Freeswitch host (but it does not _require_ the Radiator server to be running on
+the Freeswitch host: it can be anywhere in your network)
+
+Now configure your Radiator server with the sample freeswitch-fidelio.cfg from
+the Radiator goodies directory. Edit freeswitch-fidelio.cfg and set the Host
+to be the address of the Micros-Fidelio Opera server, which has previously
+been configured with Radiator support. See your Micros-Fidelio representative
+for details on how to have the Radiator support option installed in your Opera
+system.
+
+For testing, you can use the goodies/fideliosim.pl simulator for simulating
+Micros-Fidelio Opera. Use the ci and co commands in the simulator to check
+simulated guests in and out of the room numbers correspnding to your test
+phone numbers.
+
+The sample freeswitch-fidelio.cfg will accept authentication requests if there
+is someone checked into the room according to Opera, and when accounting
+requests are received for completed outbound calls, it will add charges
+for completed calls to the room.
+
+Consider these sample scripts as a starting point for the specific
+requirements for your VOIP hotel billing.
+
+Tested with Radiator 4.8 on Ubuntu 10.10 with Freeswitch 1.0.7
+
+---------------------
+Here is a sample Radiator log showing a typical internal call to a recorded
+tone that is authenticated by
+freeswitch-fidelio.pl in Freeswitch and freeswitch-fidelio.cfg in Radiator:
+It shows:
+Accounting Start for the originating caller room 1001 to the 9198 tone stream
+example from above.
+Authentication of the room/phone (Radiator checks there is someone checked
+into room 1001 agaionst the Fidelio database)
+Accounting Stop showing a total call time of 79 seconds (this was not posted
+to Fidelio because it was not an outbound call)
+
+An call to another phone would also show accounting records for the inbound leg to the
+destination phone.
+
+*** Received from 203.63.154.179 port 60923 ....
+Code:       Accounting-Request
+Identifier: 25
+Authentic:  9<237><148><152>\1Av<141>y<200>H<186><211>@N
+Attributes:
+        Acct-Status-Type = Start
+        Acct-Session-Id = "c3fac37a-7716-450f-b3ef-810f19c4c14f"
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "test phone 1"
+        Freeswitch-Dst = "9198"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Callstartdate = "2011-08-08T07:59:12.929652+1000"
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 203.63.154.179
+
+Mon Aug  8 07:59:49 2011: DEBUG: Handling request with Handler 'Request-Type=Accounting-Request', Identifier ''
+Mon Aug  8 07:59:49 2011: DEBUG:  Adding session for 1001, 203.63.154.179, 0
+Mon Aug  8 07:59:49 2011: DEBUG: Accounting accepted
+Mon Aug  8 07:59:49 2011: DEBUG: Packet dump:
+*** Sending to 203.63.154.179 port 60923 ....
+Code:       Accounting-Response
+Identifier: 25
+Authentic:  Zk<205><155><206>0<193><160><248><251>{<130><220>W><27>
+Attributes:
+
+Mon Aug  8 07:59:50 2011: DEBUG: Packet dump:
+*** Received from 203.63.154.179 port 60583 ....
+Code:       Access-Request
+Identifier: 0
+Authentic:  <226>N<206><178><247><3><204>%Rp<5>+<137>\V<158>
+Attributes:
+        User-Name = "1001"
+        Freeswitch-Dst = "9198"
+
+Mon Aug  8 07:59:50 2011: DEBUG: Handling request with Handler 'Request-Type=Access-Request', Identifier ''
+Mon Aug  8 07:59:50 2011: DEBUG:  Deleting session for 1001, 203.63.154.179,
+Mon Aug  8 07:59:50 2011: DEBUG: Handling with Radius::AuthFIDELIO: Fidelio
+Mon Aug  8 07:59:50 2011: DEBUG: AuthFIDELIO looks for guest  in room 1001
+Mon Aug  8 07:59:50 2011: DEBUG: Radius::AuthFIDELIO looks for match with 1001 [1001]
+Mon Aug  8 07:59:50 2011: DEBUG: Radius::AuthFIDELIO ACCEPT: : 1001 [1001]
+Mon Aug  8 07:59:50 2011: DEBUG: AuthBy FIDELIO result: ACCEPT,
+Mon Aug  8 07:59:50 2011: DEBUG: Access accepted for 1001
+Mon Aug  8 07:59:50 2011: DEBUG: Packet dump:
+*** Sending to 203.63.154.179 port 60583 ....
+Code:       Access-Accept
+Identifier: 0
+Authentic:  <133>|e<151>y<138><128><189>z<141>(-3Fr<201>
+Attributes:
+        Class = "FIDELIO:1001:12351"
+
+Mon Aug  8 07:59:55 2011: DEBUG: Fidelio read: LA|DA110808|TI075955|
+Mon Aug  8 07:59:56 2011: DEBUG: Fidelio queues: LA|DA110808|TI075956|
+Mon Aug  8 07:59:56 2011: DEBUG: Fidelio read: LA|DA110808|TI075956|
+Mon Aug  8 08:00:05 2011: DEBUG: Fidelio read: LA|DA110808|TI080005|
+Mon Aug  8 08:00:15 2011: DEBUG: Fidelio read: LA|DA110808|TI080015|
+Mon Aug  8 08:00:25 2011: DEBUG: Fidelio read: LA|DA110808|TI080025|
+Mon Aug  8 08:00:35 2011: DEBUG: Fidelio read: LA|DA110808|TI080035|
+Mon Aug  8 08:00:45 2011: DEBUG: Fidelio read: LA|DA110808|TI080045|
+Mon Aug  8 08:00:55 2011: DEBUG: Fidelio read: LA|DA110808|TI080055|
+Mon Aug  8 08:00:56 2011: DEBUG: Fidelio queues: LA|DA110808|TI080056|
+Mon Aug  8 08:00:56 2011: DEBUG: Fidelio read: LA|DA110808|TI080056|
+Mon Aug  8 08:01:05 2011: DEBUG: Fidelio read: LA|DA110808|TI080105|
+Mon Aug  8 08:01:10 2011: DEBUG: Packet dump:
+*** Received from 203.63.154.179 port 54004 ....
+Code:       Accounting-Request
+Identifier: 26
+Authentic:  <169>6<18>f<166>x<22><223><179><225>t<159><243><180><168><214>
+Attributes:
+        Acct-Status-Type = Stop
+        Acct-Session-Id = "c3fac37a-7716-450f-b3ef-810f19c4c14f"
+        Freeswitch-Hangupcause = Normal-Clearing
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "test phone 1"
+        Freeswitch-Dst = "9198"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Lastapp = "playback"
+        Freeswitch-Billusec = 79999982
+        Freeswitch-Callstartdate = "2011-08-08T07:59:12.929652+1000"
+        Freeswitch-Callanswerdate = "2011-08-08T07:59:13.369620+1000"
+        Freeswitch-Callenddate = "2011-08-08T08:00:33.369602+1000"
+        Acct-Session-Time = 79
+        Freeswitch-Direction = "inbound"
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 203.63.154.179
+
+Mon Aug  8 08:01:10 2011: DEBUG: Handling request with Handler 'Request-Type=Accounting-Request', Identifier ''
+Mon Aug  8 08:01:10 2011: DEBUG:  Deleting session for 1001, 203.63.154.179, 0
+Mon Aug  8 08:01:10 2011: DEBUG: Accounting accepted
+Mon Aug  8 08:01:10 2011: DEBUG: Packet dump:
+*** Sending to 203.63.154.179 port 54004 ....
+Code:       Accounting-Response
+Identifier: 26
+Authentic:  <249><136>sA<208>^<203><220><31>6V<15><138><15>8<20>
+Attributes:

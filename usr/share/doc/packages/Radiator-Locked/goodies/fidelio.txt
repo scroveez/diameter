@@ -1,0 +1,113 @@
+Latest update 2014-09-03
+
+Introduction
+
+This document is a brief summary of the Radiator support for Micros-Fidelio
+Opera Property Management System.
+
+Opera from Micros-Fidelio (http://www.micros.com) is a widely used
+Hotel Property Management System (PMS). It provides a database and user
+interface for managing hotel rooms and billing guests (among many other things).
+
+Micros-Fidelio have defined an interface (FIAS) and can provide interface
+modules for external systems to connect to Opera and interoperate with
+it. More details below.
+
+Radiator comes with a module (AuthBy FIDELIO) that interconnects with Opera
+through FIAS and can be used for RADIUS authentication of hotel guests and
+posting accounting costs to Opera. Customisations of that module and hooks can
+be used to implement a wide variety of authentication and billing
+schemes. Radiator comes with one such scheme for providing pre-paid internet
+accesss through Mikrotik Wireless Hotspot Access Point/Captive Portal routers,
+with billing direct to guest rooms. These topics are discussed further below.
+
+Interface to Opera
+
+Radiator supports the current Micros-Fidelio FIAS interface specification,
+over a TCP/IP network, a serial port or a USB-serial port.
+
+The standard Radiator AuthBy FIDELIO module connects to Opera through FIAS,
+gets the contents of the Opera room/guest database and then uses its local
+copy of the room/guest database to authenticate RADIUS Access Requests. RADIUS
+Accounting Requests are sent to Opera as PS records. It is available as full
+source.
+
+Underlying all this is a generic full source FIAS interface module. It is used
+by the AuthBy FIDELIO module to talk to Opera, interrogate the Opera database,
+send postings etc. It can be used by other modules or custom code to interact
+with Opera, send accounting postings etc. It provides keepalives, error
+detection and much more low level interface mechanics.
+
+In order to connect Radiator (or any other third party system) to Opera, it is
+necessary to enable the appropriate interface support module in Opera. This is
+generally done by Micros-Fidelio at the request of the Opera licensee, and
+will generally incur a charge from them. Discuss this with your Micros-Fidelio
+agent.
+
+Note: When the interface is enabled, Opera must be configured to allow
+full database resync when requested by Radiator. If Radiator receives
+no records during the database resync, it will log a warning to remind
+about the possibly misconfigured interface.
+
+The information required by Opera customers to order the Radiator interface
+from Micros-Fidelio is:
+
+FKT Logo is RRA and the Part Number is 5009-170
+
+More information about Micros-Fidelio Certified interfaces can be found at:
+
+http://www.micros.com/NR/rdonlyres/E2FF5FCB-3DF7-461B-8A30-EC4FC8C84E7D/0/CurrentCertifiedInterfacesListExternal.pdf
+
+AuthBy FIDELIO
+
+The AuthBy FIDELIO comes standard with Radiator. As mentioned above it
+operates by connecting to Opera through FIAS either over a network or a serial
+port. Upon connecting, it retrieves a copy of the relevant parts of the Opera
+database about what rooms are in the hotel, and which guests occupy each
+room. Therafter, whenever guests check in or out, Opera sends updates to
+Radiator, and Radiator keeps track of which guest(s) are currently in each room.
+
+When a RADIUS authentication request is received by Radiator AuthBy FIDELIO,
+it looks in the local copy of the guest database. The default behaviour is to
+authenticate guests using their Room Number as the User-Name and their
+Guest Number as their password (this is configurable). By default, RADIUS
+Accounting Stops generate Opera PS simple postings. (This can be also be
+changed and configured).
+
+By default, accounting postings are sent to Opera following receipt of a
+RADIUS Accounting-Stop. The default PS record will contain:
+
+P# automatically generated posting sequence number, starting at 1.
+TA the cost computed by ComputeCostHook or CentsPerSecond.
+DU the call duration in seconds.
+PT fixed value of `C' (Direct Charge).
+SO fixed value of `Internet connection'.
+DD Called-Station-Id from the incoming request, with any non-digit characters stripped out.
+
+Additional fields can be added to the Opera posting record with the
+PostingExtraFields parameter.
+
+Mikrotik Hotspot support
+
+Radiator also comes with a sample configuration that turns Radiator and Opera
+into the authentication and billing engine for Mikrotik Wireless
+Hotspots. Mikrotik is a widely used Access Point/Router/Hotspot/ Captive
+Portal software that can be used on common PC hardware. It is widely
+configurable and well suported.
+
+In the sample Radiator configuration, hotel guests are able to connect
+wirelessly (or wired) to Mikrotik Wireless Hotspot Access Points and are
+able to purchase internet access in fixed time blocks of, say 24
+hours. Radiator posts the charges to Opera for billing direct to the
+guest. Radiator uses a MySQL database to keep track of which guesst have paid
+for access and wehen their access expires. If the user desires access after
+their access is expired, Mikrotik prompts them to log in again and a new
+access charge is generated by Radiator and sent to Opera.
+
+Optional parameters permit guests who have purhchased access to have some
+grace time after check out. Other options also permit multiple (separately
+billed) guests per room.
+
+Opera+Radiator+Mikrotik allows you to quickly and easily build a complete
+Internet access and guest billing system for hotels and other similar
+properties.

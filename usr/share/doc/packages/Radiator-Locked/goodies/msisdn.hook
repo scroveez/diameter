@@ -1,0 +1,60 @@
+#<--------------- Begin ------------------>
+# Created by Aurelien Requiem for Nokia world
+# Dec 1999
+#Here the source of a preclienthook 
+#function to be able to authetication
+#with the user phone number
+#
+# Use it with something like:
+# 	PreAuthHook	file:"msisdn.hook"
+#
+use Radius::Radius;
+use strict;
+
+sub
+{
+	my $p = ${$_[0]};
+	my $code = $p->code;
+	my $subcodetype =
+$p->getAttrByNum($Radius::Radius::ACCT_STATUS_TYPE);
+	my $username;
+	my $msisdn;
+
+	if ( $code eq 'Access-Request')
+	{
+		my $username = $p->getAttrByNum($Radius::Radius::USER_NAME);
+		my $msisdn =
+$p->getAttrByNum($Radius::Radius::CALLING_STATION_ID);
+		if (!$msisdn)
+		{
+			# If no phone number supplied by Nas
+			$msisdn="000000000";
+		}
+		$p->{CachedAttrs}{$Radius::Radius::USER_NAME} = $msisdn;
+		$p->changeAttrByNum($Radius::Radius::USER_NAME, $msisdn);
+
+		$p->{CachedAttrs}{$Radius::Radius::CALLING_STATION_ID} =
+$username;
+		$p->changeAttrByNum($Radius::Radius::CALLING_STATION_ID,
+$username);
+	}
+	elsif ($code == 'Accounting-Request')
+	{
+		if ( $subcodetype eq 'Start' )
+		{
+			# You can do what you want !!!
+		}
+		elsif ( $subcodetype eq 'Stop' )
+		{
+			# You can do what you want !!!
+		}
+	}
+	else
+	{
+		# You can do what you want !!!
+	}
+	return;
+}
+#<---------------- End ------------------->
+
+

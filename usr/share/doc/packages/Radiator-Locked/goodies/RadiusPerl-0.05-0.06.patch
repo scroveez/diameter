@@ -1,0 +1,120 @@
+diff -ur RadiusPerl-0.05/Authen/Radius.pm RadiusPerl-0.06/Authen/Radius.pm
+--- RadiusPerl-0.05/Authen/Radius.pm	Thu May  1 21:06:22 1997
++++ RadiusPerl-0.06/Authen/Radius.pm	Fri Apr  5 10:21:51 2002
+@@ -15,7 +15,7 @@
+ use FileHandle;
+ use IO::Socket;
+ use IO::Select;
+-use MD5;
++use Digest::MD5;
+ 
+ use vars qw($VERSION @ISA @EXPORT);
+ 
+@@ -24,7 +24,7 @@
+ 
+ @ISA = qw(Exporter AutoLoader);
+ @EXPORT = qw(ACCESS_REQUEST ACCESS_ACCEPT ACCESS_REJECT);
+-$VERSION = '0.05';
++$VERSION = '0.06';
+ 
+ my (%dict_id, %dict_name, %dict_val);
+ my ($request_id) = $$ & 0xff;	# probably better than starting from 0
+@@ -188,11 +188,7 @@
+ 	$self->set_error;
+ 
+ 	$hdr = pack('C C n', $type, $id, $length);
+-	$ct = new MD5;
+-	$ct->reset ();
+-	$ct->add ($hdr, $self->{'authenticator'}, $self->{'attributes'}, $self->{'secret'});
+-
+-	$ct->digest();
++	return Digest::MD5::md5($hdr . $self->{'authenticator'} . $self->{'attributes'} . $self->{'secret'});
+ }
+ 
+ sub gen_authenticator {
+@@ -201,12 +197,7 @@
+ 
+ 	$self->set_error;
+ 
+-	$ct = new MD5;
+-	$ct->reset ();
+-	# the following could be improved a lot
+-	$ct->add (sprintf("%08x%04x", time, $$), $self->{'attributes'});
+-
+-	$self->{'authenticator'} = $ct->digest();
++	$self->{'authenticator'} = Digest::MD5::md5(sprintf("%08x%04x", time, $$) . $self->{'attributes'});
+ }
+ 
+ sub encrypt_pwd {
+@@ -215,18 +206,24 @@
+ 
+ 	$self->set_error;
+ 
+-	# this only works for passwords <= 16 chars, anyone use longer passwords?
+-	$pwd .= "\0" x (16 - length($pwd) % 16);
+-	@pwdp = unpack('C16', pack('a16', $pwd));
+-	$ct = new MD5;
+-	$ct->reset ();
+-	$ct->add ($self->{'secret'}, $self->{'authenticator'});
+-	@xor = unpack('C16', $ct->digest());
+-	for $i (0..15) {
+-		$pwdp[$i] ^= $xor[$i];
+-	}
++	# Now works for any length password
+ 
+-	pack('C' . length($pwd), @pwdp);
++	# Pad the input to a multiple of 16 bytes with NULs
++	# Although the RFC says not to append any NULs if its already 16 
++	# bytes, we always add at least one NUL, since some C servers
++	# assume that the password will be NUL terminated!
++	$pwd .= "\000" x (16 - (length($pwd) % 16))
++	    unless $oldascendalgorithm;
++	
++	my $lastround = $self->{authenticator};
++	my $pwdout;
++	for ($i = 0; $i < length($pwd); $i += 16) 
++	{
++	    $pwdout .= substr($pwd, $i, 16) ^ Digest::MD5::md5($self->{secret} . $lastround);
++	    $lastround = substr($pwdout, $i, 16)
++		unless $oldascendalgorithm;
++	}
++	return $pwdout;
+ }
+ 
+ sub load_dictionary {
+diff -ur RadiusPerl-0.05/Changes RadiusPerl-0.06/Changes
+--- RadiusPerl-0.05/Changes	Thu May  1 21:08:44 1997
++++ RadiusPerl-0.06/Changes	Fri Apr  5 10:22:31 2002
+@@ -1,5 +1,10 @@
+ Revision history for Perl extension Radius.
+ 
++0.06  Tue Jan 18 10:21:38 2000
++        - Now use Digest::MD5, instead of old and deprecated MD5
++        - Added support for passwords longer than 16 bytes
++	- Mike McCauley (mikem@open.com.au)
++
+ 0.05  Thu May 01 12:08:12 1997
+ 	- Bugfix to pad passwords up to nearest multiple of 16 (thanks to
+ 	  "Mark R. Levinson" <mrl@isc.upenn.edu>)
+diff -ur RadiusPerl-0.05/Makefile.PL RadiusPerl-0.06/Makefile.PL
+--- RadiusPerl-0.05/Makefile.PL	Tue Apr  1 05:22:05 1997
++++ RadiusPerl-0.06/Makefile.PL	Fri Apr  5 10:12:43 2002
+@@ -5,6 +5,6 @@
+     'NAME'			=> 'Authen::Radius',
+     'DISTNAME'		=> 'RadiusPerl',
+     'VERSION_FROM' 	=> 'Authen/Radius.pm', # finds $VERSION
+-	'PREREQ_PM' 	=> { MD5 => 1.7, IO => 1.12 },
++	'PREREQ_PM' 	=> { Digest::MD5 => 2.02, IO => 1.12 },
+ 	'dist'			=> { COMPRESS => 'gzip', SUFFIX => 'gz' },
+ );
+Only in RadiusPerl-0.06: Makefile.old
+diff -ur RadiusPerl-0.05/README RadiusPerl-0.06/README
+--- RadiusPerl-0.05/README	Thu May  1 21:08:59 1997
++++ RadiusPerl-0.06/README	Tue Jan 18 10:25:46 2000
+@@ -1,5 +1,5 @@
+ 
+-This is RadiusPerl version 0.05. RadiusPerl is a Perl 5 module (Radius.pm)
++This is RadiusPerl version 0.06. RadiusPerl is a Perl 5 module (Radius.pm)
+ which allows you to authenticate/account usernames from a Radius server.
+ 
+ IMPORTANT: As of v0.04 the name of this module has changed to Authen::Radius,

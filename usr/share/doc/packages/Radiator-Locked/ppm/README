@@ -1,0 +1,8 @@
+This directory contains some pre-built perl modules
+for Windows. They can be installed with Strawberry Perl
+and ActiveState Perl Package Manager (PPM).
+
+To install a package eg Authen-ACE4
+
+> cd to this directory
+> ppm install --location=. Authen-ACE4

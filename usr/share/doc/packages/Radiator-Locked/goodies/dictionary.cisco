@@ -1,0 +1,615 @@
+# $Id: dictionary.cisco,v 1.1 2002/12/12 05:21:24 mikem Exp $
+#
+#	This file contains dictionary translations for parsing
+#	requests and generating responses.  All transactions are
+#	composed of Attribute/Value Pairs.  The value of each attribute
+#	is specified as one of four data types.  Valid data types are:
+#
+#	string - 0-253 octets
+#	ipaddr - 4 octets in network byte order
+#	integer - 32 bit value in big endian order (high byte first)
+#	date - 32 bit value in big endian order - seconds since
+#					00:00:00 GMT,  Jan.  1,  1970
+#
+#	Enumerated values are stored in the users file with dictionary
+#	VALUE translations for easy administration.
+#
+#	Integer values listed below with the same dictionary VALUE "name"
+#	MUST be assigned the same numerical value.
+#
+#	Example:
+#
+#	ATTRIBUTE	  VALUE
+#	---------------   -----
+#	Framed-Protocol = PPP
+#	7		= 1	(integer encoding)
+#
+ATTRIBUTE	User-Name		1	string
+ATTRIBUTE	User-Password		2	string
+ATTRIBUTE	CHAP-Password		3	binary
+ATTRIBUTE	NAS-IP-Address		4	ipaddr
+ATTRIBUTE	NAS-Port		5	integer
+ATTRIBUTE	Service-Type		6	integer
+ATTRIBUTE	Framed-Protocol		7	integer
+ATTRIBUTE	Framed-IP-Address	8	ipaddr
+ATTRIBUTE	Framed-IP-Netmask	9	ipaddr
+ATTRIBUTE	Framed-Routing		10	integer
+ATTRIBUTE	Filter-Id		11	string
+ATTRIBUTE	Framed-MTU		12	integer
+ATTRIBUTE	Framed-Compression	13	integer
+ATTRIBUTE	Login-IP-Host		14	ipaddr
+ATTRIBUTE	Login-Service		15	integer
+ATTRIBUTE	Login-TCP-Port		16	integer
+ATTRIBUTE	Old-Password		17	string  ### deprecated
+ATTRIBUTE	Reply-Message		18	string
+ATTRIBUTE	Login-Callback-Number	19	string
+ATTRIBUTE	Framed-Callback-Id	20	string
+#ATTRIBUTE	Expiration		21	date    ### deprecated
+ATTRIBUTE	Framed-Route		22	string
+ATTRIBUTE	Framed-IPX-Network	23	integer
+ATTRIBUTE	State			24	string
+ATTRIBUTE	Class			25	string
+ATTRIBUTE	Vendor-Specific		26	string
+ATTRIBUTE	Session-Timeout		27	integer
+ATTRIBUTE	Idle-Timeout		28	integer
+ATTRIBUTE	Termination-Action	29	integer
+ATTRIBUTE	Called-Station-Id	30	string
+ATTRIBUTE	Calling-Station-Id	31	string
+ATTRIBUTE	NAS-Identifier		32	string
+ATTRIBUTE	Proxy-State		33	binary
+ATTRIBUTE	Login-LAT-Service	34	string
+ATTRIBUTE	Login-LAT-Node 		35	string
+ATTRIBUTE	Login-LAT-Group		36	string
+ATTRIBUTE	Framed-AppleTalk-Link	37	integer
+ATTRIBUTE	Framed-AppleTalk-Network 38	integer
+ATTRIBUTE	Framed-AppleTalk-Zone	39	string
+ATTRIBUTE	CHAP-Challenge		60	binary
+ATTRIBUTE	NAS-Port-Type		61	integer
+ATTRIBUTE	Port-Limit		62	integer
+ATTRIBUTE	Login-LAT-Port		63	string
+#
+#	Accounting Extensions
+#
+ATTRIBUTE	Acct-Status-Type	40	integer
+ATTRIBUTE	Acct-Delay-Time		41	integer
+ATTRIBUTE	Acct-Input-Octets	42	integer
+ATTRIBUTE	Acct-Output-Octets	43	integer
+ATTRIBUTE	Acct-Session-Id		44	string
+ATTRIBUTE	Acct-Authentic		45	integer
+ATTRIBUTE	Acct-Session-Time	46	integer
+ATTRIBUTE	Acct-Input-Packets	47	integer
+ATTRIBUTE	Acct-Output-Packets	48	integer
+ATTRIBUTE	Acct-Terminate-Cause	49	integer
+ATTRIBUTE	Acct-Multi-Session-Id	50	string
+ATTRIBUTE	Acct-Link-Count		51	integer
+#
+#	Merit Experimental Extensions
+#
+
+# Support for GRIC roaming attributes
+# Gric specific attributes for radius dictionary
+ATTRIBUTE       Gric-ARS-Server-Id              100     ipaddr
+ATTRIBUTE       Gric-Roaming-Server-Id          101     string
+ATTRIBUTE       Gric-Isp-Id                     102     string
+ATTRIBUTE       Gric-Timestamp                  103     integer
+ATTRIBUTE       Timestamp                  	103     integer
+ATTRIBUTE       Gric-Timezone                   104     integer
+ATTRIBUTE       Gric-Request-Type               105     integer
+ATTRIBUTE       Gric-Proxy-Signature            106     string
+ATTRIBUTE       Gric-Destination-Server 	107     string
+ATTRIBUTE       Gric-Version                    108     string
+ATTRIBUTE       Gric-CRL-Location               109     string
+ATTRIBUTE       Gric-Acct-Delay-Time            110     integer
+
+#
+#       Integer Translations
+#
+#       Gric Roaming Service Type
+VALUE   Service-Type    Framed-User-Roaming     100
+VALUE   Service-Type    GRIC-PhoneHandset-User  102
+VALUE   Service-Type    GRIC-PhonePC-User       103
+VALUE   Service-Type    GRIC-Fax-User           104
+VALUE   Service-Type    GRIC-PhoneHandset-User-Roaming  105
+VALUE   Service-Type    GRIC-PhonePC-User-Roaming       106
+VALUE   Service-Type    GRIC-Fax-User-Roaming           107
+VALUE   Service-Type    GRIC-Login-User-Roaming         108
+
+#
+#	Temporary assignment for AATV LOG session logging
+#
+ATTRIBUTE	LAS-Start-Time		145	integer
+ATTRIBUTE	LAS-Code		146	integer
+ATTRIBUTE	LAS-Duration		147	integer
+ATTRIBUTE	Local-Duration		148	integer
+
+ATTRIBUTE	Service-Class		149	string
+ATTRIBUTE	Port_Entry		150	string
+ATTRIBUTE	Token-Pool		155	string
+ATTRIBUTE	Proxy-Action		211	string
+ATTRIBUTE	Token			213	string
+ATTRIBUTE	Huntgroup-Name		221	string
+ATTRIBUTE	User-Id			222	string
+ATTRIBUTE	User-Realm		223	string
+
+#
+#	Ascend Extensions
+#	used for MAX/Pipeline configuration
+#
+
+#
+#		Connection Profile items
+#
+
+#ATTRIBUTE	Ascend-Station			see	User-Name
+#ATTRIBUTE	Ascend-Encaps			see	Framed-Protocol
+#ATTRIBUTE	Ascend-IP-Address		see	Framed-Address
+#ATTRIBUTE	Ascend-Netmask			see	Framed-Netmask
+#ATTRIBUTE	Ascend-IPX-Network		see	Framed-IPX-Network
+
+ATTRIBUTE	Ascend-Base-Channel-Count 	172	integer
+ATTRIBUTE	Ascend-Minimum-Channels		173	integer
+
+#
+#		IPX Static Routes
+#
+
+ATTRIBUTE	Ascend-IPX-Route		174	string
+
+ATTRIBUTE	Ascend-FT1-Caller		175	integer
+ATTRIBUTE	Ascend-Backup			176	string
+ATTRIBUTE	Ascend-Call-Type		177	integer
+ATTRIBUTE	Ascend-Group			178	string
+ATTRIBUTE	Ascend-FR-DLCI			179	integer
+ATTRIBUTE	Ascend-FR-Profile-Name		180	string
+ATTRIBUTE	Ascend-Ara-PW			181	string
+ATTRIBUTE	Ascend-IPX-Node-Addr		182	string
+ATTRIBUTE	Ascend-Home-Agent-IP-Addr	183	ipaddr
+ATTRIBUTE	Ascend-Home-Agent-Password	184	string
+ATTRIBUTE	Ascend-Home-Network-Name	185	string
+ATTRIBUTE	Ascend-Home-Agent-UDP-Port	186	integer
+ATTRIBUTE	Ascend-Multilink-ID		187	integer
+ATTRIBUTE	Ascend-Num-In-Multilink		188	integer
+ATTRIBUTE	Ascend-First-Dest		189	ipaddr
+ATTRIBUTE	Ascend-Pre-Input-Octets		190	integer
+ATTRIBUTE	Ascend-Pre-Output-Octets	191	integer
+ATTRIBUTE	Ascend-Pre-Input-Packets	192	integer
+ATTRIBUTE	Ascend-Pre-Output-Packets	193	integer
+ATTRIBUTE	Ascend-Maximum-Time		194	integer
+ATTRIBUTE	Ascend-Disconnect-Cause		195	integer
+ATTRIBUTE	Ascend-Connect-Progress		196	integer
+ATTRIBUTE	Ascend-Data-Rate		197	integer
+ATTRIBUTE	Ascend-PreSession-Time		198	integer
+ATTRIBUTE	Ascend-Token-Idle		199	integer
+ATTRIBUTE	Ascend-Token-Immediate		200	integer
+ATTRIBUTE	Ascend-Require-Auth		201	integer
+ATTRIBUTE	Ascend-Number-Sessions		202	string
+ATTRIBUTE	Ascend-Authen-Alias		203	string
+ATTRIBUTE	Ascend-Token-Expiry		204	integer
+ATTRIBUTE	Ascend-Menu-Selector		205	string
+ATTRIBUTE	Ascend-Menu-Item		206	string
+#
+#		Ascend Radius Password Expiration Options
+#
+ATTRIBUTE	Ascend-PW-Warntime		207	integer
+ATTRIBUTE	Ascend-PW-Lifetime		208	integer
+ATTRIBUTE	Ascend-IP-Direct		209	ipaddr
+ATTRIBUTE	Ascend-PPP-VJ-Slot-Comp		210	integer
+#
+# Note: Merit needs to use #211, so Ascend-PPP-VJ-1172 not supported!
+#
+#ATTRIBUTE	Ascend-PPP-VJ-1172		211	integer  DO NOT USE !!!
+#
+ATTRIBUTE	Ascend-PPP-Async-Map		212	integer
+#
+# Note: Merit needs to use #213, so Ascend-Third-Prompt not supported!
+#
+#ATTRIBUTE	Ascend-Third-Prompt		213	string   DO NOT USE !!!
+#
+#
+ATTRIBUTE	Ascend-Send-Secret		214	string
+ATTRIBUTE	Ascend-Receive-Secret		215	string
+ATTRIBUTE	Ascend-IPX-Peer-Mode		216	integer
+ATTRIBUTE	Ascend-IP-Pool-Definition	217	string
+ATTRIBUTE	Ascend-Assign-IP-Pool		218	integer
+ATTRIBUTE	Ascend-FR-Direct		219	integer
+ATTRIBUTE	Ascend-FR-Direct-Profile	220	string
+#
+# Note: Merit needs to use #221, so Ascend-FR-Direct-DLCI not supported!
+#
+#ATTRIBUTE	Ascend-FR-Direct-DLCI		221	integer  DO NOT USE !!!
+#
+# Note: Merit needs to use #222, so Ascend-Handle-IPX not supported!
+#
+#ATTRIBUTE	Ascend-Handle-IPX		222	integer  DO NOT USE !!!
+#
+# Note: Merit needs to use #223, so Ascend-Netware-Timeout not supported!
+#
+#ATTRIBUTE	Ascend-Netware-timeout		223	integer  DO NOT USE !!!
+#
+#
+ATTRIBUTE	Ascend-IPX-Alias		224	integer
+ATTRIBUTE	Ascend-Metric			225	integer
+ATTRIBUTE	Ascend-PRI-Number-Type		226	integer
+ATTRIBUTE	Ascend-Dial-Number		227	string
+#
+#		Ascend Connection Profile/PPP options
+#
+ATTRIBUTE	Ascend-Route-IP			228	integer
+ATTRIBUTE	Ascend-Route-IPX		229	integer
+ATTRIBUTE	Ascend-Bridge			230	integer
+ATTRIBUTE	Ascend-Send-Auth		231	integer
+ATTRIBUTE	Ascend-Send-Passwd		232	string
+#
+#ATTRIBUTE	Ascend-MRU			see	Framed-MTU
+#
+ATTRIBUTE	Ascend-Link-Compression		233	integer
+#
+#ATTRIBUTE	Ascend-VJ-Compression		see	Framed-Compression
+#
+ATTRIBUTE	Ascend-Target-Util		234	integer
+ATTRIBUTE	Ascend-Maximum-Channels		235	integer
+ATTRIBUTE	Ascend-Inc-Channel-Count	236	integer
+ATTRIBUTE	Ascend-Dec-Channel-Count	237	integer
+ATTRIBUTE	Ascend-Seconds-Of-History	238	integer
+ATTRIBUTE	Ascend-History-Weigh-Type	239	integer
+ATTRIBUTE	Ascend-Add-Seconds		240	integer
+ATTRIBUTE	Ascend-Remove-Seconds		241	integer
+#
+#		Ascend Connection Profile/Session options
+#
+#ATTRIBUTE	Ascend-RIP			see Framed-Routing
+#
+#ATTRIBUTE	Ascend-Data-Filter		242	abinary
+#ATTRIBUTE	Ascend-Call-Filter		243	abinary
+ATTRIBUTE	Ascend-Idle-Limit		244	integer
+ATTRIBUTE	Ascend-Preempt-Limit		245	integer
+#
+#		Ascend Connection Profile/Telco options
+#
+ATTRIBUTE	Ascend-Callback			246	integer
+ATTRIBUTE	Ascend-Data-Svc			247	integer
+ATTRIBUTE	Ascend-Force-56			248	integer
+ATTRIBUTE	Ascend-Billing-Number		249	string
+ATTRIBUTE	Ascend-Call-By-Call		250	integer
+ATTRIBUTE	Ascend-Transit-Number		251	string
+#
+#		Ascend Terminal Server Attributes
+#
+#ATTRIBUTE	Ascend-Terminal-Banner		see	Reply-Message
+#
+ATTRIBUTE	Ascend-Host-Info		252	string
+#
+#		Ascend PPP local address Attribute
+#
+ATTRIBUTE	Ascend-PPP-Address		253	ipaddr
+#
+#		Ascend MPP percent idle Attribute
+#
+ATTRIBUTE	Ascend-MPP-Idle-Percent		254	integer
+
+#
+#	Configuration Only Attributes (for check-items)
+#
+ATTRIBUTE	Comment			1024	string
+ATTRIBUTE	Xvalue			1025	integer
+ATTRIBUTE	Xstring			1026	string
+ATTRIBUTE	Authentication-Type	1027	integer
+ATTRIBUTE	Prohibit		1028	integer
+ATTRIBUTE	User-Category		1029	string
+ATTRIBUTE	Group-Name		1030	string
+ATTRIBUTE	Encrypted-Password	1031	string
+ATTRIBUTE	Expiration		1032	date
+ATTRIBUTE	Password		1033	string
+ATTRIBUTE	Simultaneous-Use	1034	integer
+ATTRIBUTE	Server-Name		1035	string
+
+#	Connect.com.au Extensions
+
+ATTRIBUTE	Unix-User-Id		170	string
+ATTRIBUTE	Unix-Group-Id		171	string
+
+#
+#	Integer Translations
+#
+
+#	Service Types
+
+VALUE		Service-Type		Login			1
+VALUE		Service-Type		Framed			2
+VALUE		Service-Type		Callback-Login		3
+VALUE		Service-Type		Callback-Framed		4
+VALUE		Service-Type		Outbound-User		5
+VALUE		Service-Type		Administrative-User	6
+VALUE		Service-Type		Shell-User		7
+VALUE		Service-Type		Authenticate-Only	8
+VALUE		Service-Type		Callback-Admin-User	9
+
+#	Framed Protocols
+
+VALUE		Framed-Protocol		PPP			1
+VALUE		Framed-Protocol		SLIP			2
+VALUE		Framed-Protocol		ARA			3
+VALUE		Framed-Protocol		Gandalf			4
+#	ASCEND extensions
+VALUE		Framed-Protocol		Ascend-ARA		255
+VALUE		Framed-Protocol		MPP			256
+VALUE		Framed-Protocol		EURAW			257
+VALUE		Framed-Protocol		EUUI			258
+VALUE		Framed-Protocol		X25			259
+VALUE		Framed-Protocol		COMB			260
+VALUE		Framed-Protocol		FR			261
+
+
+#	Framed Routing Values
+
+VALUE		Framed-Routing		None			0
+VALUE		Framed-Routing		Broadcast		1
+VALUE		Framed-Routing		Listen			2
+VALUE		Framed-Routing		Broadcast-Listen	3
+
+#	Framed Compression Types
+
+VALUE		Framed-Compression	None			0
+VALUE		Framed-Compression	Van-Jacobson-TCP-IP	1
+VALUE		Framed-Compression	IPX-Header-Compression	2
+
+#	Login Services
+
+VALUE		Login-Service		Telnet			0
+VALUE		Login-Service		Rlogin			1
+VALUE		Login-Service		TCP-Clear		2
+VALUE		Login-Service		PortMaster		3
+VALUE		Login-Service		LAT			4
+
+#	Termination Actions
+
+VALUE		Termination-Action	Default			0
+VALUE		Termination-Action	RADIUS-Request		1
+
+#	Accounting Status Types (Alive is meant to be used for checkpointing)
+
+VALUE		Acct-Status-Type	Start			1
+VALUE		Acct-Status-Type	Stop			2
+VALUE		Acct-Status-Type	Alive			3
+VALUE		Acct-Status-Type	Modem-Start		4
+VALUE		Acct-Status-Type	Modem-Stop		5
+VALUE		Acct-Status-Type	Cancel			6
+VALUE		Acct-Status-Type	Accounting-On		7
+VALUE		Acct-Status-Type	Accounting-Off		8
+
+#	Accounting Termination Cause
+
+VALUE		Acct-Terminate-Cause	User-Request		1
+VALUE		Acct-Terminate-Cause	Lost-Carrier		2
+VALUE		Acct-Terminate-Cause	Lost-Service		3
+VALUE		Acct-Terminate-Cause	Idle-Timeout		4
+VALUE		Acct-Terminate-Cause	Session-Timeout		5
+VALUE		Acct-Terminate-Cause	Admin-Reset		6
+VALUE		Acct-Terminate-Cause	Admin-Reboot		7
+VALUE		Acct-Terminate-Cause	Port-Error		8
+VALUE		Acct-Terminate-Cause	NAS-Error		9
+VALUE		Acct-Terminate-Cause	NAS-Request		10
+VALUE		Acct-Terminate-Cause	NAS-Reboot		11
+VALUE		Acct-Terminate-Cause	Port-Unneeded		12
+VALUE		Acct-Terminate-Cause	Port-Preempted		13
+VALUE		Acct-Terminate-Cause	Port-Suspended		14
+VALUE		Acct-Terminate-Cause	Service-Unavailable	15
+VALUE		Acct-Terminate-Cause	Callback		16
+VALUE		Acct-Terminate-Cause	User-Error		17
+VALUE		Acct-Terminate-Cause	Host-Request		18
+
+#	NAS Port Types
+
+VALUE		NAS-Port-Type		Async			0
+VALUE		NAS-Port-Type		Sync			1
+VALUE		NAS-Port-Type		ISDN-Sync		2
+VALUE		NAS-Port-Type		ISDN-Async-v120		3
+VALUE		NAS-Port-Type		ISDN-Async-v110		4
+VALUE		NAS-Port-Type		Virtual			5
+
+#	Accounting Authentic Values
+
+VALUE		Acct-Authentic		None			0
+VALUE		Acct-Authentic		RADIUS			1
+VALUE		Acct-Authentic		Local			2
+
+#	Authentication Types
+
+VALUE		Authentication-Type	None			0
+VALUE		Authentication-Type	Unix-PW			1
+VALUE		Authentication-Type	Passwd			1
+VALUE		Authentication-Type	AFS-Krb			2
+VALUE		Authentication-Type	MIT-Krb			3
+VALUE		Authentication-Type	RADIUS			4
+VALUE		Authentication-Type	MNET			5
+VALUE		Authentication-Type	KCHAP			6
+VALUE		Authentication-Type	TACACS			7
+VALUE		Authentication-Type	Realm			8
+VALUE		Authentication-Type	Local			9
+VALUE		Authentication-Type	File			10
+
+#	Prohibit Types
+
+VALUE		Prohibit		Dumb			0
+VALUE		Prohibit		PPP			1
+VALUE		Prohibit		SLIP			2
+VALUE		Prohibit		Auth-Only		3
+VALUE		Prohibit		All			255
+
+#	Configuration Values
+
+#VALUE		Server-Config		Password-Expiration	30
+#VALUE		Server-Config		Password-Warning	5
+
+#       LAS Session termination codes
+
+VALUE		LAS-Code		LAS-Normal		0
+VALUE		LAS-Code		LAS-Reject		1
+VALUE		LAS-Code		LAS-Cancel		2
+VALUE		LAS-Code		LAS-Noconfirm		3
+VALUE		LAS-Code		LAS-Overtime		4
+VALUE		LAS-Code		LAS-Unknown		5
+VALUE		LAS-Code		LAS-Notoken		6
+VALUE		LAS-Code		LAS-Notlocal		7
+VALUE		LAS-Code		LAS-Suspend		8
+VALUE		LAS-Code		LAS-Failed		9
+VALUE		LAS-Code		LAS-Authorized		10
+VALUE		LAS-Code		LAS-NASreboot		11
+VALUE		LAS-Code		LAS-Remote		12
+
+#	Ascend FR Direct values
+
+VALUE		Ascend-FR-Direct	FR-Direct-No		0
+VALUE		Ascend-FR-Direct	FR-Direct-Yes		1
+#
+#	Ascend IPX Handling (not supported due to conflict.)
+#
+#VALUE		Ascend-Handle-IPX	Handle-IPX-None		0
+#VALUE		Ascend-Handle-IPX	Handle-IPX-Client	1
+#VALUE		Ascend-Handle-IPX	Handle-IPX-Server	2
+#
+#	Ascend IPX Routing Peer Mode
+
+VALUE		Ascend-IPX-Peer-Mode	IPX-Peer-Router		0
+VALUE		Ascend-IPX-Peer-Mode	IPX-Peer-Dialin		1
+
+#	Ascend Call Type Values
+ 
+VALUE		Ascend-Call-Type	Nailed			1
+VALUE		Ascend-Call-Type	Nailed/Mpp		2
+
+#	Ascend FT1 Caller Values
+ 
+VALUE		Ascend-FT1-Caller	FT1-No			0
+VALUE		Ascend-FT1-Caller	FT1-Yes			1
+
+#	Ascend PRI Number Type Values
+
+VALUE		Ascend-PRI-Number-Type	Unknown-Number		0
+VALUE		Ascend-PRI-Number-Type	Intl-Number		1
+VALUE		Ascend-PRI-Number-Type	National-Number		2
+VALUE		Ascend-PRI-Number-Type	Local-Number		4
+VALUE		Ascend-PRI-Number-Type	Abbrev-Number		5
+
+#	Ascend Route IP Type Values
+
+VALUE	Ascend-Route-IP			Route-IP-No		0
+VALUE	Ascend-Route-IP			Route-IP-Yes		1
+
+#	Ascend Route IPX Type Values
+
+VALUE		Ascend-Route-IPX	Route-IPX-No		0
+VALUE		Ascend-Route-IPX	Route-IPX-Yes		1
+
+#	Ascend Bridge Type Values
+
+VALUE		Ascend-Bridge		Bridge-No		0
+VALUE		Ascend-Bridge		Bridge-Yes		1
+
+#	Ascend Send Auth Values
+
+VALUE		Ascend-Send-Auth		Send-Auth-None		0
+VALUE		Ascend-Send-Auth	Send-Auth-PAP		1
+VALUE		Ascend-Send-Auth	Send-Auth-CHAP		2
+
+#	Ascend Link Compression Values
+
+VALUE		Ascend-Link-Compression	Link-Comp-None		0
+VALUE		Ascend-Link-Compression	Link-Comp-Stac		1
+#VALUE		Ascend-Link-Compression	Link-Comp-Stac-Draft-5	2
+VALUE		Ascend-Link-Compression	Link-Comp-MS-Stac	3
+
+#	Ascend History Weigh Type Values
+
+VALUE		Ascend-History-Weigh-Type	History-Constant	0
+VALUE		Ascend-History-Weigh-Type	History-Linear		1
+VALUE		Ascend-History-Weigh-Type	History-Quadratic	2
+
+#	Ascend Callback Values
+
+VALUE		Ascend-Callback		Callback-No		0
+VALUE		Ascend-Callback		Callback-Yes		1
+
+#	Ascend Data Svc Values
+
+VALUE		Ascend-Data-Svc		Switched-Voice-Bearer	0
+VALUE		Ascend-Data-Svc		Switched-56KR		1
+VALUE		Ascend-Data-Svc		Switched-64K		2
+VALUE		Ascend-Data-Svc		Switched-64KR		3
+VALUE		Ascend-Data-Svc		Switched-56K		4
+VALUE		Ascend-Data-Svc		Switched-384KR		5
+VALUE		Ascend-Data-Svc		Switched-384K		6
+VALUE		Ascend-Data-Svc		Switched-1536K		7
+VALUE		Ascend-Data-Svc		Switched-1536KR		8
+VALUE		Ascend-Data-Svc		Switched-128K		9
+VALUE		Ascend-Data-Svc		Switched-192K		10
+VALUE		Ascend-Data-Svc		Switched-256K		11
+VALUE		Ascend-Data-Svc		Switched-320K		12
+VALUE		Ascend-Data-Svc		Switched-384K-MR	13
+VALUE		Ascend-Data-Svc		Switched-448K		14
+VALUE		Ascend-Data-Svc		Switched-512K		15
+VALUE		Ascend-Data-Svc		Switched-576K		16
+VALUE		Ascend-Data-Svc		Switched-640K		17
+VALUE		Ascend-Data-Svc		Switched-704K		18
+VALUE		Ascend-Data-Svc		Switched-768K		19
+VALUE		Ascend-Data-Svc		Switched-832K		20
+VALUE		Ascend-Data-Svc		Switched-896K		21
+VALUE		Ascend-Data-Svc		Switched-960K		22
+VALUE		Ascend-Data-Svc		Switched-1024K		23
+VALUE		Ascend-Data-Svc		Switched-1088K		24
+VALUE		Ascend-Data-Svc		Switched-1152K		25
+VALUE		Ascend-Data-Svc		Switched-1216K		26
+VALUE		Ascend-Data-Svc		Switched-1280K		27
+VALUE		Ascend-Data-Svc		Switched-1344K		28
+VALUE		Ascend-Data-Svc		Switched-1408K		29
+VALUE		Ascend-Data-Svc		Switched-1472K		30
+VALUE		Ascend-Data-Svc		Switched-1600K		31
+VALUE		Ascend-Data-Svc		Switched-1664K		32
+VALUE		Ascend-Data-Svc		Switched-1728K		33
+VALUE		Ascend-Data-Svc		Switched-1792K		34
+VALUE		Ascend-Data-Svc		Switched-1856K		35
+VALUE		Ascend-Data-Svc		Switched-1920K		36
+
+VALUE		Ascend-Data-Svc		Switched-inherited		37
+VALUE		Ascend-Data-Svc		Switched-restricted-bearer-x30  38
+VALUE		Ascend-Data-Svc		Switched-clear-bearer-v110	39
+VALUE		Ascend-Data-Svc		Switched-restricted-64-x30	40
+VALUE		Ascend-Data-Svc		Switched-clear-56-v110		41
+VALUE		Ascend-Data-Svc		Switched-modem			42
+VALUE		Ascend-Data-Svc		Switched-atmodem		43
+
+#	Ascend Force 56 Values
+
+VALUE		Ascend-Force-56		Force-56-No		0
+VALUE		Ascend-Force-56		Force-56-Yes		1
+
+#	Password Expiration
+#	- Sets global password timeout values
+
+VALUE		Ascend-PW-Lifetime	Lifetime-In-Days	0
+VALUE		Ascend-PW-Warntime	Days-Of-Warning		0
+#
+#	Ascend PPP VJ 1172 (Not supported by Merit due to conflict.)
+#
+#VALUE		Ascend-PPP-VJ-1172	PPP-VJ-1172		1
+#
+#	Ascend PPP VJ Slot compression
+
+VALUE		Ascend-PPP-VJ-Slot-Comp	VJ-Slot-Comp-No		1
+
+#	Addition authentication
+
+VALUE		Ascend-Require-Auth	Not-Require-Auth	0
+VALUE		Ascend-Require-Auth	Require-Auth		1
+
+VALUE		Ascend-Token-Immediate	Tok-Imm-No		0
+VALUE		Ascend-Token-Immediate	Tok-Imm-Yes		1
+
+#       Cisco Specific Values
+ 
+VENDORATTR	9		cisco-avpair		1	string
+VENDORATTR      9               Cisco-NAS-Port          2  	string
+VENDORATTR	9		Account-Info		250	string
+VENDORATTR	9		Service-Info		251	string
+VENDORATTR	9		Command-Code		252	string
+

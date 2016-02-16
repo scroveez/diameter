@@ -1,0 +1,57 @@
+Tue Feb 24 11:29:45 2009: DEBUG: Packet dump:
+*** Received from 172.20.2.157 port 28522 ....
+Code:       Access-Request
+Identifier: 47
+Authentic:  <5>8Er<184><129><5><211><201><164><139><239><197>{<205><207>
+Attributes:
+        User-Name = "admin"
+        User-Password =  
+<190>f<217><155><199><226><197><181><8>3<207><191><171><179><219>Z
+        NAS-IP-Address = 172.20.2.157
+        NAS-Port-Type = Virtual
+        NAS-Port = 0
+
+Tue Feb 24 11:29:45 2009: DEBUG: Handling request with Handler ''
+Tue Feb 24 11:29:45 2009: DEBUG: SessionDB Deleting session for admin,  
+172.20.2.157, 0
+Tue Feb 24 11:29:45 2009: DEBUG: Handling with Radius::AuthFILE: Users
+Tue Feb 24 11:29:45 2009: DEBUG: Radius::AuthFILE looks for match with  
+admin [admin]
+Tue Feb 24 11:29:45 2009: DEBUG: Radius::AuthFILE ACCEPT: : admin  
+[admin]
+Tue Feb 24 11:29:45 2009: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Feb 24 11:29:45 2009: DEBUG: Access accepted for admin
+Tue Feb 24 11:29:45 2009: DEBUG: Packet dump:
+*** Sending to 172.20.2.157 port 28522 ....
+Code:       Access-Accept
+Identifier: 47
+Authentic:  <129>#<198><194>3bL<144><138><239><178>2Uy'x
+Attributes:
+        cisco-avpair = "shell:roles="network operator vdc-admin""
+
+Tue Feb 24 11:29:45 2009: DEBUG: Packet dump:
+*** Received from 172.20.2.157 port 28522 ....
+Code:       Accounting-Request
+Identifier: 49
+Authentic:  ]v<6><165><211><159>n|<155><134><163>XC<170><216><252>
+Attributes:
+        User-Name = "admin"
+        NAS-IP-Address = 172.20.2.157
+        NAS-Port-Type = Virtual
+        NAS-Port = 0
+        Acct-Status-Type = Start
+        Acct-Session-Id = "172.20.3.2@pts/9"
+        Acct-Authentic = RADIUS
+
+Tue Feb 24 11:29:45 2009: DEBUG: Handling request with Handler ''
+Tue Feb 24 11:29:45 2009: DEBUG: SessionDB Adding session for admin,  
+172.20.2.157, 0
+Tue Feb 24 11:29:46 2009: DEBUG: Handling with Radius::AuthFILE: Users
+Tue Feb 24 11:29:46 2009: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Feb 24 11:29:46 2009: DEBUG: Accounting accepted
+Tue Feb 24 11:29:46 2009: DEBUG: Packet dump:
+*** Sending to 172.20.2.157 port 28522 ....
+Code:       Accounting-Response
+Identifier: 49
+Authentic:  <139><4><249><27>[<155><30><223><240><195>#<3><17><196>+8
+Attributes:

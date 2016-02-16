@@ -1,0 +1,131 @@
+Contributed by Mark Duling <mark.duling@biola.edu>
+
+
+1) Install MacPorts on the host that will run Radiator.
+
+2) After purchasing Radiator, download the Radiator tarball and copy it to /opt/local/var/macports/distfiles/radiator where the radiator Portfile is going to look for it.
+
+3) Copy the radiator Portfile from goodies/Portfile to any directory, for example ~/radport/Portfile
+
+4) Change to ~/radport (or wherever you copied the Portfile), edit the Portfile version to match the tarball version number, and execute the command 'sudo port install'.
+
+Note:  To upgrade to a new version of Radiator, simply change to the directory containing the Radiator Portfile and execute:
+       'sudo port uninstall' and 'sudo port clean --all' and repeat steps 3 and 4.
+
+
+After the Portfile finishes, Radiator and all prerequisites are installed.  See the directions below for configuring, testing, and setting Radiator for continuous background operation (these instructions are also displayed after the port is installed).
+
+
+A) Configure and test Radiator:
+
+  -Copy an appropriate sample config file from ${prefix}/etc/radiator/goodies to ${prefix}/etc/radiator/radius.cfg
+
+  -Modify the config file to your needs
+
+  -Test Radiator in the foreground:
+        cd ${prefix}/etc/radiator
+        sudo -config_file radius.cfg
+                                
+B) Start/stop Radiator and continuous background operation:
+                             
+  -Use this command to start Radiator and enable the LaunchD script (LaunchD starts Radiator at system boot)
+        sudo launchctl load -w /Library/LaunchDaemons/org.macports.radiator.plist
+                                
+  -Use this command to stop the Radiator background process and disable the LaunchD script (disable starting at system boot)
+        sudo launchctl unload -w /Library/LaunchDaemons/org.macports.radiator.plist
+
+  -Check to verify that Radiator is running in the background with this command:
+        ps -ax |grep radiusd
+
+NOTE:  For OS X 10.3 and earlier versions, a startup item was created in /Library/StartupItems.  Add "RADIUS=-YES-" to the /etc/hostconfig file to run Radiator at system boot.
+
+
+Portfile text:
+------------------------------------------------------------------------------------------
+
+# $Id: macports.txt,v 1.1 2008/08/27 07:42:23 mikem Exp $
+
+PortSystem              1.0
+
+name            radiator
+version            4.3.1
+categories        sysutils perl
+maintainers             nomaintainer
+
+description             A highly configurable and flexible RADIUS server for \
+            Linux, Unix, Mac OS X and Windows that supports authentication \
+            by over 60 different types.
+
+long_description        ${description}
+homepage        http://www.open.com.au/radiator/
+distfiles        Radiator-Locked-${version}.tgz
+worksrcdir        Radiator-Locked-${version}
+platforms               darwin
+
+depends_lib    port:perl5.8 \
+        port:openssl \
+        port:p5-crypt-openssl-random \
+        port:p5-crypt-openssl-rsa \
+        port:p5-crypt-openssl-bignum \
+        port:p5-mime-base64 \
+        port:p5-digest-md5 \
+        port:p5-digest-md4 \
+        port:p5-digest-hmac \
+        port:p5-digest-sha1 \
+        port:p5-net-ssleay \
+        port:p5-perl-ldap \
+        port:p5-tk
+
+startupitem.create    yes
+startupitem.executable    ${prefix}/bin/radiusd \
+                -config_file ${prefix}/etc/radiator/radius.cfg \
+                -db_dir ${prefix}/etc/radiator \
+                -log_dir ${prefix}/var \
+                -log_file radiator.log \
+                -pid_file ${prefix}/var/radiusd.pid \
+                -foreground
+
+pre-fetch { ui_msg "\n
+        This app is not free, so the tarball must be manually downloaded and copied into
+        /opt/local/var/macports/distfiles/radiator before this MacPort can continue. Edit the
+    version keyword in the Portfile to match the tarball version number.\n" }
+
+# Kill the checksum phase since MacPorts isn't fetching the tarball
+checksum {}
+
+configure {system "cd ${worksrcpath} && perl Makefile.PL"}
+
+# Copy stuff Radiator needs to run that isn't copied by the Makefile
+post-destroot {
+    file mkdir ${destroot}${prefix}/etc/radiator
+    file copy ${worksrcpath}/goodies/ ${destroot}${prefix}/etc/radiator/
+    file copy ${worksrcpath}/certificates/ ${destroot}${prefix}/etc/radiator/
+    file copy ${worksrcpath}/dictionary ${destroot}${prefix}/etc/radiator/
+}
+
+post-install { ui_msg "\n
+
+A) Configure and test Radiator:
+
+  -Copy an appropriate sample config file from ${prefix}/etc/radiator/goodies to ${prefix}/etc/radiator/radius.cfg
+
+  -Modify the config file to your needs
+
+  -Test Radiator in the foreground:
+        cd ${prefix}/etc/radiator
+        sudo -config_file radius.cfg
+
+B) Set/unset Radiator for continuous background operation:
+
+  -Use this command to start Radiator and enable the LaunchD script (LaunchD starts Radiator at system boot)
+        sudo launchctl load -w /Library/LaunchDaemons/org.macports.radiator.plist
+
+  -Use this command to stop the Radiator background process and disable the LaunchD script (disable starting at system boot)
+        sudo launchctl unload -w /Library/LaunchDaemons/org.macports.radiator.plist
+
+  -Check to verify that Radiator is running in the background with this command:
+        ps -ax |grep radiusd
+
+NOTE:  For OS X 10.3 and earlier versions, a startup item was created in /Library/StartupItems.  Add \"RADIUS=-YES-\" to the /etc/hostconfig file to run Radiator at system boot.
+\n"}
+

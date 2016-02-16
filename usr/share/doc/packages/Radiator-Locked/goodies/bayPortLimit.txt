@@ -1,0 +1,47 @@
+Here are some instructions on using Radiator 2.14 and Bay 5399/8000 software
+16.0 (or higher) to achieve effective SessionLimits.
+
+<Handler Called-Station-Id=/^95555600|^95555656|^95555657/,
+Service-Type=Outbound-User>
+    <AuthBy PORTLIMITCHECK>
+        SessionLimit 230
+        CountQuery select COUNT(*) from RADONLINE where DNIS='95555600' or
+DNIS='95555656' or DNIS='95555657'
+    </AuthBy>
+
+    <AuthBy TEST>
+    </AuthBy TEST>
+</Handler>
+
+in the radius.cfg file.
+
+The following 2 lines should be placed in the %gateway section of
+config.annex :
+
+radius_call_pooling 1
+radius_call_pooling_calling_no 0
+
+The 5399/8000 must be rebooted for these settings to take effect.  The RAC
+will then send out an Access-Request packet when the call arrives on the D
+channel, and depending on whether it receives an -Accept or -Reject back
+will answer or not answer the call.
+
+You may wish to include the sample Session database entry (from the
+documentation), and the above entry into the annex.cfg file in future
+versions.  I've tested the above handler entries which work quite well.  I
+know that some people have been looking to do this with the 5399s recently.
+(Effectively reserving one particular number one channel, and allowing other
+numbers to have a combined limit.  A handler with a more general regexp, and
+a SELECT line with some and DNIS != ... entries would do this as well).
+
+Regards,
+Andrew Foster
+
+=============================================
+Andrew Foster             Tel: (02) 9927-8808
+Nortel Networks           Fax: (02) 9927-8899
+Customer Network Engineer
+Asia Pacific TSC
+
+
+

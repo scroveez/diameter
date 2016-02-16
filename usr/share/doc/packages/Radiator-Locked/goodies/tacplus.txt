@@ -1,0 +1,279 @@
+There have been a number of questions recently regarding the correct
+configuration required for TACACS+ when used with Radiator.
+
+Here is a brief description of how to set it up.
+
+There are 3 aspects to TACACS+ operation: authentication, authorization and
+accounting.
+
+Authentication checks the username and password, authorization checks whether
+the user is allowed to execute commands, and accounting logs commands actually
+executed.
+
+All three of these aspects need to be configured on the TACACS+ client device
+and in Radiator.
+
+Radiator converts TACACS+ authentication requests into corresponding RADIUS
+access requests which are processed by the normal Radiator RADIUS
+configuration. The RADIUS access accept must return a group membership as
+defined in the Server TACACSPLUS clause by the GroupMemberAttr and
+AuthorizeGroup definitions.
+
+Radiator processes TACACS+ authorization requests directly in the Server
+TACACSPLUS clause according to its GropuMemberAttr and AuthorizeGroup
+definitions.
+
+Radiator processes TACACS+ accounting requests by converting them to RADIUS
+accounting requests and processing them with the normal Radiator RADIUS
+configuration.
+
+Here is a typical Cisco configuration showing the "aaa authentication ....",
+"aaa authorization ...." and "aaa accounting ...." details:
+
+
+.......
+
+aaa new-model
+!
+aaa authentication login default group tacacs+ local enable
+aaa authentication login vty-access group tacacs+ local enable
+aaa authentication login console-access group tacacs+ local enable
+
+aaa authorization exec default group tacacs+ if-authenticated
+aaa authorization commands 1 default group tacacs+ if-authenticated
+aaa authorization commands 15 default group tacacs+ if-authenticated
+
+aaa accounting exec default stop-only group tacacs+
+aaa accounting commands 15 default stop-only group tacacs+
+
+.......
+
+
+Here is a typical Radiator configuration showing the GroupMemberAttr and
+AuthorizeGroup details for "tacacsgroup" and "group1", "group2" and "group3":
+(see also "goodies/tacacsplusserver.cfg" in the Radiator 4.3.1 distribution)
+
+
+......
+
+# This clause tells Radiator to listen for and handle TACACS+ requests.
+# Each incoming TACACS+ authentication request is converted into a Radius request that can
+# be serviced locally or perhaps proxied to another Radius server.
+# Any cisco-avpair reply items that result from the Radius authentication will be used for
+# TACACS+ authorization..
+<ServerTACACSPLUS>
+     # This is the default shared secret that will be used for all TACACS+
+     # connections to this server.
+     # It wil be used if a specific Client Secret or Client TACACSPLUSKey
+     # is not found
+     Key mysecret
+
+     # You can control the port to listen on
+     # Defaults to 49, which generally requires root or other priveleged access
+     Port 49
+
+     # AddToRequest can be used to add any Radius attributes to the Radius
+     # requests that this module generates
+     AddToRequest NAS-Identifier=TACACS
+
+     # Define radius group member attribute
+     # This specifies the name of a Radius attribute (real or pseudo) in the Access-Accept that will be
+     # used to deduce the tacacs group name for that user. The tacacs group name is used to match the groupname in
+     # AuthorizeGroup parameters. If there is no such
+     # attribute in the Access-Accept, the tacacs group name for the
+     # user will be assumed to be 'DEFAULT'
+
+     GroupMemberAttr tacacsgroup
+
+     # General Authorization rule format:
+     # AuthorizeGroup <groupname> <permit|permitreplace|deny> pattern1 pattern2 ... {replyattr1=val replyattr2="val 2" ...}
+     # When a tacacs authorization request is received, the list of AuthorizeGroup rules is searched
+     # for rules matching the group name identified by the GroupMemberAttr attribute.
+     # Each rule is examined in order until a matching rule is found. The patterns are used
+     # to do the matching. Each pattern is a perl regexp.
+     # Pattern1 is matched against the first tacacs request argument (usually 'service=xyz')
+     # Pattern2 is matched against the second tacacs request argument etc.
+     # If every pattern matches its tacacs argument, then the rule matches.
+     # If the first matching rule is a 'deny', the authorisation will be denied.
+     # If the first matching rule is 'permit', the request is authorised, and the list of reply attr=val
+     # entries are sent back to the Tacacs client to be added to the command arguments.
+     # If the first matching rule is 'permitreplace', the request is authorised, and the list of reply attr=val
+     # entries are sent back to the Tacacs client and are used to replace the requested comamnd arguments
+     # AuthorizeGroup replaces the old CommandAuth parameter. Support for ComandAuth
+     # will be removed some time in the future.
+     # Caution: if you define _any_ AuthorizeGroup parameters then
+     # _all_ CommandAuth parameters will be ignored.
+     # Hint: see http://www.stben.net/tacacs/users_guide.html for
+     # helpful docs about what sorts of authorization requests and
+     # reply attributes work for Cisco routers.
+
+     # In these examples, there are two different Tacacs groups. group1 is only permitted
+     # to do 'show' commands but group2 is allowed to do anything. Group1 is allowed to
+     # start a ppp ip session, which will get an inacl of 101.
+
+     AuthorizeGroup group1 permit service=shell cmd=show cmd-arg=.*
+     AuthorizeGroup group1 permit service=shell cmd\* {autocmd="telnet 169.163.226.81"}
+     AuthorizeGroup group1 permit service=ppp protocol=ip {inacl=101 outacl=102}
+     AuthorizeGroup group1 deny .*
+
+     AuthorizeGroup group2 permit .*
+
+     # As an alternative to controlling individual command authorization, you can
+     # set a privilege level for the user when they start their exec
+     # session. Thereafter, the router will limit which command the
+     # user can use, depending on the priv-lvl. 0 is the lowest,
+     # and permits disable, enable, exit, help, and logout.
+     # priv-lvl=1 ids the non-priveleged user.
+     # priv-lvl=15 is the highest privilege level, the level after going into enable mode.
+     # Here users in group 3 get a priv-lvl of 15.
+     # The start of a session sends the args 'service=shell cmd*'
+
+     AuthorizeGroup group3 permit service=shell cmd\* {priv-lvl=15}
+     AuthorizeGroup group3 permit .*
+
+.......
+
+
+Here are the relevant users file entries for users "tacuser", "tacuser1",
+"tacuser2" and "tacuser3":
+
+.......
+
+tacuser User-Password=tacuser
+      tacacsgroup=group3
+
+tacuser1 User-Password=tacuser1
+      tacacsgroup=group1
+
+tacuser2 User-Password=tacuser2
+      tacacsgroup=group2
+
+# This user is not in any specific tacacs group, but gets a specific
+# per-user authorisation
+# for aironet wireless access point logins. This would require:
+# AuthorizeGroup DEFAULT permit service=aironet protocol=shell
+# in the Server TACACSPLUS configuration
+tacuser3 User-Password=tacuser3
+      cisco-avpair = "aironet:admin-capability=write+snmp+ident+firmware+admin"
+
+
+Finally here is a trace 4 debug from Radiator showing a complete login
+sequence for the user "tacuser".
+
+The debug shows the initial authentication request, followed by the session
+authorization, followed by a command authorization, followed by the command
+accouting.
+
+The user "tacuser" is authenticated by Radiator by an AuthBy FILE which
+returns "tacacsgroup = group3".
+
+The subsequent session authorisation places the session into enable mode by
+returning "priv-level=15".
+
+The following command authorization(s) is(are) permitted by the
+"AuthorizeGroup group3 permit .*".
+
+
+.....
+
+TiTi:Radiator-4.3.1 hugh$ sudo perl radiusd -foreground -log_stdout -trace 4 -config_file goodies/tacacsplusserver.cfg
+
+Mon Feb  9 11:26:27 2009: DEBUG: Creating TACACSPLUS port 0.0.0.0:49
+Mon Feb  9 11:26:27 2009: DEBUG: Finished reading configuration file 'goodies/tacacsplusserver.cfg'
+Mon Feb  9 11:26:27 2009: DEBUG: Reading dictionary file './dictionary'
+Mon Feb  9 11:26:28 2009: NOTICE: Server started: Radiator 4.3.1 on TiTi.local
+
+Mon Feb  9 11:26:46 2009: DEBUG: New TacacsplusConnection created for 192.168.1.254:11023
+Mon Feb  9 11:26:46 2009: DEBUG: TacacsplusConnection request 192, 1, 1, 0, 3181192180, 23
+Mon Feb  9 11:26:46 2009: DEBUG: TacacsplusConnection Authentication START 1, 1, 1 for , tty2, 192.168.1.1
+Mon Feb  9 11:26:46 2009: DEBUG: TacacsplusConnection Authentication REPLY 4, 0, Username: ,
+Mon Feb  9 11:26:49 2009: DEBUG: TacacsplusConnection request 192, 1, 3, 0, 3181192180, 12
+Mon Feb  9 11:26:49 2009: DEBUG: TacacsplusConnection Authentication CONTINUE 0, tacuser,
+Mon Feb  9 11:26:49 2009: DEBUG: TacacsplusConnection Authentication REPLY 5, 1, Password: ,
+Mon Feb  9 11:26:52 2009: DEBUG: TacacsplusConnection request 192, 1, 5, 0, 3181192180, 12
+Mon Feb  9 11:26:52 2009: DEBUG: TacacsplusConnection Authentication CONTINUE 0, tacuser,
+
+Mon Feb  9 11:26:52 2009: DEBUG: TACACSPLUS derived Radius request packet dump:
+Code:       Access-Request
+Identifier: UNDEF
+Authentic:  <246><13><220><145><202><11>,<0><25><13><26>V<224><226><192><224>
+Attributes:
+	NAS-IP-Address = 192.168.1.254
+	NAS-Port-Id = "tty2"
+	Calling-Station-Id = "192.168.1.1"
+	Service-Type = Login-User
+	NAS-Identifier = "TACACS"
+	User-Name = "tacuser"
+	User-Password = tacuser
+	OSC-Version-Identifier = "192"
+
+Mon Feb  9 11:26:52 2009: DEBUG: Handling request with Handler 'Realm=DEFAULT'
+Mon Feb  9 11:26:52 2009: DEBUG:  Deleting session for tacuser, 192.168.1.254,
+Mon Feb  9 11:26:52 2009: DEBUG: Handling with Radius::AuthFILE:
+Mon Feb  9 11:26:52 2009: DEBUG: Reading users file ./users
+Mon Feb  9 11:26:52 2009: DEBUG: Radius::AuthFILE looks for match with tacuser [tacuser]
+Mon Feb  9 11:26:52 2009: DEBUG: Radius::AuthFILE ACCEPT: : tacuser [tacuser]
+Mon Feb  9 11:26:52 2009: DEBUG: AuthBy FILE result: ACCEPT,
+Mon Feb  9 11:26:52 2009: DEBUG: Access accepted for tacuser
+Mon Feb  9 11:26:52 2009: DEBUG: Packet dump:
+*** Reply to TACACSPLUS request:
+Code:       Access-Accept
+Identifier: UNDEF
+Authentic:  <246><13><220><145><202><11>,<0><25><13><26>V<224><226><192><224>
+Attributes:
+	tacacsgroup = group3
+
+Mon Feb  9 11:26:52 2009: DEBUG: TacacsplusConnection result Access-Accept
+Mon Feb  9 11:26:52 2009: DEBUG: TacacsplusConnection Authentication REPLY 1, 0, ,
+Mon Feb  9 11:26:52 2009: DEBUG: TacacsplusConnection disconnected from 192.168.1.254:11023
+
+Mon Feb  9 11:26:53 2009: DEBUG: New TacacsplusConnection created for 192.168.1.254:11024
+Mon Feb  9 11:26:53 2009: DEBUG: TacacsplusConnection request 192, 2, 1, 0, 3223981502, 49
+Mon Feb  9 11:26:53 2009: DEBUG: TacacsplusConnection Authorization REQUEST 6, 1, 1, 1, tacuser, tty2, 192.168.1.1, 2, service=shell cmd*
+Mon Feb  9 11:26:53 2009: DEBUG: AuthorizeGroup rule match found: permit service=shell cmd\* { priv-lvl=15 }
+Mon Feb  9 11:26:53 2009: INFO: Authorization permitted for tacuser, group group3, args service=shell cmd*
+Mon Feb  9 11:26:53 2009: DEBUG: TacacsplusConnection Authorization RESPONSE 1, , , priv-lvl=15
+Mon Feb  9 11:26:53 2009: DEBUG: TacacsplusConnection disconnected from 192.168.1.254:11024
+
+Mon Feb  9 11:27:02 2009: DEBUG: New TacacsplusConnection created for 192.168.1.254:11026
+Mon Feb  9 11:27:02 2009: DEBUG: TacacsplusConnection request 192, 2, 1, 0, 2357860802, 88
+Mon Feb  9 11:27:02 2009: DEBUG: TacacsplusConnection Authorization REQUEST 1, 15, 1, 0, tacuser, tty2, 192.168.1.1, 4, service=shell cmd=show cmd-arg=configuration cmd-arg=<cr>
+Mon Feb  9 11:27:02 2009: DEBUG: AuthorizeGroup rule match found: permit .* {  }
+Mon Feb  9 11:27:02 2009: INFO: Authorization permitted for tacuser, group group3, args service=shell cmd=show cmd-arg=configuration cmd-arg=<cr>
+Mon Feb  9 11:27:02 2009: DEBUG: TacacsplusConnection Authorization RESPONSE 1, , ,
+Mon Feb  9 11:27:02 2009: DEBUG: TacacsplusConnection disconnected from 192.168.1.254:11026
+
+Mon Feb  9 11:27:02 2009: DEBUG: New TacacsplusConnection created for 192.168.1.254:11027
+Mon Feb  9 11:27:02 2009: DEBUG: TacacsplusConnection request 192, 3, 1, 0, 1753968126, 109
+Mon Feb  9 11:27:02 2009: DEBUG: TacacsplusConnection Accounting REQUEST 4, 6, 15, 1, 1, tacuser, tty2, 192.168.1.1, 5, task_id=5 timezone=EDST service=shell priv-lvl=15 cmd=show configuration <cr>
+Mon Feb  9 11:27:02 2009: DEBUG: TACACSPLUS derived Radius request packet dump:
+Code:       Accounting-Request
+Identifier: UNDEF
+Authentic:  <13>n<248><190>M]<22><247><242><236><19><214>@&<220><174>
+Attributes:
+	NAS-IP-Address = 192.168.1.254
+	NAS-Port-Id = "tty2"
+	Calling-Station-Id = "192.168.1.1"
+	NAS-Identifier = "TACACS"
+	User-Name = "tacuser"
+	Acct-Status-Type = Stop
+	Acct-Session-Id = "1753968126"
+	cisco-avpair = "task_id=5"
+	cisco-avpair = "timezone=EDST"
+	cisco-avpair = "service=shell"
+	cisco-avpair = "priv-lvl=15"
+	cisco-avpair = "cmd=show configuration <cr>"
+	OSC-Version-Identifier = "192"
+
+Mon Feb  9 11:27:02 2009: DEBUG: Handling request with Handler 'Realm=DEFAULT'
+Mon Feb  9 11:27:02 2009: DEBUG:  Deleting session for tacuser, 192.168.1.254,
+Mon Feb  9 11:27:02 2009: DEBUG: Handling with Radius::AuthFILE:
+Mon Feb  9 11:27:02 2009: DEBUG: AuthBy FILE result: ACCEPT,
+Mon Feb  9 11:27:02 2009: DEBUG: Accounting accepted
+Mon Feb  9 11:27:02 2009: DEBUG: Packet dump:
+*** Reply to TACACSPLUS request:
+Code:       Accounting-Response
+Identifier: UNDEF
+Authentic:  <13>n<248><190>M]<22><247><242><236><19><214>@&<220><174>
+Attributes:
+

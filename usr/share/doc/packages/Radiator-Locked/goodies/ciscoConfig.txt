@@ -1,0 +1,342 @@
+Ascend RADIUS Extensions
+========================
+
+Overview
+--------
+
+RADIUS is an authentication/authorization and accounting protocol used
+for dial-in services. It allows centralized control and management
+over the user password database as well as "profiles" for each
+user. It is a much simpler and less flexible protocol than TACACS+,
+but because of a large head start and open specifications, it has
+widespread industry acceptance and is now documented in RFC2058 and
+RFC2059. Cisco has supported many IETF RADIUS attributes since 11.1,
+however, as Cisco's and Ascend's market start to overlap more and
+more, especially in the access market, there is a greater need to
+support legacy Ascend RADIUS installations as we are brought in for
+testing or put in as a drop-in replacement.
+
+This wouldn't be so hard if it wasn't for the fact that Ascend has
+extended the RADIUS functionality way past that which is described in
+the IETF specifications. In addition, they have implemented
+proprietary extensions in a non-standard manner.
+
+11.3 introduces phase 1 of our Ascend compatibility mode. The new
+attributes that are supported are listed below:
+
+Ascend-Password-Expiration
+Ascend-Maximum-Time
+Ascend-PW-Warntime
+Ascend-PW-Lifetime
+Ascend-IP-Direct
+Ascend-PPP-VJ-Slot-Comp
+Ascend-IP-Pool-Definition
+Ascend-Assign-IP-Pool
+Ascend-Route-IP
+Ascend-Link-Compression
+Ascend-Target-Util
+Ascend-Maximum-Channels
+Ascend-Data-Filter
+Ascend-Call-Filter
+Ascend-Idle-Limit
+
+Configuration
+-------------
+
+There is one new argument to the "radius-server host" command which
+allows you to specify that the server is an Ascend server:
+
+radius-server host <hostname> auth-port 1645 acct-port 1646 non-standard
+
+Of course, in addition to the above command, you'll need the general
+AAA setup. One example that would fit the bill for most people is:
+
+aaa new-model
+aaa authentication login default none
+aaa authentication login console line
+aaa authentication login use_radius radius local
+aaa authentication ppp default none
+aaa authentication ppp use_radius radius local
+aaa authorization exec radius if-authenticated
+aaa authorization network radius if-authenticated
+aaa accounting exec start-stop radius
+aaa accounting network start-stop radius
+!
+interface s0:23
+ ppp authentication chap use_radius
+interface s1:23
+ ppp authentication chap use_radius
+interface Group-Async1
+ ppp authentication chap use_radius
+!
+radius-server host 1.1.1.1 auth-port 1645 acct-port 1646 non-standard
+radius-server key MYBIGSECRET
+!
+line con 0
+ password cisco
+ login authentication console
+line 1 48
+ login authentication use_radius
+line vty 0 4
+ login authentication use_radius
+
+In addition to the configuration of the router, there will be the
+RADIUS server configuration. However, under most circumstances, I
+expect the RADIUS server database to already exist, and we just need
+to be compatible to it.
+
+Attribute Information (attribute numbers in parentheses)
+--------------------------------------------------------
+
+-> Ascend-Password-Expiration (32)
+-> Ascend-PW-Warntime (207)
+-> Ascend-PW-Lifetime (208)
+
+These three attributes are used to "age" passwords and to force
+users to change their passwords every so often.
+
+Ascend-Password-Expiration is used to indicate the date that the
+current user password will expire.
+
+Ascend-PW-Warntime indicates how many days in advance of the
+expiration date will the user start getting warning messages when they
+log in indicating that their password will expire. Note that due
+to what appears to be a bug in the latest Ascend RADIUS daemon, the
+warning message is not passed to the NAS, and so is never printed out.
+But that is what the attribute is for.
+
+Ascend-PW-Lifetime indicates how long a new password is good for after
+it has been changed.
+
+An example. If you have the following user in your database:
+
+expireme        Password = "cisco", Ascend-PW-Expiration = "Apr 1 1997"
+                User-Service = Shell-User,
+                Ascend-PW-Lifetime = 180,
+                Ascend-PW-Warntime = 5
+
+Starting from March 27, the user "expireme" would get warning messages
+indicating that his password is about to expire. When April 1st rolls
+around, when he logs in, he will be told that his password his
+expired. He then has the opportunity to change his password. Once
+changed, the expiration date is moved 180 days into the future - 
+Sep 30 1997 becomes the new expiration date.
+
+NOTE: In order for the user to change their own passwords, the RADIUS
+daemon must be started with the "-p" option.
+
+-> Ascend-Maximum-Time (194) 
+
+This attribute controls the maximum time a user is allowed to stay
+connected to the NAS. It is analogous to the "absolute timeout".In
+fact, it does use absolute timeout for terminal sessions. For PPP
+sessions, it uses a new interface subcommand "ppp absolute
+<n>". This is an absolute timeout at the interface
+level. Ascend-Maximum-Time is set in seconds, but will be rounded to
+the nearest minute on a Cisco NAS.
+
+-> Ascend-Idle-Limit (244)
+
+This attributes controls the idle timeout for the user. It is
+analogous to the "dialer idle-timeout" command. This, of course, doesn't
+work for point-to-point interfaces like async (if not configured for DDR)
+or virtual-access interfaces, so in the future we will be changing this to
+"ppp idle <n>" once the "ppp idle" command is implemented.
+
+-> Ascend-IP-Direct (209)
+
+Ascend-IP-Direct specifies in a users file entry the IP address to which the 
+cisco box redirects packets from the user. When you include this attribute in 
+a users file entry, the cisco box bypasses all internal routing and bridging 
+tables, and simply sends all packets received on this connection's WAN 
+interface to the specified IP address.
+
+Note: I don't know a lot about how this feature works. Are the packets
+encapsulated and tunneled to the ip address specified? If not, I
+supposed you can't forward the packets to anything that is not
+directly connected.
+
+-> Ascend-PPP-VJ-Slot-Comp (210)
+
+This attribute is claimed to be supported, but I believe the developer
+has misinterpreted the use of this attribute. The Ascend documentation
+indicates this is used to turn slot compression on/off for VJ header
+compressed packets. However, what the developer has implemented is an
+on/off switch for VJ header compression itself. I do not believe this
+is right, but haven't found the final anwer yet. Be cautious of this for
+now.
+
+-> Ascend-IP-Pool-Definition (217)
+-> Ascend-Assign-IP-Pool (218)
+
+These two attributes go hand in hand. The Ascend-IP-Pool-Definition is
+used for the definition of a pseudo user. A pseudo user is a user
+definition that isn't used for authenticating anyone, but rather used
+to store NAS configurations on the RADIUS server so centralize the
+management of routes, ip pools, and banners.
+
+The Ascend-IP-Pool-Definition attribute is used to define
+an address pool.  The format of the attribute is a string
+containing:
+
+               x h.h.h.h  n
+
+       where:
+
+               x       Pool number.  A pool is selected in a user user
+                       profile by putting its pool number in an
+                       Ascend-Assign-IP-Pool attribute.
+
+               h.h.h.h Base ip address.  This is the first address in
+                       the pool.
+
+               n       Maximum number of entries from the pool.
+
+The username format is "pools-<routername>". So, for example, if I'm
+using isdn-14, and want to store pool configurations on the RADIUS
+server, I would have a profile like this:
+
+pools-isdn-14  Password = "ascend", User-Service = Dialout-Framed-User
+               Ascend-IP-Pool-Definition = "1 1.1.1.1 8",
+               Ascend-IP-Pool-Definition = "2 2.1.1.1 48"
+
+Note: "ascend" must be the password.
+
+This would define 2 pools. Pool "1" would have 8 addresses ranging
+from 1.1.1.1 to 1.1.1.8. Pool "2" would have 48 addresses ranging 
+from 2.1.1.1 to 2.1.1.48.
+
+Remember, this downloads the definition of the pool, but doesn't apply
+it anywhere. 
+
+To apply the pool, you use the Ascend-Assign-IP-Pool attribute. Given
+the above pool definition, I can then have a user profile like:
+
+poolme  Password = "cisco"
+        User-Service = Framed-User,
+        Framed-Protocol = PPP,
+        Ascend-Assign-IP-Pool = 2
+
+This user would then get an address out of the "2" pool, ranging from
+2.1.1.1 to 2.1.1.48.
+
+-> Ascend-Route-IP (228)
+
+This attribute indicates whether or not to route IP for this user
+or not. Possible values from the Ascend dictionary:
+
+VALUE   Ascend-Route-IP                 Route-IP-No             0
+VALUE   Ascend-Route-IP                 Route-IP-Yes            1
+
+For the Cisco NAS, we will always be Route-IP-Yes. We always route IP.
+
+-> Ascend-Link-Compression (233)
+
+This controls the type of compression the user will use on the link.
+The possible values as indicated in the Ascend dictionary are:
+
+VALUE   Ascend-Link-Compression         Link-Comp-None          0
+VALUE   Ascend-Link-Compression         Link-Comp-Stac          1
+VALUE   Ascend-Link-Compression         Link-Comp-Stac-Draft-9  2
+VALUE   Ascend-Link-Compression         Link-Comp-MS-Stac       3
+
+Currently, we only support Link-Comp-None (no compression whatsoever)
+and Link-Comp-Stac (STAC compression).
+
+-> Ascend-Target-Util (234) (you will need to configure virtual profiles)
+
+This attribute adjusts the multilink load-threshold parameter for the
+user.  You must enable virtual profiles to take advantage of this
+attribute, since it relies on using a virtual-access interface. The
+interface subcommand it uses is the "multilink load-threshold <n>
+either" command. The only situation I see this being useful is if you
+are using BACP in conjunction with multilink so that the NAS can
+request a callback from the client.
+
+-> Ascend-Maximum-Channels (235) 
+
+This attribute adjusts the maximum number of b-channels you are
+allowed in your multilink bundle. You must enable virtual profiles to
+take advantage of this attribute, since it relies on using a
+virtual-access interface. The interface subcommand it uses is the
+"multilink max-links <n>" command.
+
+-> Ascend-Data-Filter (242) 
+-> Ascend-Call-Filter (243) 
+
+According to Ascend's documentation, the Ascend-Data-Filter defines a
+data/routing filter (ip access-group). An Ascend-Call-Filter defines a
+"place a call and/or keep a call active" filter (or a dialer-list
+definition).
+
+However, according to the developer we treat both of these the same
+way, which I think is wrong. They are both treated equivalently as an
+ip access-group. I will get clarification.
+
+       Keywords are not case sensitive.  In the following definitions
+       [ ... ] indicates optional element.
+
+Here is the general form of the filter:
+
+       "ip dir action [ dstip n.n.n.n/nn ] [ srcip n.n.n.n/nn ]
+           [ proto  [ dstport cmp value ] [ srcport cmp value ]  [ est ] ]"
+
+       where:
+
+       ip:             The keyword ip. This is used to indicate an IP filter.
+
+       dir:            Filter direction. Must be either IN or OUT.
+
+       action:         What to do with a packet that matches the filter.
+                       Must be either FORWARD or DROP.
+
+       dstip:          The optional destination IP.  If not present the
+                       filter will match ANY IP addresses.  If a netmask
+                       portion (/nn) of the address is present we will
+                       only compare the masked bits. The keyword "dstip"
+                       must proceed the IP address.
+
+       srcip:          The optional source IP.  If not present the
+                       filter will match ANY IP addresses.  If a netmask
+                       portion (/nn) of the address is present we will
+                       only compare the masked bits. The keyword "srcip"
+                       must proceed the IP address.
+
+
+       proto:          The optional protocol.  May be specified as either
+                       a name or a number.  The supported names are
+                       least icmp(1), tcp(6), udp(17), ospf(89).
+
+       dstport:        Only valid when proto is tcp(6) or udp(17).  'cmp'
+                       can have the value '<', '=', '>', or '!='.  The
+                       value can be entered as a number or a name.
+                       Supported names are ftp-data(20), ftp(21),
+                       telnet(23), smpt(25), nameserver(42), domain(53),
+                       tftp(69), gopher(70), finger(79), www(80),
+                       kerberos(88), hostname(101), nntp(119), ntp(123),
+                       exec(512), login(513), cmd(514), and talk(517).
+                       Matches ANY port when not present. The keyword 
+                       "dstport" must proceed 'cmp'.
+
+       srcport:        Only valid when proto is tcp(6) or udp(17).  'cmp'
+                       can have the value '<', '=', '>', or '!='.  The
+                       value can be entered as a number or a name.
+                       Supported names are ftp-data(20), ftp(21),
+                       telnet(23), smpt(25), nameserver(42), domain(53),
+                       tftp(69), gopher(70), finger(79), www(80),
+                       kerberos(88), hostname(101), nntp(119), ntp(123),
+                       exec(512), login(513), cmd(514), and talk(517).
+                       Matches ANY port when not present. The keyword 
+                       "srcport" must proceed 'cmp'.
+
+       est:            The optional keyword EST.  Only valid when the proto
+                       field is tcp(6).
+
+In the following example, the user is restricted to web service to the
+host 1.1.1.1.
+
+webonly Password = "cisco"
+        Service-Type = Framed-User,
+        Framed-Protocol = PPP,
+        Ascend-Data-Filter = "ip in forward dstip 1.1.1.1/32 80",
+        Ascend-Data-Filter = "ip in drop"

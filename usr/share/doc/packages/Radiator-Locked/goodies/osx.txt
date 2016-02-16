@@ -1,0 +1,93 @@
+This is description of how to install Radiator on MAC OS X.
+
+Radiator requires a recent version of Perl and at least the Perl
+Digest-MD5 module. Other Perl modules may be required to interface to
+other systems, such as SQL servers etc.
+
+While Perl comes standard with your MAC OS X installation, Digest-MD5
+may not be included, so the instructions below show how to do that
+too.
+
+1. Install the MacOS X Developer Tools CD. You will need the compilers
+   and libraries that get installed from this CD to build Digets-MD5
+   and any other perl modules you may need. The CD should have come
+   with your MAC OS X distribution.
+
+2. Download the Digest-MD5 package from
+   http://www.cpan.org/modules/by-module/Digest/Digest-MD5-2.23.tar.gz
+   (or a later version) to a work directory, preferably into
+   /usr/local/src
+
+3. Unpack the Digest-MD5 package:
+
+   $ cd /usr/local/src
+   $ gzip -c -d  Digest-MD5-2.23.tar.gz | tar xvf -
+   $ cd Digest-MD5-2.23
+
+4. Build and install the Digest-MD5 package. This is the standard
+   procedure for all Perl modules. Note that the 'make install' is
+   done as root.
+
+   $ perl Makefile.PL
+   $ make
+   $ make test
+   $ sudo make install
+
+5. Download the latest Radiator source package from 
+   http://www.open.com.au/radiator/downloads (licensed customers) or
+   http://www.open.com.au/radiator/demo-downloads (evaluations only)
+   to a work directory, preferably into /usr/local/src/Radiator.
+   Username and password required for download.
+
+6. Unpack the Radiator package (version 3.5 in this example):
+
+   $ mkdir /usr/local/src/Radiator
+   $ cd /usr/local/src/Radiator
+   $ gzip -c -d  Radiator-3.5.tar.gz | tar xvf -
+   $ cd Radiator-3.5
+
+7. Build and install the Radiator package. 
+
+   $ perl Makefile.PL
+   $ make
+   $ make test   (you should lots of 'OK's and no 'not OK's)
+   $ sudo make install
+
+8. Create a Radiator data directory, and copy example configuration
+   and data files to it. You will probably need to be root to do this.
+
+   $ sudo su -
+   # mkdir /etc/radiator
+   # mkdir /var/log/radius
+   # cp dictionary /etc/radiator
+   # cp goodies/linux-radius.cfg /etc/radiator/radius.cfg
+   # cp goodies/simple-users /etc/radiator/users
+
+9. Run Radiator and test it:
+
+   # radiusd -config /etc/radiator/radius.cfg -foreground \
+     -log_stdout -trace 4
+
+   in another window, run the Radiator test client:
+   $ radpwtst -user mikem -password fred
+
+   you should see:
+   sending Access-Request...
+   OK
+   sending Accounting-Request Start...
+   OK
+   sending Accounting-Request Stop...
+   OK
+
+
+10. If all went well so far, edit /etc/radiator/radius.cfg to suit
+   your site, using the Reference Manual in doc/ref.html in your
+   distribution, and the sample configuration files in goodies (see
+   goodies/README for a full list and descriptions).
+
+11. When your Radiator is configured the way you want it arrange for it
+   to start automatically at boot time. See goodies/INSTALL.MacOSX in
+   your Radiator distribution.
+   
+
+

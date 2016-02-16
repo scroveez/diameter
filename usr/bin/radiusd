@@ -1,0 +1,748 @@
+#!/usr/bin/perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+# -*- mode: Perl -*-
+# radiusd
+# Full featured Radius server main module
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 1997-2002 Open System Consultants
+# $Id: radiusd,v 1.141 2012/11/22 22:50:49 mikem Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    # Look for -I and its value. Use and remove if found
+    for (my $i = 0; $i <= $#ARGV; $i++)
+    {
+	next unless $ARGV[$i] eq '-I';
+	die "Missing dirname for -I option\n" unless $ARGV[$i + 1];
+	unshift(@INC, $ARGV[$i + 1]);
+	splice @ARGV, $i, 2;
+	last;
+    }
+    unshift(@INC, '.');
+    # You will probably have to uncomment the next line if you want to 
+    # run this script SUID
+    #$ENV{PATH} = '/sbin:/bin:/usr/sbin:/usr/bin';
+}
+
+require 5.6.0; # We use 'no warnings' liberally
+use Getopt::Long;
+use Radius::ServerConfig;
+use Radius::Select;
+use Radius::Log;
+use Radius::Radius;
+use Radius::SessINTERNAL;
+use Radius::Util;
+use File::Path;
+use Sys::Hostname;
+use POSIX ":sys_wait_h";
+use strict;
+
+# These options override any configuration file options
+# -I has already been consumed in BEGIN if it was specified
+my @options = 
+    (
+     'h',                   # Help, show usage
+     'v',                   # Print version number
+     'auth_port=s',         # Port to listen for authentication on
+     'acct_port=s',         # Port to listen for accounting on
+     'bind_address=s',      # specific IP address to bind to
+     'db_dir=s',            # Directory for config and database files
+     'log_dir=s',           # Directory for log files
+     'log_file=s',          # Log file name
+     'config_file=s',       # Alternate config file
+     'dictionary_file=s',   # Radius dictionary to use
+     'pid_file=s',          # File wher we drop the PID for this instance
+     'foreground',          # run in the foreground, not as a daemon
+     'log_stdout',          # Log to stdout as well (-foreground required)
+     'trace=n',
+     'daemon',              # Run as a daemon (not foreground)
+     'c',                   # Check the config file and exit
+     'service',             # Run as a service on Windows
+     'installservice',      # Permanently install as a Windows service
+     'uninstallservice',    # Permanently uninstall as a Windows service
+     'servicename=s',       # Optional name of the Windows service to install or uninstall
+     'serviceperlargs=s',   # Optional rguments passed to perl when running as a service on Windows
+     'ipv6',
+     'max_children=s',
+     );
+my $disabled;
+# Hash of PIDs of children we need to wait for
+%main::children = ();
+$main::last_time = 0;
+
+# Hash of FDs that are not to be closed by ForkClosesFDs
+%main::forkclosesfdexceptions = ( 0 => 1, 1 => 1, 2 => 1);
+
+# This fixes some unusual behaviour with ALRM on Solaris,
+# contributed by David Lloyd <david@freemm.org>
+$SIG{ALRM} = 'IGNORE';
+
+# Many of these variables are used by the SNMPAgent module too
+$main::hostname = hostname();
+# $main::VERSION is in Util.pm
+$main::ident = "Radiator $main::VERSION on $main::hostname";
+$main::statistics{start_time} = time;
+$main::statistics{total_packets} = 0;
+$main::statistics{packets_this_sec} = 0;
+$main::farmInstance = 0;
+
+# Save full arg list for windows
+@main::original_argv = @ARGV;
+
+&GetOptions(@options) || &usage;
+&usage if $main::opt_h;
+&version if $main::opt_v;
+
+# Get the option for the config file now, since we have to get it before 
+# reading the config file!
+# REVISIT: pick a better default config file path
+$main::config_file = '/etc/radiator/radius.cfg';
+$main::config_file = 'C:\Program Files\Radiator\radius.cfg'
+  if $^O eq 'MSWin32';
+$main::config_file = 'Macintosh HD:Applications:Radiator:etc:radius.cfg'
+  if $^O eq 'MacOS';
+$main::config_file = $main::opt_config_file if defined $main::opt_config_file;
+$main::servicename = $main::opt_servicename || 'Radiator';
+$main::serviceperlargs = $main::opt_serviceperlargs 
+    if defined $main::opt_serviceperlargs;
+    
+&Radius::Util::seed_random;
+
+if ($main::opt_service && $^O eq 'MSWin32')
+{
+    # Run as a service
+    require Radius::Win32Service;
+    &Radius::Win32Service::service;
+}
+elsif ($main::opt_installservice && $^O eq 'MSWin32')
+{
+    # Install service, so it starts automatically at boot time
+    require Radius::Win32Service;
+    &Radius::Win32Service::install;
+}
+elsif ($main::opt_uninstallservice && $^O eq 'MSWin32')
+{
+    # Uninstall service
+    require Radius::Win32Service;
+    &Radius::Win32Service::uninstall;
+}
+else
+{
+    # Run normal mainline
+    &main;
+}
+
+#####################################################################
+sub main
+{
+    # Normal mainline
+    do
+    {
+	&initialize;
+	# The main loop
+	while (!$main::restart && !$main::shutdown)
+	{
+	    &handleEvents();
+	}
+    }
+    while ($main::restart);
+    &shutdown;
+}
+
+#####################################################################
+# Iniltialise all code and data structures. Do this once at startup
+sub initialize
+{
+    # Config state is mostly for SNMP. Values are: 1 other, 2 reset,
+    # 3 initializing, 4 running.
+    $main::config_state = 3;
+
+    # Surn of restart flag if we are restarting
+    $main::restart = 0;
+
+    # Remember when we were last reset
+    $main::statistics{reset_time} = time;
+
+    # Deregister any previously registered callbacks
+    &Radius::Select::remove_all;
+
+    # Drop any previously existing server config
+    $main::config->destroy() if $main::config;
+    undef $main::config;
+
+    # Reinitialize our permanent modules by calling
+    # each function in @main::reinitFns
+    map {&$_()} (@main::reinitFns);
+
+    # Create or recreate a place for all server configuration
+    $main::config = Radius::ServerConfig->new();
+
+    # Initialize config options from command line
+    &processOptions;
+
+    # First get config from the config file into the server configuration
+    $main::config->readConfig($main::config_file) 
+	or die "Could not read config file '$main::config_file': $!";
+
+    # Now override config with any command line args
+    &processOptions;
+
+    # This may get blocked by the command line config
+    &log($main::LOG_DEBUG, "Finished reading configuration file '$main::config_file'");
+
+#include "validateLicense.pl"
+
+    # Time to exit if just doing error checks
+    exit if $main::opt_c;
+
+    &reinitialize;
+
+    $main::config->activate();
+    $main::config_state = 4; # Running
+    &log($main::LOG_NOTICE, "Server started: $main::ident");
+
+    # Call the StartupHook, if there is one
+    $main::config->runHook('StartupHook', undef, $main::restarting);
+
+    # Make a server farm if required, all listening on the RADIUS and other
+    # sockets created before this point.
+    &createServerFarm()
+	if defined $main::config->{FarmSize} && $^O ne 'MSWin32';
+
+    return 1;
+}
+
+#####################################################################
+# Register a funciton to be called in each child after it is forked by forkFarmInstance
+# $arg[0] is aref to the function. $arg[1] ... are args to pass to it
+# You can have a funciotn likethis in your module
+# sub justatest
+# {
+#     print "here in justatest @_\n";
+# }
+# and register it with
+# main::addChildInitFn(\&justatest, $self, 1, 2, 3, 4, 5);
+# and justatest wil be called like justatest($self, 1, 2, 3, 4, 5) in every child
+# after forking, and before FarmChildHook
+sub addChildInitFn
+{
+    my (@args) = @_;
+
+    push @{main::perchildinitFns}, [ @args ];
+}
+
+#####################################################################
+# Send a signal to all the farm children of this process
+# according to the current list in %main::children
+# If any child process does not exist any more
+sub signal_children
+{
+    my ($signal) = @_;
+
+    my $pid;
+
+    foreach $pid (keys %main::children)
+    {
+	&log($main::LOG_DEBUG, "Sending $signal signal to server farm child $pid");
+	if (!kill($signal, $pid))
+	{
+	    &log($main::LOG_WARNING, "Server farm child $pid disappeared unexpectedly");
+	    delete $main::children{$pid}; # This one doesnt exist any more
+	}
+    }
+}
+
+#####################################################################
+# The main process forks once for each serer farm instance (so they all
+# share the RADIUS requests received on the RADIUS ports that have 
+# already been created).
+# The parent then monitors the children and reforks any that die
+# If the parent is HUPed, all the farm instances are killed and the
+# parent will recreate them when it reinitializes.
+sub createServerFarm
+{
+    my $farmSize = &Radius::Util::format_special($main::config->{FarmSize});
+    return unless $farmSize;
+
+    my $instance;
+    for ($instance = 1; $instance <= $farmSize; $instance++)
+    {
+	# Parent keeps making farm instances
+	if (&forkFarmInstance($instance))
+	{
+	    last; # In the child, exit loop now
+	}
+    }
+    
+    if ($main::farmInstance == 0)
+    {
+	# The parent process monitors all the children and reforks
+	# any that die
+	# This is a bit like the normal main loop, so it responds to 
+	# HUP and TERM signals too
+	while (!$main::restart && !$main::shutdown)
+	{
+	    my $pid;
+	    if (($pid = waitpid(-1, &WNOHANG)) > 0)
+	    {
+		
+		if ($main::children{$pid})
+		{
+		    &log($main::LOG_WARNING, "Server farm process $pid died, restarting");
+		    # Call the reap fn if it exists, pass the PID of the child
+		    if (&{$main::children{$pid}}($pid))
+		    {
+			# in the child, keep going,
+			return;
+		    }
+		    # Parent
+		    delete $main::children{$pid};
+		}
+	    }
+	    sleep(1);
+	}
+
+	# Kill all farm children
+	# First, gracefully
+	signal_children('TERM');
+	# Wait for all the farm children to exit so we can reopen our listen ports
+	# But if some fail to die, timeout
+	&Radius::Util::exec_timeout(5, sub {my $pid; 
+					    while (($pid = waitpid(-1, 0)) > 0)
+					    {
+						delete $main::children{$pid}; # This one died
+						&log($main::LOG_DEBUG, "Terminated Server farm child $pid");
+					    }});
+	# Terminate any children left with extreme prejudice
+	signal_children('KILL');
+	%main::children = (); # They all MUST be gone by now
+    }
+}
+
+#####################################################################
+# Fork a new server farm instance.
+# Arrange for the parent reaper function to refork if the child dies
+sub forkFarmInstance
+{
+    my ($instance) = @_;
+
+    &log($main::LOG_DEBUG, "Forking server farm instance $instance");
+    # Fork and refork on death of child
+    if (safeFork(sub {&forkFarmInstance($instance)}))
+    {
+	# In the child
+	# Complete init and then handle events
+	$main::farmInstance = $instance;
+	# make sure we exit on a HUP, the parent will restart us
+	# with the right ports
+	$SIG{HUP} = \&handle_sigterm;
+
+	# Reseed the random number generator, so children dont share the same numbers
+	&Radius::Util::seed_random;
+
+	# Call the registerd child init functions
+	map { my @args = @$_; my $fn = shift @args; &{$fn}(@args) } (@main::perchildinitFns);
+
+	# Call the FarmChildHook, if there is one
+	$main::config->runHook('FarmChildHook', undef, $main::restarting);
+
+	return 1; 
+    }
+    return;
+}
+
+#####################################################################
+sub shutdown
+{
+    # Call the ShutdownHook, if there is one
+    $main::config->runHook('ShutdownHook');
+    &log($main::LOG_NOTICE, "SIGTERM received: stopping");
+
+    # Remove PID file in case we leave a stale one to confuse startup scripts
+    # (but only if we are the farm leader)
+    my $pidfile = &Radius::Util::format_special($main::config->{PidFile});
+    unlink $pidfile
+	if $pidfile ne '' && $main::farmInstance == 0;
+}
+
+#####################################################################
+# Reap any children that have died
+sub reapDeadChildren
+{
+    # Non-block Wait for each child we know about. 
+    # We cant to do this in
+    # a sigchld handler, else it wrecks the returns value from
+    # subprocesses in all your children, breaking AuthEXTERNAL etc.
+    # Optionally call a reap fn
+    my $pid;
+    foreach $pid (keys %main::children)
+    {
+	if (waitpid($pid, &WNOHANG) > 0)
+	{
+	    # Call the reap fn if it exists, pass the PID of the child
+	    $main::children{$pid} && &{$main::children{$pid}}($pid);
+	    delete $main::children{$pid};
+	}
+    }
+}
+
+#####################################################################
+# Handle some events or block for up to one second
+sub handleEvents
+{
+    # Calculate some statistics and do some housekeeping
+    # at most once per second
+    my $time;
+    if (($time = time) != $main::last_time)
+    {
+	# process any timeouts. Timeout callbacks will be called 
+	# from inside here
+	&Radius::Select::process_timeouts;
+
+	&reapDeadChildren();
+
+	# Statistics
+	$main::statistics{packet_rate} = $main::statistics{packets_this_sec} 
+	                           / ($time - $main::last_time);
+	$main::statistics{packets_this_sec} = 0;
+	$main::last_time = $time;
+	print "PID:$$ currently handling $main::statistics{packet_rate} requests/sec\n"
+	    if $main::config->{Trace} == -1;
+	$disabled = ($main::maxRequests 
+		     && $main::statistics{total_packets} > $main::maxRequests)
+	            || ($main::licenseExpires && $time > $main::licenseExpires);
+
+	# Call the MainLoopHook, if there is one
+	$main::config->runHook('MainLoopHook');
+    }
+
+    # wait up to 1 second for activity on any sockets
+    # we are interested in. Callbacks will be called from here
+    &Radius::Select::select(1);
+}
+
+#####################################################################
+# This is called by Select::select whenever a radius socket
+# becomes readable. Get at most one packet from the socket and
+# dispatch it.
+# We used to keep going until newRecvFrom failed, but that relies on
+# non-blocking sockets, which are not supported everywhere 
+# (Win95 and some old Sunos come to mind).
+# Keep this here so we can support licnesing restrictions
+# $config is the ServerRADIUS instance
+sub handle_radius_socket_read
+{
+    my ($fileno, $socket, $config) = @_;
+
+    my $r;
+    if ($r = Radius::Radius->newRecvFrom($socket, $main::dictionary))
+    {
+	# Add arbitrary data to every request
+	$r->parse(&Radius::Util::format_special($config->{AddToRequest}))
+	    if (defined $config->{AddToRequest});
+	$main::statistics{total_packets}++;
+	$main::statistics{packets_this_sec}++;
+	$main::config->dispatch_request($r) unless $disabled;
+    }
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-I dirname] [-h] [-v] [-c]
+    [-auth_port port,...] [-acct_port port,...] 
+    [-db_dir dirname] [-log_dir dirname]
+    [-bind_address dotted-ip-address]
+    [-log_file filename] [-config_file filename] [-dictionary_file file,file]
+    [-foreground] [-daemon] [-log_stdout] [-trace n] 
+    [-pid_file filename]
+    [-service] [-installservice] [-uninstallservice] [-servicename name]
+    [-serviceperlargs perlargs]
+    [globalvarname=value]\n";
+    exit;
+}
+
+#####################################################################
+sub version
+{
+    print "
+This is $main::ident
+
+Copyright Open System Consultants
+
+http://www.open.com.au/radiator\n";
+    exit;
+}
+
+#####################################################################
+# Process command line options
+sub processOptions
+{
+    $main::config->{AuthPort} = $main::opt_auth_port 
+	if defined $main::opt_auth_port;
+    $main::config->{AcctPort} = $main::opt_acct_port 
+	if defined $main::opt_acct_port;
+    $main::config->{BindAddress} = $main::opt_bind_address
+ 	if defined $main::opt_bind_address;
+    $main::config->{DbDir} = $main::opt_db_dir 
+	if defined $main::opt_db_dir;
+    $main::config->{LogDir} = $main::opt_log_dir 
+	if defined $main::opt_log_dir;
+    $main::config->{DictionaryFile} = $main::opt_dictionary_file 
+	if defined $main::opt_dictionary_file;
+    $main::config->{PidFile} = $main::opt_pid_file 
+	if defined $main::opt_pid_file;
+    $main::config->{Foreground} = 1 
+	if defined $main::opt_foreground;
+    $main::config->{Foreground} = 0 
+	if defined $main::opt_daemon;
+    $main::config->{LogFile} = $main::opt_log_file
+	if defined $main::opt_log_file;
+    $main::config->{LogStdout}++
+	if defined $main::opt_log_stdout;
+    $main::config->{Trace} = $main::opt_trace
+	if defined $main::opt_trace;
+    $main::config->{MaxChildren} = $main::opt_max_children 
+	if defined $main::opt_max_children;
+
+    # Set any global variables from the command line. 
+    # accessible through format_special as %{GlobalVar:name}
+    foreach (@ARGV)
+    {
+	&main::setVariable($1, $2)
+	    if /([^=]*)=(.*)/;
+    }
+
+    # Set up a default logger
+    &Radius::Log::setupDefaultLogger
+	($main::config->{LogFile}, $main::config->{Trace});
+}
+
+#####################################################################
+# Sets a global variable accessible through format_special
+# as %{GlobalVar:name}
+sub setVariable
+{
+    my ($name, $value) = @_;
+
+    $main::globals{$name} = $value;
+}
+
+sub getVariable
+{
+    return $main::globals{$_[0]};
+}
+
+#####################################################################
+# Set up all the infrastructure we need
+sub reinitialize
+{
+    &become_daemon unless $main::config->{Foreground};
+
+    # Find out if we are running under inetd.
+    # If that is so, then stdin is a socket, adn we wont need
+    # to open a socket for that port
+    my ($stdin_sockaddr, $stdin_port, $stdin_addr);
+    $stdin_sockaddr = getsockname(STDIN);
+    if (defined $stdin_sockaddr && length($stdin_sockaddr) >= 16)
+    {
+	# Can get crashes here if its not an inet socket (eg a pty from SSH), so eval it.
+	eval {($stdin_port, $stdin_addr) = Socket::unpack_sockaddr_in($stdin_sockaddr);};
+    }
+
+    if ($stdin_port)
+    {
+	# If we are running under (x)inetd, the radius socket
+	# is the stdin we inherited at startup
+	open(STDERR, '>/dev/console');
+	$main::config->{LogStdout} = 0;
+    }
+
+    $main::restart = 0;
+    $main::shutdown = 0;
+    if ($^O ne 'MSWin32')
+    {
+	# These signals dont do anything on Win95, and in any case,
+	# their presence will stop it running properly as an NT service (the
+	# process gets killed when any user logs out)
+	$SIG{HUP} =  \&handle_sighup;
+#	$SIG{INT} = \&handle_sigterm; #TEST
+	$SIG{TERM} = \&handle_sigterm;
+	$SIG{USR1} = \&handle_sigusr1;
+	$SIG{USR2} = \&handle_sigusr2;
+	$SIG{WINCH} = \&handle_sigwinch;
+	# Prevent malfunctioning children from killing the parent
+	$SIG{PIPE} = 'IGNORE'; 
+    }
+
+    # Set up a default Session database, 
+    # only if there is not one in the config
+    Radius::SessINTERNAL->new()	unless $Radius::SessGeneric::db;
+}
+
+#####################################################################
+# Force the server to reread the config file and restart
+sub request_reset
+{
+    $main::restart++;
+    $main::restarting++;
+    $main::config_state = 2; # reset
+}
+
+#####################################################################
+# Forcer the server to shutdown cleanly
+sub request_shutdown
+{
+    $main::shutdown = 1;
+}
+
+#####################################################################
+# Handle SIGHUP by triggering a restart
+sub handle_sighup
+{
+    &log($main::LOG_NOTICE, "SIGHUP received: restarting");
+    &request_reset();
+}
+
+#####################################################################
+# Handle SIGTERM by triggering a graceful shutdown
+sub handle_sigterm
+{
+    &request_shutdown();
+}
+
+#####################################################################
+# Handle SIGUSR1 by running the USR1Hook or increasing the trace level
+sub handle_sigusr1
+{
+    if (defined($main::config->{USR1Hook})) 
+    {
+	$main::config->runHook('USR1Hook');
+    } 
+    else 
+    {
+	$main::config->{Trace} = &Radius::Log::adjustTrace(1);
+	&log($main::LOG_INFO, "Trace level increased to $main::config->{Trace}");
+    }
+}
+
+#####################################################################
+# Handle SIGUSR2 by running the USR2Hook or decreasing the trace level 
+sub handle_sigusr2
+{
+    if (defined($main::config->{USR2Hook})) 
+    {
+	$main::config->runHook('USR2Hook');
+    } 
+    else
+    {
+	$main::config->{Trace} = &Radius::Log::adjustTrace(-1);
+	&log($main::LOG_INFO, "Trace level decreased to $main::config->{Trace}");
+    }
+}
+
+#####################################################################
+# Handle SIGWINCH by running the WINCHHook
+sub handle_sigwinch
+{
+    $main::config->runHook('WINCHHook');
+}
+
+#####################################################################
+# change this process into a daemon by:
+# forking (parent exits with status 0) (from programming perl page 167)
+# closing unused files
+# change working dir to some innocuous and reliable place like /tmp
+# become process group leader (this happens for the parent anyways)
+# Does nothing on Win95
+# 
+sub become_daemon
+{
+    return if $^O eq 'MSWin32' ||  $^O eq 'NetWare';
+    return if $main::already_forked;
+
+    # Exit if we are in the parent
+    exit unless &main::safeFork;
+
+    # In the child here
+    # Detach from controlling terminal. From Jerome Fleury <jerome.fleury@fr.tiscali.com>
+    open STDIN, '/dev/null';
+    open STDOUT, '>/dev/null';
+    open STDERR, '>/dev/null';
+
+
+    # Remember we have already forked the server
+    # so we dont fork again if we get a HUP
+    $main::already_forked = 1;
+}
+
+#####################################################################
+# Fork safely with much error checking.
+# Return 0 if in parent or a problem prevented forking
+# otherwise return 1 which means you are in the child.
+# If reap_fn is provided, it will be called when the child is reaped
+sub safeFork
+{
+    my ($reap_fn) = @_;
+
+    if ($^O eq 'MSWin32')
+    {
+	&log($main::main::LOG_NOTICE, "Fork is not supported on Windows");
+	return;
+    }
+    my $num_children = keys %main::children;
+    if ($main::config->{MaxChildren} && $num_children >= $main::config->{MaxChildren})
+    {
+	&log($main::main::LOG_ERR, 'Maximum number of children reached');
+	return;
+    }
+    
+    my $pid;
+  FORK:
+    if ($pid = fork)
+    {
+	# Parent, remember to wait for this child
+	$main::children{$pid} = $reap_fn;
+	return;
+    }
+    elsif (defined $pid)
+    {
+	# Child. 
+	if ($main::config->{ForkClosesFDs})
+	{
+	    # <ddzeko>
+	    #
+	    # close kid's file descriptors ;>>>
+	    # (this will teach the kid to stay out of
+	    # parent's database business)
+	    #
+	    require IO::Handle;
+	    my $io = new IO::Handle;
+	    foreach (0 .. 20)
+	    {
+		next if $main::forkclosesfdexceptions{$_};
+		$io->fdopen($_, 'r') && $io->close;
+	    }
+	}
+	# </ddzeko>
+	return 1;
+    }
+    elsif ($! =~ /No more process/)
+    {
+	# EAGAIN, supposedly recoverable fork error
+	&log($main::main::LOG_ERR, "Could not fork because no more processes. Waiting for 1 seconds to try again");
+	sleep 1;
+	redo FORK;
+    }
+    else
+    {
+	# Wierd fork error
+	&log($main::main::LOG_ERR, "Fork failed in safeFork: $!");
+	return;
+    }
+}
+

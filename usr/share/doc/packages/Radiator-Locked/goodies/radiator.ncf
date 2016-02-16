@@ -1,0 +1,23 @@
+# radiator.ncf
+#
+# Radiator startup script for Novell NetWare 6.5
+# Assumes that Radiator has been installed in the usual place and that 
+# the configuraiton files are in /etc/radiator
+#
+#
+# Install this script in a directory in the search path
+# Start it from the System Console or /system/autoexec.ncf with
+#  radiator.ncf
+#
+# On NetWare, perl Makefile.PL does not work, but you can install the
+# Radiator files, configuration and this script with the commands:
+# cd  /path/to/your/distro/Radiator-3.13
+# perl Makefile.PL install
+#
+# To start Radiator, run 'load radiator.ncf' from the System Console.
+# To run Radiator automatically at boot time, add this line to the end
+# of /system/autoexec.ncf:
+#   radiator.ncf
+#
+# $Id: radiator.ncf,v 1.1 2005/10/29 00:04:10 mikem Exp $
+perl /perl/bin/radiusd

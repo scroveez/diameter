@@ -1,0 +1,80 @@
+<SOFTPKG NAME="Win32-Lsa" VERSION="1,3,0,1">
+	<TITLE>Win32-Lsa</TITLE>
+	<ABSTRACT>Perl extension for Windows Lsa authentication</ABSTRACT>
+	<AUTHOR>Mike McCauley &lt;mikem@open.com.au&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread/Win32-Lsa.tar.gz" />
+	</IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.10" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.10/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.12" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.12/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.14" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.14/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.16" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.16/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.18" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.18/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.20" />
+                <CODEBASE HREF="MSWin32-x86-multi-thread-5.20/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.8" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.8/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.10" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.10/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.12" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.12/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.14" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.14/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.16" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.16/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.18" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.18/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <OS NAME="MSWin32" />
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.20" />
+                <CODEBASE HREF="MSWin32-x64-multi-thread-5.20/Win32-Lsa.tar.gz" />
+        </IMPLEMENTATION>
+</SOFTPKG>

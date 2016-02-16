@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/images/favicon.png">
+
+    <title>Radiator FAQ - OSC</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap-osc.min.css" rel="stylesheet">
+
+    <!-- OSC local CSS -->
+    <link href="/css/osc.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="/js/html5shiv.js"></script>
+    <script src="/js/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+    <div class="container"><!-- Ends in the footer -->
+      <div class="navbar navbar-inverse" role="navigation"> <!-- .navbar-fixed-top off for now -->
+	<div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">OSC</a>
+          </div>
+          <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+	      <li class="dropdown">
+		<a href="#" class="dropdown-toggle"
+		   data-toggle="dropdown">Software <b class="caret"></b></a>
+		<ul class="dropdown-menu">
+		  <li><a href="/software.html">OSC Software</a></li>
+		  <li class="divider"></li>
+		  <li><a href="/radiator/">Radiator</a></li>
+		  <li><a href="/eap-sim/">SIM Support</a></li>
+		  <li><a href="/policy-charging/">Policy and Charging</a></li>
+		  <li><a href="/radmin/">RAdmin</a></li>
+		  <li><a href="/radar/">Radar</a></li>
+		</ul></li>
+	      <li><a href="/support.html">Support</a></li>
+	      <li><a href="/services.html">Services</a></li>
+	      <li class="dropdown">
+		<a href="#" class="dropdown-toggle"
+		   data-toggle="dropdown">How to buy<b class="caret"></b></a>
+		<ul class="dropdown-menu">
+		  <li><a href="/howtobuy.html">How to buy</a></li>
+		  <li class="divider"></li>
+		  <li><a href="https://www.open.com.au/onlineorder.html">New orders</a></li>
+		  <li><a href="https://www.open.com.au/renewal.html">Renewal orders</a></li>
+		  <li><a href="https://www.open.com.au/upgrade.html">Upgrade orders</a></li>
+		</ul></li>
+	      <li><a href="/aboutosc.html">About OSC</a></li>
+	    </ul>
+	  </div><!-- /.navbar-collapse -->
+	</div><!-- /.container -->
+      </div><!-- /.navbar -->
+      <!-- End-Of-Header -->
+
+      <!-- Meta: -->
+      <!-- TitlePrefix: -->
+      <!-- TitleSuffix:  - OSC -->
+      <!-- Title: Radiator FAQ -->
+
+      <h1>OSC Radiator Frequently Asked Questions</h1>
+
+      <dl>
+	<dt>Do you accept patches for Radiator</dt>
+	<dd>
+	  <p>Yes, we are always happy to receive and evaluate patches, fixes,
+	    enhancements and suggestions. For your protection and ours, you must first provide
+	    a <a href="/individual-cla-v1.0.html">Contributor License Agreement</a>
+	  </p>
+
+	  <p>Then you can send code, documentation or ideas by email
+	    to any of the product mailing lists, or by private email
+	    to info@open.com.au.  We evaluate them and possibly
+	    include them in the base product according to the
+	    following criteria:
+	  </p>
+	  <ol>
+	    <li>General usefulness for a significant number of users</li>
+	    <li>Backwards compatibility</li>
+	    <li>Impact on performance</li>
+	    <li>Ease of understanding and configuration for administrators.</li>
+	  </ol>
+
+	  <p>Unfortunately, not all patches will meet these criteria,
+	    and so not all will be included into the base product. If
+	    we decide not to include a patch in the base product, we
+	    will often put it in the goodies directory of the
+	    distribution for use by others.
+	  </p>
+	</dd>
+
+	<dt>How do I make my own RPMs?</dt>
+	<dd>
+	  <p>The Radiator RPM distributions are easy to install many types
+	    of on Linux. However OSC does not make patch sets available
+	    for RPM distributions, only fo the full source
+	    distribution. Further, some customers may need RPMs of
+	    customised versions of Radiator.
+	  </p>
+
+	  <p>On most linux platforms that support RPMs you can make you own RPMs
+	    from the Radiator source to suit your own needs.
+	  </p>
+	  <ul>
+	    <li>Download the full source file and the patches file from the
+	      Radiator downloads page to a working directory</li>
+	    <li>tar zxvf Radiator-4.7.tgz</li>
+	    <li>cd Radiator-4.7</li>
+	    <li>tar zxvf ../patches-4.7.tar.gz</li>
+	    <li>perl Makefile.pl (you could do 'make install' here, and avoid the
+	      need to make an RPM)</li>
+	    <li>make dist</li>
+	    <li>su make rpm</li>
+	  </ul>
+	</dd>
+
+
+	<dt>Where does the RPM install the doc and goodies?</dt>
+	<dd>
+	  <p>The RPM package installs these by default in /usr/share/doc/packages/Radiator/
+	  </p>
+	</dd>
+
+	<dt>Radiator cant connect to RSAAM ?</dt>
+	<dd>
+	  <p>In some circumstances, The Radiator connection to RSA AM may fail with an error message
+	    in the RSA Weblogic server like:<br>
+	    <code>
+	      Received fatal alert: bad_record_mac at sun.reflect.NativeConstructorAccessorImpl.newInstance0
+	    </code><br>
+
+	    This can be fixed by adding these lines to the weblog server start file:<br>
+	    <code>
+	      -Dhttps.protocols=SSLv3,TLSv1<br>
+	      -Dsun.security.ssl.allowLegacyHelloMessages=true<br>
+	      -Dsun.security.ssl.allowUnsafeRenegotiation=true
+	    </code>
+	  </p>
+	</dd>
+
+	<dt>Im having problems installing Socket6 using PPM on Windows</dt>
+	<dd>
+	  <p>Socket6 is required if you wish to use IPV6 support in
+	    Radiator. A number of versions of the Socket6 PPM at
+	    ActiveState have not compiled properly and do not install
+	    correctly.
+	  </p>
+
+	  <p>We have made precompiled binary versions of Socket6 PPM packages
+	    available for Windows. Install with:</p>
+
+	  <code>ppm install http://www.open.com.au/radiator/free-downloads/Socket6.ppd</code>
+	</dd>
+      </dl>
+
+      <!-- Start-Of-Footer -->
+      <hr>
+      <footer>
+	<div class="row">
+          <div class="col-sm-4">
+            <p><small><strong>About OSC</strong> <span class="glyphicon glyphicon-asterisk"></span>
+	      Renowned for its quality products and rapid customer
+	      service, OSC services thousands of businesses in over
+	      180 countries thanks to its highly configurable,
+	      flexible and portable suite of products. <a href="/aboutosc.html">Read more &raquo;</a></small>
+	    </p>
+	  </div>
+	  <div class="col-sm-4">
+            <p><small><strong>How to buy</strong> <span class="glyphicon glyphicon-asterisk"></span>
+	      You can purchase any OSC product through <a href="/howtobuy.html">OSC directly</a>
+	      or through our <a href="/agents.html">Authorised Agents</a> in your region.</small>
+	    </p>
+	    <p>
+            <small><strong>Search</strong> <span class="glyphicon glyphicon-asterisk"></span>
+	      <a href="/search.html">Search</a> the OSC web site.</small>
+	    </p>
+	  </div>
+	  <div class="col-sm-4">
+	    <p>
+            <small><strong>Contact</strong> <span class="glyphicon glyphicon-asterisk"></span>
+	      Mail info@open.com.au for Pre-sales, Sales,
+	      Administration and general queries. See <a href="/contact.html">Contact</a> for details.
+	      See <a href="/support.html">Support</a> for technical assistance.</small>
+	    </p>
+	    <p>
+	      <small><span class="glyphicon glyphicon-copyright-mark"></span> Open System Consultants Pty Ltd 2014</small>
+	    </p>
+	  </div>
+	</div>
+
+      </footer>
+    </div><!-- /.container -->
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/js/jquery.min.js"></script>
+    <script src="/dist/js/bootstrap.min.js"></script>
+    <script src="/js/osc.js"></script>
+  </body>
+</html>

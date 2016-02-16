@@ -1,0 +1,479 @@
+We are a customer of Logisense and Open Systems.
+We provide the following FAQ based on our experience.
+
+
+Abstract: 	AAA, EngageIP and Radiator
+		Minimum Configuration Example
+
+Author:	Stowe Telecom, LLC customer_service \/@\ stowetel.com
+
+Credits:	Radiator Mailing List, Hugh@Open Systems Consultants, RTFM
+
+Platform:	Windows 2000 Advanced Server SP4 + Hot Fixes	
+		SQL Server 2000 SP3a + Hot Fixes
+		Active State Perl 5.6.x + DBI/DBD/Net/WinDaemon32
+		Hawki or EngageIP + Recent Distributions
+		Radiator 3.6 + Patches as Service
+
+Developers:	Open Systems Consultants, PTY  URL http://www.open.com.au/
+		Logisense Corp  URL http://www.logisense.com/
+
+Caveats:	These are examples. Your Mileage May Vary.
+
+Summary:	XYZ Corp (ISP) has installed EngageIP with Radiator and  
+requires AAA examples.
+		The following SQL View, Function and Radiator Config are suggested.
+
+------------- This VIEW should be created in current1sql  
+-------------------
+
+/*****************************************/
+/* Author:  STOWE TELECOM, LLC           */
+/* Date:    Jan 15/2003                  */
+/* VALID DIALUP CustomerID 's    */
+/*****************************************/
+CREATE     view 	aaa_all_view
+as
+select CustomerID,
+ClearTextPassword,
+ServiceType,
+SessionLimit,
+IdleLimit,
+StaticIP,
+IPNetmask,
+FramedRoute,
+PortLimit,
+SpeedLimit
+from Customers
+where Customers.Cancel = '0'
+and Customers.EmailOnly = '0'
+
+------------- This Function should be created in current1sql  
+-------------------
+
+/*****************************************/
+/* Author:  STOWE TELECOM, LLC           */
+/* Date:    Jan 15/2003                  */
+/* This Function checks a CustomerID     */
+/*****************************************/
+CREATE     function fn_aaa_login (@cid varchar(50))
+returns table
+as
+return (
+	select
+ClearTextPassword,
+SessionLimit,
+IdleLimit,
+PortLimit,
+StaticIP,
+IPNetmask
+  from aaa_all_view
+	where CustomerID = @cid
+)
+
+
+------------------------------- Radiator Config Example  
+--------------------------------
+# RADIATOR + ENGAGE*IP OPERATIONS FILE
+# WINDOWS 2000 ADVANCED SERVER + RADIATOR 3.6 + PERL 5.6
+# COPYRIGHT (c) -  Stowe Telecom, LLC
+# EXAMPLE ONLY - For Public Domain
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# This configuration example assumes you have the Right to Use
+# Radiator V3.6 from Open Systems Consultants
+# See URL http://www.open.com.au/ for Licensing Data
+#-----------------------------------------------------------------
+# Use Win32::Daemon .. See URL http://www.roth.net/perl/Daemon/
+#-----------------------------------------------------------------
+# VARIABLE SUBSTITUTION
+#-----------------------------------------------------------------
+# %%        The percent character
+# %D        DbDir
+# %L        LogDir
+# %y        Last 2 digits of the current year (2 digits)
+# %Y        Current year (4 digits)
+# %m        Current month number (2 digits)
+# %d        Current day of the month (2 digits)
+# %c        IP address of the client who sent the current packet (if  
+any)
+# %C        Client name of the client who sent the current packet (if  
+any)
+# %R        The realm of the username named in the current packet (if  
+any)
+# %N        The Nas-IP-Address in the current packet (if any)
+# %n        The full User-Name in the current packet (if any)
+# %P        The decrypted password
+# %U        The username being authenticated (with the realm stripped  
+off)
+# %h        The hostname this server is running on
+# %t        The current time in seconds since Jan 1 1970
+# %T        The request type of the current packet (if any)
+# %a        The Framed-IP-Address of the current packet
+# %H        The current hour (0-23)
+# %M        The current minute (0-59)
+# %S        The current second (0-59)
+# %{attr}   The value of the named attribute in the current request  
+packet
+# %{GlobalVar:name} The value of the global varible "name", which
+# 	    can be set on the command line with name=value, or
+#	    in this file with:
+#		 DefineFormattedGlobalVar name value
+# %{Reply:attr} The value of the named attribute in the current reply  
+packet
+#		You can use this to get the value of reply attributes
+#-----------------------------------------------------------------
+# CONFIGURATION FOR
+# RADIATOR 3.6 SERVER
+# PROXY RADIUS
+# USENET AUTH
+# ACCOUNTING
+# DIAGNOSTIC AND LOGGING TOOLS
+# COPYRIGHT (c) -  Stowe Telecom, LLC
+#-----------------------------------------------------------------
+# SNMP Tools Location - You needs these to hangup a user
+#-----------------------------------------------------------------
+# We'd suggest you see http://www.mkssoftware.com/
+# This is an excellent POSIX on WinTel Distribution - SNMP Tools
+#-----------------------------------------------------------------
+SnmpgetProg /snmp/snmpget.exe
+#-----------------------------------------------------------------
+#
+DefineFormattedGlobalVar	servername	server.isp.com
+DefineFormattedGlobalVar	db_uname_1	not_the_sa_ok
+DefineFormattedGlobalVar	db_uname_2	not_the_sa_ok
+DefineFormattedGlobalVar	db_pw_1		not_the_sapw_ok
+DefineFormattedGlobalVar	db_pw_2		not_the_sapw_ok
+DefineFormattedGlobalVar	myfirstglobvar	igetitnow
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# CONFIGURATION FILE FOR MYSERVER.MYISP.COM - ONLY
+#-----------------------------------------------------------------
+BindAddress 10.10.10.2, 10.11.12.133,A.B.C.D
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# Setup Old School Auth + Acct Ports
+#-----------------------------------------------------------------
+AcctPort 1646
+AuthPort 1645
+#-----------------------------------------------------------------
+# Setup Locations for Db and Logs .. We don't use DbDir much
+#-----------------------------------------------------------------
+DbDir .
+DictionaryFile /Program Files/Radiator/dictionary
+Foreground
+#-----------------------------------------------------------------
+# LOG FILES ... Perhaps you are looking for these..
+# Use TAIL with your POSIX Tools if you must
+#-----------------------------------------------------------------
+LogDir e:/mirror/radiator/logs
+LogFile e:/mirror/radiator/logs/%{GlobalVar:servername}.debug.log.%m%d%y
+#-----------------------------------------------------------------
+# LOG TRACE ... This controls how much garbage you may see..
+#-----------------------------------------------------------------
+Trace 3
+#-----------------------------------------------------------------
+# PANIC ?? This will fill your screen with problems...
+# Stop Service, Run on CLI
+#-----------------------------------------------------------------
+#LogStdout
+#-----------------------------------------------------------------
+# Stupid People .. Remind them with Invalid Username to OffDial
+#-----------------------------------------------------------------
+UsernameCharset a-zA-Z0-9\._@-
+#-----------------------------------------------------------------
+# Stupid People .. RegExp them to lowercase
+#-----------------------------------------------------------------
+RewriteUsername tr/A-Z/a-z/
+#-----------------------------------------------------------------
+# Stupid People .. RegExp them to no spaces if you want to be nice
+#-----------------------------------------------------------------
+#RewriteUsername		 s/\s+//g
+#-----------------------------------------------------------------
+# Stupid People .. RegExp the Luzer without a Realm
+#-----------------------------------------------------------------
+RewriteUsername s/^([^@]+)$/$1\@howd-they-do-that.com/
+#-----------------------------------------------------------------
+# LOG SECTION
+# LETS SETUP SOME DEFAULTS FOR LOGS
+# DON'T GO OVERBOARD
+# YOU CAN REALLY CAPTURE EVERYTING!!
+# GENERALLY, THESE DO THE RIGHT THING
+#-----------------------------------------------------------------
+<Log SQL>
+   DBAuth db_uname_1
+   DBSource dbi:ODBC:Radiator
+   DBUsername db_pw_1
+   Description SQL Log
+   Identifier Log SQL
+   LogQuery insert into RADLOG (TIME_STAMP, PRIORITY, MESSAGE) values  
+(%t, %0, %2)
+   Table RADLOG
+   Trace 3
+</Log>
+#-----------------------------------------------------------------
+# SQL LOGGING SECTION
+# LETS SETUP SOME DEFAULTS FOR LOGGING
+# DON'T GO OVERBOARD
+# GENERALLY, THESE DO THE RIGHT THING
+#-----------------------------------------------------------------
+<AuthLog SQL>
+   DBAuth db_uname_1
+   DBSource dbi:ODBC:Radiator
+   DBUsername db_pw_1
+   FailureQuery insert into AUTHLOG (TIME_STAMP, USERNAME, TYPE, REASON)  
+values (%t, '%u', '0', '%P')
+   Identifier authlogger
+   LogFailure 1
+   LogSuccess 1
+   SuccessQuery insert into AUTHLOG (TIME_STAMP, USERNAME, TYPE, REASON)  
+values (%t, '%u', '1', 'Logon OK')
+   Table RADAUTHLOG
+</AuthLog>
+#-----------------------------------------------------------------
+# CLIENTS SECTION
+# LETS SETUP SOME DEFAULTS FOR CLIENTS
+# DON'T GO OVERBOARD
+# YOU CAN REALLY OFFDIAL A SITE RIGHT HERE
+# GENERALLY, THESE DO THE RIGHT THING
+#-----------------------------------------------------------------
+<Client a.b.c.d>
+#  Setup some defaults to send back to the TS
+#  Hawki/EngageIp isn't tight with attributes or timekeeper stuff
+#  DefaultReply  
+Service-Type=Framed-User,Framed-Protocol=PPP,Session- 
+Timeout=14400,Idle-Timeout=600
+#  DefaultReply Can be easy to use as a global fixup point..  
+DefaultNastyReply....
+#  StripFromReply Framed-IP-Netmask,Framed-Compression,  
+Framed-IP-Address, etc, etc...
+#  AddToReplyIfNotExist Session-Timeout=21600,Port-Limit=1
+   Secret not_very_secret
+#  Busted TS or Proxy Host Fixup - a la ZipLink
+#  IgnoreAcctSignature
+#  AddToRequest %{Class}
+   NasType AscendSNMP
+   SNMPCommunity HangUpLuzerSNMPScriptV3Community
+</Client>
+#-----------------------------------------------------------------
+# SQL ACCOUNTING SECTION
+# LETS SETUP SOME DEFAULTS FOR ACCOUNTING
+# DON'T GO OVERBOARD, These must match the SQLTables!
+# This is just a starting point for tabledefs
+#-----------------------------------------------------------------
+<AuthBy SQL>
+   AccountingTable radacct1
+   AcctColumnDef UserName,User-Name
+   AcctColumnDef LogDateTime,Event-Timestamp,integer-date
+   AcctColumnDef AcctStatusType,Acct-Status-Type
+   AcctColumnDef AcctDelayTime,Acct-Delay-Time,integer
+   AcctColumnDef AcctInputOctets,Acct-Input-Octets,integer
+   AcctColumnDef AcctOutputOctets,Acct-Output-Octets,integer
+   AcctColumnDef AcctInputPackets,Acct-Input-Packets,integer
+   AcctColumnDef AcctOutputPackets,Acct-Output-Packets,integer
+   AcctColumnDef AcctSessionTime,Acct-Session-Time,integer
+   AcctColumnDef AcctTerminateCause,Acct-Terminate-Cause
+   AcctColumnDef NasIPAddress,NAS-IP-Address
+   AcctColumnDef NasIdentifier,NAS-Identifier
+   AcctColumnDef NasPortId,NAS-Port,integer
+   AcctColumnDef NasPortType,NAS-Port-Type,integer
+   AcctColumnDef ConnectInfo,Connect-Info
+   AcctColumnDef ServiceType,Service-Type
+   AcctColumnDef FramedProtocol,Framed-Protocol
+   AcctColumnDef FramedAddress,Framed-IP-Address
+   AcctColumnDef CallingStationId,Calling-Station-Id
+   AcctColumnDef CalledStationId,Called-Station-Id
+   AcctColumnDef AscendDataRate,Ascend-Data-Rate
+   AcctColumnDef AscendXmitRate,Ascend-Xmit-Rate
+   AcctColumnDef AscendConnectProgress,Ascend-Connect-Progress
+   AcctColumnDef AscendTerminateCause,Ascend-Disconnect-Cause
+   AcctColumnDef Class,Class
+   AcctColumnDef UserID,UserID
+   AcctColumnDef UserRealm,User-Realm
+   AcctColumnDef FirstDestination,Ascend-First-Dest
+   AcctFailedLogFileName %D/missedaccounting.radacct.%m%d%y
+# Do Nothing
+   AuthSelect
+   DBAuth db_uname_1
+   DBSource dbi:ODBC:RadiusSQL
+   DBUsername db_pw_1
+   Identifier ID_GENERIC_ACCT
+# Experts only
+#  IgnoreAuthentication
+#  HandleAcctStatusTypes Start,Stop
+   NoDefault
+</AuthBy>
+#-----------------------------------------------------------------
+# SQL AUTH SECTION
+# LETS SETUP SOME DEFAULTS FOR AUTH + ATTRIBUTE REPLIES!
+# DON'T GO OVERBOARD, These must match the Function + View!
+# Change with testing and hard code Attributes when in doubt
+#-----------------------------------------------------------------
+<AuthBy SQL>
+#  AccountingTable ACCOUNTING
+   AuthColumnDef 0,Password,check
+   AuthColumnDef 1,Service-Type,reply
+   AuthColumnDef 2,Session-Timeout,reply
+   AuthColumnDef 3,Idle-Timeout,reply
+   AuthColumnDef 4,Framed-IP-Address,reply
+   AuthColumnDef 5,Framed-IP-Netmask,reply
+   AuthColumnDef 6,Framed-Route,reply
+   AuthColumnDef 7,Port-Limit,reply
+   AuthColumnDef 8,Connect-Rate,check
+   AuthSelect select * from fn_aaa_login(%0)
+   DBAuth db_uname_1
+   DBSource dbi:ODBC:hawkmbd
+   DBUsername db_pw_1
+   Description LOCAL AAA FUNCTION FOR ALL CUSTOMERS IN HAWK-i
+   Identifier ID_GENERIC_AAA
+# Experts only
+#  DefaultSimultaneousUse 1
+#  IgnoreAccounting
+#  HandleAcctStatusTypes Start,Stop
+   NoDefault
+</AuthBy>
+#-----------------------------------------------------------------
+# SQL PORTLIMIT SECTION
+# LETS SETUP SOME DEFAULTS FOR PORTLIMITAUTH
+# DON'T GO OVERBOARD
+# GENERALLY, THESE DO THE RIGHT THING
+#-----------------------------------------------------------------
+<AuthBy PORTLIMITCHECK>
+   ClassForSessionLimit generic,2000
+   CountQuery select COUNT(*) from RADONLINE
+   Description PORTLIMITCHECK - GENERIC
+   Identifier PORTLIMITCHECK
+   SessionLimit 2000
+</AuthBy>
+#-----------------------------------------------------------------
+# ATTRIBUTE HANDLER SECTION
+# SEE DICTIONARY FOR ALL NASTY ATTRIBUTES
+# LETS SETUP SOME DEFAULTS
+# DON'T GO OVERBOARD
+# GENERALLY, THESE OFF-DIAL A CUSTOMER
+# OR WHOLE TERM-SERVER, NPA-NXX
+# (.. regexp, or anything you can thing of ..)
+# Amaze your friends and allow dialup to the Internet too!
+#-----------------------------------------------------------------
+# NOTICE - Mixing realms and handlers, don't do it
+#-----------------------------------------------------------------
+<Handler Realm = /(.*)myisp\.com/i, NAS-Identifier=10.10.10.254,  
+Calling-Station-Id = /\d\d\d\d\d\d\d\d\d/>
+   AcctLogFileName %L/accounting.%m%d%y
+# Experts only
+#  AuthByPolicy ContinueUntilAccept
+   AuthBy ID_GENERIC_ACCT
+#  AuthByPolicy ContinueWhileAccept
+#  AuthBy ONLINEPORTLIMITCHECK
+#  AuthByPolicy ContinueUntilAccept
+   AuthBy ID_GENERIC_AAA
+   AuthLog authlogger
+   Description MYISP.COM AAA Area
+   PasswordLogFileName %L/password.%m%d%y
+   RejectHasReason
+   SessionDatabase SQLSESSIONDB
+#  UsernameCharset a-zA-Z0-9\._@-
+#  RewriteUsername s/^([^@]+).*/$1/
+#  PacketTrace
+   HandleAscendAccessEventRequest
+</Handler>
+#-----------------------------------------------------------------
+# SQL SESSION DATABASE SECTION
+# SEE DICTIONARY FOR ALL ATTRIBUTES
+# LETS SETUP SOME DEFAULTS
+# DON'T GO OVERBOARD, YOU NEED A SESSION ID TO HANGUP THAT ASSHOLE
+#-----------------------------------------------------------------
+# GENERALLY, THESE PROVIDE OFF-DIAL CAPABILITY
+# WHEN COMBINED WITH SNMP TOOLS AND SOME SCIENCE
+# YOU TOO CAN HAVE THE FUN OF CLICK-TO-HANGUP
+# GET SNMP TOOLS, SEE URL http://www.mkssoftware.com/
+# USE/LICENSE RADMIN SCRIPTS FOR SESSION TRACKING,
+# DISCO REQUESTS, ETC... MUCH EASIER IN PERL
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+<SessionDatabase SQL>
+   DBAuth db_uname_1
+   DBSource dbi:ODBC:Radiator
+   DBUsername db_pw_1
+   Description SQL Session Database
+   AddQuery insert into RADONLINE (USERNAME, NASIDENTIFIER, NASPORT,  
+ACCTSESSIONID, TIME_STAMP, FRAMEDIPADDRESS, NASPORTTYPE, SERVICETYPE)  
+values ('%u', '%N',  0%{NAS-Port}, '%{Acct-Session-Id}', %{Timestamp},  
+'%{Framed-IP-Address}', '%{NAS-Port-Type}', '%{Service-Type}')
+   ClearNasQuery delete from RADONLINE where NASIDENTIFIER='%N'
+   CountNasSessionsQuery select ACCTSESSIONID from RADONLINE
+   CountQuery select * from RADONLINE where username = '%0'
+   DeleteQuery delete from RADONLINE where NASIDENTIFIER='%N' and  
+username = '%0'
+   Identifier SQLSESSIONDB
+</SessionDatabase>
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# SQL STATS LOG -
+#-----------------------------------------------------------------
+<StatsLog SQL>
+   DBAuth db_uname_1
+   DBSource dbi:ODBC:Radiator
+   DBUsername db_pw_1
+   Interval 86400
+</StatsLog>
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+<StatsLog FILE>
+    Interval 86400
+    Filename %L/logs/stats.proxy.%m%d%y
+</StatsLog>
+#-----------------------------------------------------------------
+<Monitor>
+	# Specifies the TCP port to use. Defaults to 9048
+	#Port  7777
+	#Port %{GlobalVar:monitorport}
+
+	# BindAddress allows you to bind to a different network address
+	# for multihomed hosts. Defaults to 0.0.0.0
+	# BindAddress 203.63.154.0
+
+	# You can have one or more AuthBy clauses or AuthBy parameters
+	# to specify how to authenticate connections. AuthByPolicy is also
+	# supported. If the last AuthBy returns ACCEPT, the connection
+	# is accepted. If the last AuthBy returns IGNORE, or there are
+	# no AuthBy, then fall back to the hardwired Username and
+	# Password parameters
+
+	# This is the fallback username and password that clients must LOGIN as
+	# if there are no AuthBy clauses, or they return IGNORE
+	Username rootmenow
+	Password yougotit
+
+	# IF you set TraceOnly, connections through this Monitor are
+	# prevented from getting statistics, or getting or setting
+	# configuration data, or restarting the server
+	# TraceOnly
+
+	# Clients let you specify which clients you will accept connects from
+	# You can specify one or more comma or space separated IP addresses
+	#Clients 127.0.0.2, 203.63.154.29
+
+</Monitor>
+
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# THE END
+#-----------------------------------------------------------------
+
+
+
+NB: have you included a copy of your configuration file (no secrets),
+together with a trace 4 debug showing what is happening?
+
+-- 
+Radiator: the most portable, flexible and configurable RADIUS server
+anywhere. Available on *NIX, *BSD, Windows 95/98/2000, NT, MacOS X.
+-
+Nets: internetwork inventory and management - graphical, extensible,
+flexible with hardware, software, platform and database independence.
+
+

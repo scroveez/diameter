@@ -1,0 +1,88 @@
+This directory contains sample certificates that you can use to test
+Radiator with various 802.1x authentication schemes, as used in
+Wireless LANs etc.
+
+In here you will find Root and Server Certificate files suitable
+for use with Radiator. You will need these if you wish to
+authenticate using EAP-TLS, EAP-TTLS or EAP-PEAP.
+
+You will also find Root and Client Certificates suitable for
+installing on client PCs and other client devices. You will need to
+install these on the client if you wish to authenticate using EAP-TLS.
+
+None of these certificates should be considered to be secure, and they
+should NOT be used in a production environment, but only for testing
+and proof-of-concept for your project. You should use a reputable
+Certificate Authority package such as CAtool to generate your
+production certificates.
+
+These certificates were generated with OpenSSL 1.0.1 on Ubuntu 12.04
+and the goodies/mkcertificate.sh script. The algorithms are SHA256/RSA 2048.
+
+The subdirectories sha1-rsa1024 and sha256-secp256r1 contain certificates
+with SHA-1/RSA 1024 and SHA-256/secp256r1 algorithms. Alternative names
+for elliptic curve secp256r1 are prime256v1 and NIST P-256, used by
+ANSI X9.62 and NIST, respectively. 
+
+Note about private key format: The format of the encrypted private keys in
+this directory (SHA256/RSA 2048 certificates) is the traditional SSLeay format.
+The format for the private keys in the other directories is the PKCS#8 format.
+Some older systems, such as RHEL 5 and CentOS 5, can not read PKCS#8 format
+and fail with an error like this:
+TLS could not use_PrivateKey_file ./certificates/cert-srv.pem, 1:  27197: 1 -
+  error:06074079:digital envelope routines:EVP_PBE_CipherInit:unknown pbe algorithm
+Openssl rsa command can be used to reformat the private keys, if needed.
+
+USE THESE FILES IN YOUR RADIATOR CONFIGURATION.
+demoCA/cacert.pem
+	CA Root certificate file suitable for use by Radiator. Used by Radiator
+	to validate client certificates. Specifiy with EAPTLS_CAFile in your
+	Radiator configuration file.
+
+cert-srv.pem
+	Server certificate _and_ private key for Radiator. 
+	The private key password is 'whatever'.
+	Specifiy with EAPTLS_CertificateFile and EAPTLS_PrivateKeyFile in your
+	Radiator configuration file..
+	The server name in the certificate is test.server.some.company.com
+
+USE THESE FILES ON YOUR WINDOWS CLIENTS. In Windows, double click on each file 
+import the certificate:
+
+root.der 
+	Root 'Security Certificate' suitable for importing into MS Windows
+	as a Root certificate. Used by the client to validate the
+	Radiator server certificate. Hint: on Windows Mobile 5 and other
+	similar devices, you will need to rename this file to root.cer before
+	importing it (also called enroling it) on Windows.
+
+cert-clt.p12
+	Client certificate _and_ private key, suitable for importing
+	into MS Windows. Radiator will validate this client certificate
+	against its Root Certificate. The password for the private key
+	is 'whatever'. The certificate is for a user named testUser.
+
+
+
+	
+USE THESE FILES for YOUR LINUX CLIENTS. Follow the instructions for your client.
+
+root.pem
+	Root certificate that matches the cert-srv.pem test certificate above for
+	Radiator. Suitable for use with TLS, TTLS, PEAP etc on Linux
+
+cert-clt.pem
+	Client certificate _and_ private key, suitable for use with TLS etc on Linux
+
+
+The following files contain Diffie-Hellman parameters, for use with
+unauthenticated cipher suites, such as those required by EAP-FAST. They
+are MODP groups that conform to RFC 3526, and were generated from the data in
+bn_const.c using p1024.c from openssl 0.9.8d. The ones with smaller key sizes
+are faster to generate keys but are less secure.
+
+dh1536.pem
+dh2048.pem
+dh3072.pem
+dh4096.pem
+dh6144.pem

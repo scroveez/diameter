@@ -1,0 +1,44 @@
+This document describes how t configure Radiator to interoperate with Cisco
+RADIUS-Based Lawful Intercept as described in 
+http://www.cisco.com/en/US/products/ps6566/products_feature_guide09186a008060de94.html
+
+Some Cisco NAS and Layer 2 Tunnel Protocol access concentrator (LAC) devices
+can be configured to start and stop Lawful Intercept taps based on
+special attributes in Radius Accept-Accept or Change-Filter-Request(also
+called CoA) packets.
+
+The special attribute is cisco-li-configuration in the Radiator dictionary. It
+is automatically salt encrypted by Radiator as required by the Cisco spec.
+
+The contents of the cisco-li-configuration attributes allows the Radius server
+to enable, disable and configure LawfulIntercept taps. In the following
+example, we show what looks like a standard Radius user record to illustrate
+the Radius attributes required to enable LI in an Access-Accept.
+
+In this example, the Reply attributes enable an intercept to start:
+
+interceptthisuser     User-Password=whatever
+		      cisco-li-configuration="intercept-id=12345678",
+		      cisco-li-configuration="li-action=1",
+		      cisco-li-configuration="md-ip-addr=1.2.3.4",
+		      cisco-li-configuration="md-port=1"
+
+When this user authenticates successfully, an intercept wil be commenced and
+sent to the mediation device at the IP address 1.2.3.4. Note that intercept-id
+is expected to be a unique 8 digit number to identify the intercept to the
+mediation device. Dont use a fixed number. Probably the easiest way to do
+this is to use an SQL database as part of your LI user database and setup.
+
+You can use the Radius test clinet in Radiator to send  Change-Filter-Request(also
+called CoA) packets to an LI enabled device from the command line (this is one
+command, all on one line:
+
+radpwtst -trace 4 -noacct -noauth -code Change-Filter-Request -secret mysecret
+ cisco-li-configuration="intercept-id=12345678"
+ cisco-li-configuration="li-action=1"
+ cisco-li-configuration="md-ip-addr=1.2.3.4" cisco-li-configuration="md-port=1"
+ Acct-Session-ID=12345
+
+When sending such a CoA command to the Cisco device, the Acct-Session-ID
+identifies the session whose intercept is to be started or stopped.
+

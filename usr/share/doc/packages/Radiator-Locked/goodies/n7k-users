@@ -1,0 +1,3 @@
+cisco		User-Password=cisco
+admin		User-Password=cisco123
+		cisco-avpair="shell:roles=\"network operator vdc-admin\""

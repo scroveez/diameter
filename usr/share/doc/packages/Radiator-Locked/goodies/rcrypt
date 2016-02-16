@@ -1,0 +1,47 @@
+#!/usr/bin/perl
+#
+# rcrypt
+# A command line utility for encrypting and decrypting passwords with Rcrypt
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2002 Open System Consultants
+# $Id: rcrypt,v 1.2 2012/06/27 23:27:18 mikem Exp $
+
+use Getopt::Long;
+use Radius::Rcrypt;
+use strict;
+
+my @options = 	
+    (
+     'h',                              # Usage
+     'k=s',                            # The encryption/decryption key
+     'e',                              # Encrypt. Default is to decrypt
+     );
+
+&GetOptions(@options) || &usage;
+&usage if $main::opt_h;
+
+my $key = $ENV{RCRYPT_KEY};
+$key = $main::opt_k if defined $main::opt_k;
+
+if ($main::opt_e)
+{
+    # Encrypt ARGV
+    print '{rcrypt}' . Radius::Rcrypt::encrypt($ARGV[0], $key) . "\n";
+}
+else
+{
+    # Decrypt ARGV
+    my $crypttext = $ARGV[0];
+    $crypttext =~ s/^\{rcrypt\}//; # Strip of any leading {rcrypt}
+    print Radius::Rcrypt::decrypt($crypttext, $key) . "\n";
+}
+
+sub usage
+{
+    print "usage: $0 [-h] [-e] [-k key] plaintext/crypt
+        encrypting: $0 -k key -e plaintext
+        decrypting: $0 -k key crypttext\n";
+    exit;
+}
+	

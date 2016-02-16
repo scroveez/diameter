@@ -1,0 +1,223 @@
+#!/usr/bin/perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+#
+# builddbm
+# Build and rebuild DB files for user databases
+#
+# The user records are hashed by user name. The value is 2 strings separated
+# by newlines. The first string is the Check attribute values, and the 
+# second is the reply attribute values.
+#
+# The DB file is not locked during updating: is this a bug?
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 1997 Open System Consultants
+# $Id: builddbm,v 1.18 2011/11/07 22:01:39 mikem Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+}
+
+require 5.003;
+use Getopt::Long;
+use Radius::User;
+use Fcntl;
+use File::Basename;
+
+my @options = (
+	       "z",     # Zero (ie empty) the database
+	       "u",     # Update the DB file from the flat file
+	       "d=s",	# Delete the record with key
+	       "l=s",	# Lookup the record with the key
+	       "f=s",   # Filename to use for flat file.
+	                # Default to base name of DB file
+	       "t=s",   # Force a database type, DB_File, GDBM_File etc
+	       "p",    # print DBM as flat userfile
+	       );
+
+&GetOptions(@options) || &usage;
+&usage if $opt_h;
+&usage if @ARGV != 1;
+$dbfile = $ARGV[0];
+
+# This will cause perl to choose the 'best' DBM format available to
+# you. You can force it to use another format with something like
+# -t GDBM_File; 
+$dbtype = 'AnyDBM_File';
+$dbtype = $opt_t if defined $opt_t;
+require "$dbtype.pm";
+
+$mode = 0666; # mode to use for file creation
+
+if ($opt_f)
+{
+    $flatfile = $opt_f;
+}
+else
+{
+    # Derive the flat file name from the DB filename
+    my ($name, $path, $suffix) = fileparse($dbfile, '\..*');
+    $flatfile = "$path$name";
+}
+
+my %users;
+tie (%users, $dbtype, $dbfile, O_CREAT | O_RDWR, $mode)
+    || die "Could not open user database file '$dbfile': $!";
+
+if ($opt_z)
+{
+    # Clear the entire database
+    %users = ();
+}
+
+if ($opt_p)
+{
+    # print out all entries (generate userfile)
+    # Contributed by Joost Stegeman <joosts@kpn.net>
+    my ($name, $s);
+    foreach $name (keys %users)
+    {
+	$s = $users{$name};
+	$s =~ s/\n/\n\t/g;
+	$s =~ s/,/,\n\t/g;
+        print "$name\t$s\n";
+    }
+}
+elsif ($opt_l)
+{
+    # Print out info about a single user
+    my $s = $users{$opt_l};
+    if (defined $s)
+    {
+	$s =~ s/\n/\n\t/g;
+	$s =~ s/,/,\n\t/g;
+	print "$opt_l\t$s\n";
+    }
+    else
+    {
+	die "User $opt_l not found in $dbfile";
+    }
+}
+elsif ($opt_d)
+{
+    # Delete a single user
+    my $s = $users{$opt_d};
+    if (defined $s)
+    {
+	delete $users{$opt_d};
+    }
+    else
+    {
+	die "User $opt_d not found in $dbfile";
+    }
+    
+}
+else
+{
+    # No special options, insert or update
+    die "No flat file name could be deduced"
+	unless defined $flatfile;
+
+    open(FILE, $flatfile)
+	|| die "Could not open $flatfile: $!";
+    my $default_number;
+    while (<FILE>)
+    {
+	chomp;
+
+	# Skip comment lines and blank lines
+	next if /^#/ || /^\s*$/;
+
+	# Quoted usernames are permitted
+	if (/^"([^"]+)"\s*(.*)/ || /^(\S+)\s*(.*)/)
+	{
+	    # Start of a new record, create a $user. The user name
+	    # is the first field
+	    # REVISIT: is parsing and then traversing the 
+	    # attribute lists the most efficient way to do this? No
+	    # but its quick to code.
+
+	    # Dump the last user into the DB datbase
+	    &saveUser($user) if defined $user;
+            my ($username, $rest) = ($1, $2);
+
+	    # Make a unique name for each 'DEFAULT' entry
+	    # The first one is just DEFAULT, the following ones
+	    # are DEFAULT1, DEFAULT2 etc.
+	    if ($username eq 'DEFAULT')
+	    {
+		$username = "DEFAULT$default_number";
+		$default_number++;
+	    }
+
+	    $user = new Radius::User $username;
+
+            $_ = $rest;
+	}
+	if ($user)
+	{
+	    $user->parse($_);
+	}
+	else
+	{
+	    print STDERR "Found attributes but no user name, $flatfile line $.\n";
+	}
+    }
+    # Save the last one
+    &saveUser($user) if defined $user;
+
+    close(FILE);
+}
+
+#####################################################################
+sub saveUser
+{
+    my ($user) = @_;
+    
+    my ($name, $value);
+    my $i = 0;
+    my (@checks, @replys);
+
+    while (($name, $value) = $user->get_check->get_attr_val_n($i++))
+    {
+	$value =~ s/"/\\"/g;
+	push(@checks, "$name = \"$value\"");
+    }
+    $i = 0;
+    while (($name, $value) = $user->get_reply->get_attr_val_n($i++))
+    {
+	$value =~ s/"/\\"/g;
+	push(@replys, "$name = \"$value\"");
+    }
+    
+    # See if there is a collision
+    my $s = $users{$user->{Name}};
+    if (!$opt_u && defined $s)
+    {
+	print STDERR "trying to replace $user->{Name} without -u flag: ignored\n";
+    }
+    else
+    {
+	$users{$user->{Name}} = join(',', @checks) . "\n" . join(',', @replys);
+    }
+}
+
+# These will be from errors inside the library. Always print them
+sub log
+{
+    my ($p, $s) = @_;
+
+    print $s, "\n";
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-uzp] [-d key] [-l key] [-f flatfile] [-t dbmtype] dbmfile\n";
+    exit;
+}
+

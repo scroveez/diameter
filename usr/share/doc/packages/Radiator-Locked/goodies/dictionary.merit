@@ -1,0 +1,36 @@
+# dictionary.merit
+#
+# Here are some attributes that will allow us to work with Merit
+# attributes used prior to the adoption of vendor specifics. They
+# conflict with old Ascend codes and IANA Radius Attribute Types
+# registry.
+#
+# This file can be used if the original encoding of attribute names is
+# required. Add something like this in the Radiator configuration
+# file:
+#
+# DictionaryFile %D/dictionary, %D/dictionary.merit
+#
+
+ATTRIBUTE       LAS-Start-Time                  145     integer
+ATTRIBUTE       LAS-Code                        146     integer
+ATTRIBUTE       LAS-Duration                    147     integer
+ATTRIBUTE       Local-Duration                  148     integer
+ATTRIBUTE       Service-Class                   149     string
+ATTRIBUTE       Port_Entry                      150     string
+ATTRIBUTE       Token-Pool                      155     string
+ATTRIBUTE       Available-Time                  209     integer
+ATTRIBUTE       Info-Port                       210     integer
+ATTRIBUTE       Proxy-Action                    211     string
+ATTRIBUTE       Signature                       212     string
+ATTRIBUTE       Token                           213     string
+ATTRIBUTE       Acct-Rate                       214     string
+ATTRIBUTE       Acct-Charge                     215     string
+ATTRIBUTE       Acct-Transaction-Id             216     string
+ATTRIBUTE       Acct-Charge-Allowed             217     string
+ATTRIBUTE       Maximum-Time                    218     integer
+#ATTRIBUTE      unavailable                     219     ??????
+ATTRIBUTE       Time-Used                       220     integer
+ATTRIBUTE       Huntgroup-Name                  221     string
+ATTRIBUTE       User-Id                         222     string
+ATTRIBUTE       User-Realm                      223     string

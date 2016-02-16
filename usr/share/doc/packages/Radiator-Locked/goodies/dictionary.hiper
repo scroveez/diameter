@@ -1,0 +1,1151 @@
+#	This file is a sample RADIUS dictionary for MERIT RADIUS server to
+#	interact with 3Com Hiper Access Router Card, which is a part of 3Com 
+#	Total Control Chassis Product.
+#
+#	This file contains dictionary translations for parsing
+#	requests and generating responses.  All transactions are
+#	composed of Attribute Value Pairs.  The value of each attribute
+#	is specified as one of four data types.  Valid data types are:
+#
+#
+#       The following conventions must be followed:
+#
+#       1. The attribute name must be unique
+#       2. The client description name must be unique
+#
+#       The value of each attribute is specified as one of the following
+#               data types:
+#
+#       1. string - string data, 0-253 octets
+#       2. data - binary data, 0-253 octets
+#       3. ipaddr - 4 octets in network byte order
+#       4. integer - 32 bit value in big endian order (high byte first)
+#       5. short - 16 bit value in big endian order (high byte first)
+#       6. octet - 8 bit value
+#       7. tag-int - single octet followed by three octets of integer value
+#       8. tag-string - single octet followed by 0-252 octets
+#       9. vendor - octet #0 is zero, then three octets IANA #, then vendor defined
+#       10. date - 32 bit value in big endian order - seconds since
+#                               00:00:00 GMT,  Jan.  1,  1970
+#
+#	Enumerated values are stored in the users file with dictionary
+#	VALUE translations for easy administration.
+#	
+#	For convenience the standard attributes are denoted in decimal numbers 
+#	and the Vendor Specific Attributes are mentioned in hex format.
+#
+#	Integer values listed below with the same dictionary VALUE "name"
+#	MUST be assigned the same numerical value.
+#
+#	Example:
+#
+#	ATTRIBUTE	  VALUE
+#	---------------   -----
+#	Framed-Protocol = PPP
+#	7		= 1	(integer encoding)
+#
+
+#
+#++++++++++++++++++++++++++++++++++++++++++++++
+# STANDARD RADIUS ATTRIBUTE SECTION
+#++++++++++++++++++++++++++++++++++++++++++++++
+#
+
+ATTRIBUTE	User-Name		1	string		# cr
+ATTRIBUTE	User-Password		2	string		# c
+ATTRIBUTE	CHAP-Password		3	binary		# c
+ATTRIBUTE	NAS-IP-Address		4	ipaddr		
+ATTRIBUTE	NAS-Port		5	integer		# r 
+
+ATTRIBUTE	Service-Type		6	integer		# r
+#	Legal Enumerations for Service Types
+VALUE		Service-Type		Login			1
+VALUE		Service-Type		Framed			2
+VALUE		Service-Type		Callback-Login		3
+VALUE		Service-Type		Callback-Framed		4
+VALUE		Service-Type		Outbound-User		5
+VALUE		Service-Type		Administrative-User	6
+VALUE		Service-Type		Exec-User		7
+VALUE		Service-Type		Authenticate-Only	8
+VALUE   	Service-Type       	Admin-Read-Only  	9      
+VALUE   	Service-Type       	Direct                 	10
+
+
+ATTRIBUTE	Framed-Protocol		7	integer		# r
+#	Framed Protocols
+VALUE		Framed-Protocol		PPP			1
+VALUE		Framed-Protocol		SLIP			2
+VALUE           Framed-Protocol         ARAP                    3
+VALUE           Framed-Protocol         FR                      4
+
+
+ATTRIBUTE	Framed-IP-Address	8	ipaddr		# r
+ATTRIBUTE	Framed-IP-Netmask	9	ipaddr		# r
+
+ATTRIBUTE	Framed-Routing		10	integer		# r
+#	Framed Routing Values
+VALUE		Framed-Routing		None			0
+VALUE		Framed-Routing		Broadcast		1
+VALUE		Framed-Routing		Listen			2
+VALUE		Framed-Routing		Broadcast-Listen	3
+
+ATTRIBUTE	Filter-Id		11	string		# r
+ATTRIBUTE	Framed-MTU		12	integer		# r
+
+ATTRIBUTE	Framed-Compression	13	integer		# r
+#	Framed Compression Types
+VALUE		Framed-Compression	None			0
+VALUE   	Framed-Compression      Van-Jacobsen-TCP-IP     1
+VALUE		Framed-Compression	IPX-Header-Compression	2
+
+ATTRIBUTE	Login-IP-Host		14	ipaddr		# r
+
+ATTRIBUTE	Login-Service		15	integer		# r
+#	Login Services
+VALUE		Login-Service		Telnet			0
+VALUE		Login-Service		Rlogin			1
+VALUE		Login-Service		TCP-Clear		2
+VALUE           Login-Service           ClearTCP-Quiet  	256
+VALUE           Login-Service           Ping                    1000
+
+ATTRIBUTE	Login-TCP-Port		16	integer		# r
+ATTRIBUTE	Old-Password		17	string  ### deprecated
+ATTRIBUTE	Reply-Message		18	string		# r
+ATTRIBUTE	Callback-Number		19	string		# r
+ATTRIBUTE	Callback-Id		20	string		# r
+ATTRIBUTE	Expiration		21	date    ### deprecated
+ATTRIBUTE	Framed-Route		22	string		# r
+ATTRIBUTE	Framed-IPX-Network	23	integer		# r
+ATTRIBUTE	State			24	string		# r
+ATTRIBUTE	Class			25	string		# r
+ATTRIBUTE	Vendor-Specific		26	string		# r
+ATTRIBUTE	Session-Timeout		27	integer		# r
+ATTRIBUTE	Idle-Timeout		28	integer		# r
+
+ATTRIBUTE	Termination-Action	29	integer		# r
+#	Termination Actions
+VALUE		Termination-Action	Default			0
+VALUE		Termination-Action	RADIUS-Request		1
+VALUE		Termination-Action	Manage-Resources	2
+
+ATTRIBUTE	Called-Station-Id	30	string		# c
+ATTRIBUTE	Calling-Station-Id	31	string		# c
+ATTRIBUTE	NAS-Identifier		32	string		# c
+ATTRIBUTE	Proxy-State		33	string		# r
+ATTRIBUTE	Login-LAT-Service	34	string		# cr
+ATTRIBUTE	Login-LAT-Node 		35	string		# cr
+ATTRIBUTE	Login-LAT-Group		36	string		# cr
+
+#	Accounting Attributes
+
+ATTRIBUTE	Acct-Status-Type	40	integer
+#	Accounting Status Types
+VALUE		Acct-Status-Type	Start			1
+VALUE		Acct-Status-Type	Stop			2
+VALUE		Acct-Status-Type 	Interim-Update		3
+VALUE		Acct-Status-Type	Modem-Start		4
+VALUE		Acct-Status-Type	Modem-Stop		5
+VALUE		Acct-Status-Type	Cancel			6
+VALUE		Acct-Status-Type	Accounting-On		7
+VALUE		Acct-Status-Type	Accounting-Off		8
+VALUE           Acct-Status-Type    	Tunnel-Start            9
+VALUE           Acct-Status-Type    	Tunnel-Stop             10
+VALUE           Acct-Status-Type    	Tunnel-Reject           11
+VALUE           Acct-Status-Type    	Tunnel-Link-Start       12
+VALUE           Acct-Status-Type    	Tunnel-Link-Stop        13 
+VALUE           Acct-Status-Type    	Tunnel-Link-Reject      14
+
+
+ATTRIBUTE	Acct-Delay-Time		41	integer
+ATTRIBUTE	Acct-Input-Octets	42	integer
+ATTRIBUTE	Acct-Output-Octets	43	integer
+ATTRIBUTE	Acct-Session-Id		44	string
+
+ATTRIBUTE	Acct-Authentic		45	integer
+#	Authentication Types
+VALUE		Acct-Authentic		None			0
+VALUE		Acct-Authentic		RADIUS			1
+VALUE		Acct-Authentic		Local			2
+VALUE		Acct-Authentic		Remote			3
+
+ATTRIBUTE	Acct-Session-Time	46	integer
+ATTRIBUTE	Acct-Input-Packets	47	integer
+ATTRIBUTE	Acct-Output-Packets	48	integer
+
+ATTRIBUTE	Acct-Terminate-Cause		49	integer
+#  Enumerations for Accounting Termination Cause
+VALUE Acct-Terminate-Cause              User-Request                   1
+VALUE Acct-Terminate-Cause              Lost-Carrier                   2
+VALUE Acct-Terminate-Cause              Lost-Service                   3
+VALUE Acct-Terminate-Cause              Idle-Timeout                   4
+VALUE Acct-Terminate-Cause              Session-Timeout                5
+VALUE Acct-Terminate-Cause              Admin-Reset                    6
+VALUE Acct-Terminate-Cause              Admin-Reboot                   7
+VALUE Acct-Terminate-Cause              Port-Error                     8
+VALUE Acct-Terminate-Cause              NAS-Error                      9
+VALUE Acct-Terminate-Cause              NAS-Request			10
+VALUE Acct-Terminate-Cause              NAS-Reboot 			11
+VALUE Acct-Terminate-Cause              Port-Unneeded 			12
+VALUE Acct-Terminate-Cause              Port-Preempted 			13
+VALUE Acct-Terminate-Cause              Port-Suspended 			14
+VALUE Acct-Terminate-Cause              Service-Unavailable    		15
+VALUE Acct-Terminate-Cause              Callback                       	16
+VALUE Acct-Terminate-Cause              User-Error             		17
+VALUE Acct-Terminate-Cause              Host-Request                    18
+
+ATTRIBUTE	Acct-Multi-Session-Id	50	string
+ATTRIBUTE       CHAP-Challenge          60      binary 		# c
+
+ATTRIBUTE       NAS-Port-Type           61      integer		# c
+# Enumerations for NAS Port Type 
+VALUE   NAS-Port-Type         Async                0
+VALUE   NAS-Port-Type         Sync                 1
+VALUE   NAS-Port-Type         ISDN-Sync            2
+VALUE   NAS-Port-Type         ISDN-Async-V-120     3
+VALUE   NAS-Port-Type         ISDN-Async-V-110     4
+VALUE   NAS-Port-Type         Virtual		   5
+VALUE   NAS-Port-Type         Ascend               6
+VALUE   NAS-Port-Type         HDLC-Clear-Channel   7
+VALUE   NAS-Port-Type         X-25   		   8
+VALUE   NAS-Port-Type         X-75   		   9
+
+ATTRIBUTE       Port-Limit              62      integer		# r
+
+#       Tunneling Attributes
+
+ATTRIBUTE       Tunnel-Type                     64      integer	# R
+#	Tunnel Type Enumerations
+VALUE		Tunnel-Type     NONE    	0
+VALUE		Tunnel-Type     PPTP    	1
+VALUE		Tunnel-Type     L2F             2               
+VALUE		Tunnel-Type     L2TP    	3
+VALUE		Tunnel-Type     ATMP    	4
+VALUE		Tunnel-Type     VTP             5
+VALUE		Tunnel-Type     AH              6 
+VALUE		Tunnel-Type     IP              7
+VALUE		Tunnel-Type     MIN-IP  	8
+VALUE		Tunnel-Type     ESP             9
+VALUE		Tunnel-Type     GRE             10
+VALUE		Tunnel-Type     DVS             11
+VALUE		Tunnel-Type     IP_IN_IP        12
+
+ATTRIBUTE       Tunnel-Medium-Type              65      integer	# R
+#       Tunnel Medium Type
+VALUE           Tunnel-Medium-Type      IP                      1
+VALUE           Tunnel-Medium-Type      IP6                     2
+VALUE           Tunnel-Medium-Type      NSAP                    3
+VALUE           Tunnel-Medium-Type      HDLC                    4
+VALUE           Tunnel-Medium-Type      BBN                     5
+VALUE           Tunnel-Medium-Type      802                     6
+VALUE           Tunnel-Medium-Type      E.163                   7
+VALUE           Tunnel-Medium-Type      E.164                   8
+VALUE           Tunnel-Medium-Type      F.69                    9
+VALUE           Tunnel-Medium-Type      X.121                   10
+VALUE           Tunnel-Medium-Type      IPX                     11
+VALUE           Tunnel-Medium-Type      Appletalk               12
+VALUE           Tunnel-Medium-Type      Decnet-IV               13
+VALUE           Tunnel-Medium-Type      Banyan-Vines            14
+VALUE           Tunnel-Medium-Type      E.164-NSAP-subaddress   15
+
+
+ATTRIBUTE       Acct-Tunnel-Client-Endpoint     66      string
+ATTRIBUTE       Tunnel-Server-Endpoint          67      string	# R
+ATTRIBUTE       Acct-Tunnel-Connection-Id       68      string
+ATTRIBUTE       Tunnel-Password                 69      string	# R
+
+ATTRIBUTE 	Password-Retry              75  integer		# r
+
+ATTRIBUTE 	Prompt                      76  string		# r
+# Enumerations for Prompt
+VALUE   Prompt                  No-Echo            0
+VALUE   Prompt                  Echo               1
+
+ATTRIBUTE 	Connect-Info                77  string
+ATTRIBUTE 	Configuration-Token         78  string
+ATTRIBUTE 	Eap-Message                 79  string
+ATTRIBUTE 	Signature                   80  string
+ATTRIBUTE 	Tunnel-Private-Group-Id     81  string		# R
+ATTRIBUTE       Tunnel-Assignment-ID        82  string
+ATTRIBUTE       Tunnel-Preference           83  integer
+
+
+ATTRIBUTE       Acct-Tunnel-Security    126     integer
+
+ATTRIBUTE       Std-Dnis-Reauth		201     integer		# r
+
+#	Merit Experimental Extensions
+
+ATTRIBUTE	Info-Port		210	integer
+ATTRIBUTE	Proxy-Action		211	string
+ATTRIBUTE	Token			213	string
+ATTRIBUTE	Acct-Rate		214	string
+ATTRIBUTE	Acct-Charge		215	string
+ATTRIBUTE	Acct-Transaction-Id	216	string
+ATTRIBUTE	Acct-Charge-Allowed	217	string
+ATTRIBUTE	Maximum-Time		218	integer
+ATTRIBUTE	Available-Time		219	integer
+ATTRIBUTE	Time-Used		220	integer
+ATTRIBUTE	Huntgroup-Name		221	string
+ATTRIBUTE	User-Id			222	string
+ATTRIBUTE	User-Realm		223	string
+
+#	US Robotics Character-Echo Attribute for Access-Challenges
+ATTRIBUTE	Character-Echo		250	integer
+#	Character-Echo
+VALUE		Character-Echo		Echo-On			0
+VALUE		Character-Echo		Echo-Off		1
+
+ 
+#       Configuration Only Attributes (for check-items)
+#       
+ATTRIBUTE       Comment                 1024    string
+ATTRIBUTE       Xvalue                  1025    integer
+ATTRIBUTE       Xstring                 1026    string 
+ATTRIBUTE       Authentication-Type     1027    integer
+ATTRIBUTE       Prohibit                1028    integer
+ATTRIBUTE       User-Category           1029    string
+ATTRIBUTE       Group-Name              1030    string
+ATTRIBUTE       Encrypted-Password      1031    string
+ATTRIBUTE       Password                1033    string
+ATTRIBUTE       Simultaneous-Use        1034    integer
+# 3Com Vendor Specific Attributes..
+
+USR-ATTRIBUTE 	Modulation-Type                  0x006C integer
+USR-VALUE           Modulation-Type         usRoboticsHST                   1
+USR-VALUE           Modulation-Type         ccittV32                        2
+USR-VALUE           Modulation-Type         ccittV22bis                     3
+USR-VALUE           Modulation-Type         bell103                         4
+USR-VALUE           Modulation-Type         ccittV21                        5
+USR-VALUE           Modulation-Type         bell212                         6
+USR-VALUE           Modulation-Type         ccittV32bis                     7
+USR-VALUE           Modulation-Type         ccittV23                        8
+USR-VALUE           Modulation-Type         negotiationFailed               9
+USR-VALUE           Modulation-Type         bell208b                        10
+USR-VALUE           Modulation-Type         v21FaxClass1                    11
+USR-VALUE           Modulation-Type         v27FaxClass1                    12
+USR-VALUE           Modulation-Type         v29FaxClass1                    13
+USR-VALUE           Modulation-Type         v17FaxClass1                    14
+USR-VALUE           Modulation-Type         v21FaxClass2                    15
+USR-VALUE           Modulation-Type         v27FaxClass2                    16
+USR-VALUE           Modulation-Type         v29FaxClass2                    17
+USR-VALUE           Modulation-Type         v17FaxClass2                    18
+USR-VALUE           Modulation-Type         v32Terbo                        19
+USR-VALUE           Modulation-Type         v34                             20
+USR-VALUE           Modulation-Type         vFC                             21
+USR-VALUE           Modulation-Type         v34plus                         22
+USR-VALUE           Modulation-Type         x2                              23
+USR-VALUE           Modulation-Type         v110                            24
+USR-VALUE           Modulation-Type         v120                            25
+USR-VALUE           Modulation-Type         x75                             26
+USR-VALUE           Modulation-Type         ayncSyncPPP                     27
+USR-VALUE           Modulation-Type         clearChannel                    28
+USR-VALUE           Modulation-Type         x2client                        29
+USR-VALUE           Modulation-Type         x2symmetric                     30
+USR-VALUE           Modulation-Type         piafs                           31
+USR-VALUE           Modulation-Type         v90Analogue                     33
+USR-VALUE           Modulation-Type         v90Digital                      34
+USR-VALUE           Modulation-Type         v90AllDigital                   35
+USR-VALUE           Modulation-Type         v92                             45 
+
+USR-ATTRIBUTE 	Error-Control             0x0099 integer
+USR-VALUE           Error-Control   	none            1
+USR-VALUE           Error-Control   	mnpLevel3       2
+USR-VALUE           Error-Control   	mnpLevel4       3
+USR-VALUE           Error-Control   	ccittV42        4
+USR-VALUE           Error-Control   	usRoboticsHST   5
+USR-VALUE           Error-Control   	synchronousNone 6
+USR-VALUE           Error-Control   	mnpLevel2       7
+USR-VALUE           Error-Control   	mnp10           8
+USR-VALUE           Error-Control   	v42Etc          9
+USR-VALUE           Error-Control   	mnp10Ec         10
+USR-VALUE           Error-Control   	lapmEc          11
+USR-VALUE           Error-Control   	v42Etc2         12
+USR-VALUE           Error-Control   	ccittV42SREJ    13
+USR-VALUE           Error-Control   	piafs           14
+USR-VALUE           Error-Control   	v120		15
+USR-VALUE           Error-Control   	x75			16
+
+USR-ATTRIBUTE 	Compression-Type          0x00C7 integer
+USR-VALUE           Compression-Type 	none            1
+USR-VALUE           Compression-Type 	ccittV42bis     2
+USR-VALUE           Compression-Type 	mnpLevel5       3
+USR-VALUE           Compression-Type 	v44             4
+
+# CCA Attributes:
+USR-ATTRIBUTE	IP-Filter-In	    	0x9000 string #r
+USR-ATTRIBUTE	IPX-Filter-In	    	0x9001 string #r
+USR-ATTRIBUTE	SAP-Filter-In	    	0x9002 string #r
+USR-ATTRIBUTE	IP-Filter-Out	    	0x9003 string #r
+USR-ATTRIBUTE	IPX-Filter-Out	    	0x9004 string #r
+USR-ATTRIBUTE	SAP-Filter-Out	    	0x9005 string #r
+USR-ATTRIBUTE       VPN-ID                  0x9006 integer #rt
+USR-ATTRIBUTE       VPN-Name                0x9007 string #rt
+# VPN Gateway:
+# VPN Neighbor:
+USR-ATTRIBUTE       IEA-Nexthop-Gateway     0x9008 ipaddr #rt
+
+USR-ATTRIBUTE       RIPV2                   0x9009 integer #r
+#	RIP V2 Values
+USR-VALUE        	RIPV2			Off		0
+USR-VALUE        	RIPV2			On		1
+
+USR-ATTRIBUTE       VPN-Gateway             0x900A string #rt
+USR-ATTRIBUTE       VPN-Sess-Key-Vector     0x900B string #rt
+USR-ATTRIBUTE  	Primary-DNS-Server      0x900F ipaddr #r
+USR-ATTRIBUTE  	Secondary-DNS-Server    0x9010 ipaddr #r
+USR-ATTRIBUTE  	Primary-NBNS-Server     0x9011 ipaddr #r
+USR-ATTRIBUTE  	Secondary-NBNS-Server   0x9012 ipaddr #r
+USR-ATTRIBUTE   	MIC			0x9014 string #r
+USR-ATTRIBUTE	Log-Filter-Packet	0x9017 integer #r
+
+USR-ATTRIBUTE 	Chassis-Call-Slot         0x9019 integer #c
+USR-ATTRIBUTE 	Chassis-Call-Span         0x901A integer #c
+USR-ATTRIBUTE 	Chassis-Call-Channel      0x901B integer #c
+USR-ATTRIBUTE 	Keypress-Timeout          0x901C integer #r
+USR-ATTRIBUTE 	Unauthenticated-Time      0x901D integer #c
+USR-ATTRIBUTE	VPN-GW-Location		  0x901F string #rt
+USR-ATTRIBUTE 	Chap-Reauth-Timeout       0x9020 integer #r
+
+USR-ATTRIBUTE 	Initial-Connect-Speed     0x9023 integer #c
+USR-VALUE           Initial-Connect-Speed  NONE         1
+USR-VALUE           Initial-Connect-Speed  300-BPS      2
+USR-VALUE           Initial-Connect-Speed  1200-BPS      3
+USR-VALUE           Initial-Connect-Speed  2400-BPS      4
+USR-VALUE           Initial-Connect-Speed  4800-BPS      5
+USR-VALUE           Initial-Connect-Speed  7200-BPS      6
+USR-VALUE           Initial-Connect-Speed  9600-BPS      7
+USR-VALUE           Initial-Connect-Speed  12000-BPS      8
+USR-VALUE           Initial-Connect-Speed  14400-BPS      9
+USR-VALUE           Initial-Connect-Speed  16800-BPS     10
+USR-VALUE           Initial-Connect-Speed  19200-BPS     11
+USR-VALUE           Initial-Connect-Speed  21600-BPS     12
+USR-VALUE           Initial-Connect-Speed  28800-BPS     13
+USR-VALUE           Initial-Connect-Speed  38400-BPS     14
+USR-VALUE           Initial-Connect-Speed  57600-BPS     15
+USR-VALUE           Initial-Connect-Speed  115200-BPS     16
+USR-VALUE           Initial-Connect-Speed  288000-BPS      17
+USR-VALUE           Initial-Connect-Speed  75-1200-BPS    18
+USR-VALUE           Initial-Connect-Speed  1200-75-BPS    19
+USR-VALUE           Initial-Connect-Speed  24000-BPS      20
+USR-VALUE           Initial-Connect-Speed  26400-BPS      21
+USR-VALUE           Initial-Connect-Speed  31200-BPS      22
+USR-VALUE           Initial-Connect-Speed  33600-BPS      23
+USR-VALUE           Initial-Connect-Speed  33333-BPS      24
+USR-VALUE           Initial-Connect-Speed  37333-BPS      25
+USR-VALUE           Initial-Connect-Speed  41333-BPS      26
+USR-VALUE           Initial-Connect-Speed  42666-BPS      27
+USR-VALUE           Initial-Connect-Speed  44000-BPS     28
+USR-VALUE           Initial-Connect-Speed  45333-BPS     29
+USR-VALUE           Initial-Connect-Speed  46666-BPS     30
+USR-VALUE           Initial-Connect-Speed  48000-BPS     31
+USR-VALUE           Initial-Connect-Speed  49333-BPS     32
+USR-VALUE           Initial-Connect-Speed  50666-BPS     33
+USR-VALUE           Initial-Connect-Speed  52000-BPS     34
+USR-VALUE           Initial-Connect-Speed  53333-BPS     35
+USR-VALUE           Initial-Connect-Speed  54666-BPS     36
+USR-VALUE           Initial-Connect-Speed  56000-BPS     37
+USR-VALUE           Initial-Connect-Speed  57333-BPS     38
+USR-VALUE           Initial-Connect-Speed  64000-BPS     39
+USR-VALUE           Initial-Connect-Speed  25333-BPS     40
+USR-VALUE           Initial-Connect-Speed  26666-BPS      41
+USR-VALUE           Initial-Connect-Speed  28000-BPS      42
+USR-VALUE           Initial-Connect-Speed  29333-BPS      43
+USR-VALUE           Initial-Connect-Speed  30666-BPS      44
+USR-VALUE           Initial-Connect-Speed  32000-BPS      45
+USR-VALUE           Initial-Connect-Speed  34666-BPS      46
+USR-VALUE           Initial-Connect-Speed  36000-BPS      47
+USR-VALUE           Initial-Connect-Speed  38666-BPS      48
+USR-VALUE           Initial-Connect-Speed  40000-BPS      49
+USR-VALUE           Initial-Connect-Speed  58666-BPS      50
+USR-VALUE           Initial-Connect-Speed  60000-BPS      51
+USR-VALUE           Initial-Connect-Speed  61333-BPS      52
+USR-VALUE           Initial-Connect-Speed  62666-BPS      53
+
+USR-ATTRIBUTE	Framed-IP-Address-Pool-Name          0x9024 string #r
+USR-ATTRIBUTE	Netserver-MP-Endpoint-ID             0x9025 ipaddr #r
+USR-ATTRIBUTE	VPN-Local-Framed-IP-Address          0x9026 ipaddr #rt
+USR-ATTRIBUTE	Framed-IPX-Route          	        0x9027 integer #r
+USR-ATTRIBUTE	Netserver-Client-Endpoint-ID         0x9028 ipaddr #r
+
+USR-ATTRIBUTE   Speed-Of-Connection       0x9801 integer
+USR-VALUE       Speed-Of-Connection     Auto            0
+USR-VALUE       Speed-Of-Connection     56              1
+USR-VALUE       Speed-Of-Connection     64              2
+USR-VALUE       Speed-Of-Connection     Voice           3
+
+USR-ATTRIBUTE   Max-Channels              0x9802 integer #r
+USR-ATTRIBUTE   Channel-Expansion         0x9803 integer #r
+USR-ATTRIBUTE   Channel-Decrement         0x9804 integer #r
+
+USR-ATTRIBUTE   Expansion-Algorithm       0x9805 integer #r
+USR-VALUE       Expansion-Algorithm     	Constant    1
+USR-VALUE       Expansion-Algorithm     	Linear  	2       
+
+USR-ATTRIBUTE   Compression-Algorithm     0x9806 integer #r
+USR-VALUE       Compression-Algorithm   	None            0
+USR-VALUE       Compression-Algorithm   	Stac            1
+USR-VALUE       Compression-Algorithm   	Ascend  	2       
+USR-VALUE       Compression-Algorithm   	Microsoft       3
+USR-VALUE       Compression-Algorithm   	Auto            4
+
+USR-ATTRIBUTE   Receive-Acc-Map           0x9807 integer #r
+USR-ATTRIBUTE   Transmit-Acc-Map          0x9808 integer #r
+
+USR-ATTRIBUTE   Compression-Reset-Mode    0x980A integer #r
+USR-VALUE       Compression-Reset-Mode  	Auto                    0
+USR-VALUE       Compression-Reset-Mode  	Reset-Every-Packet      1
+USR-VALUE       Compression-Reset-Mode  	Reset-On-Error          2
+
+USR-ATTRIBUTE   Min-Compression-Size      0x980B integer #r
+
+USR-ATTRIBUTE 	IP                    0x980C integer #r
+USR-ATTRIBUTE 	IPX                   0x980D integer #r
+
+USR-ATTRIBUTE  	Filter-Zones          0x980E integer #r
+USR-VALUE           Filter-Zones		enabled         1
+USR-VALUE           Filter-Zones		disabled        2
+
+
+USR-ATTRIBUTE 	Spoofing              0x9811 integer #r
+#       Spoofing Values
+USR-VALUE           Spoofing                Enabled         1
+USR-VALUE           Spoofing                Disabled        2
+
+USR-ATTRIBUTE 	USR-Send-Password	  0x9814 string #r
+
+USR-ATTRIBUTE 	Send-Script1              0x9817 string #r
+USR-ATTRIBUTE 	Reply-Script1             0x9818 string #r
+USR-ATTRIBUTE 	Send-Script2              0x9819 string #r
+USR-ATTRIBUTE 	Reply-Script2             0x981A string #r
+USR-ATTRIBUTE 	Send-Script3              0x981B string #r
+USR-ATTRIBUTE 	Reply-Script3             0x981C string #r
+USR-ATTRIBUTE 	Send-Script4              0x981D string #r
+USR-ATTRIBUTE 	Reply-Script4             0x981E string #r
+USR-ATTRIBUTE 	Send-Script5              0x981F string #r
+USR-ATTRIBUTE 	Reply-Script5             0x9820 string #r
+USR-ATTRIBUTE 	Send-Script6              0x9821 string #r
+USR-ATTRIBUTE 	Reply-Script6             0x9822 string #r
+USR-ATTRIBUTE 	Terminal-Type             0x9823 string #r
+USR-ATTRIBUTE 	Local-Ip-Address          0x9825 ipaddr #r
+
+USR-ATTRIBUTE	Routing-Protocol          0x9826 integer #r
+#	Routing-Protocol Values
+USR-VALUE        	Routing-Protocol	RipV1		1
+USR-VALUE        	Routing-Protocol	RipV2		2
+
+USR-ATTRIBUTE 	Modem-Group               0x9827 string #r
+
+USR-ATTRIBUTE       Framed-IPX-Routing  	  0x9828 integer #r
+#	Framed IPX Routing Values
+USR-VALUE        	Framed-IPX-Routing	None			0
+USR-VALUE        	Framed-IPX-Routing	Send			1
+USR-VALUE        	Framed-IPX-Routing	Listen			2
+USR-VALUE        	Framed-IPX-Routing	Respond			3
+USR-VALUE        	Framed-IPX-Routing	All			4
+
+
+USR-ATTRIBUTE 	Ipx-Wan                   0x9829 integer #r
+USR-VALUE           Ipx-Wan enabled         1
+USR-VALUE           Ipx-Wan disabled        2
+
+USR-ATTRIBUTE   	IP-RIP-Policies           0x982A integer #r
+USR-VALUE           IP-RIP-Policies 	SendDefault             0x0
+USR-VALUE           IP-RIP-Policies 	SendRoutes              0x2
+USR-VALUE           IP-RIP-Policies 	SendSubnets             0x4
+USR-VALUE           IP-RIP-Policies 	AcceptDefault   	0x8
+USR-VALUE           IP-RIP-Policies 	SplitHorizon     	0x10
+USR-VALUE           IP-RIP-Policies 	PoisonReserve   	0x20
+USR-VALUE           IP-RIP-Policies 	FlashUpdate             0x40
+USR-VALUE           IP-RIP-Policies 	SimpleAuth              0x80
+USR-VALUE           IP-RIP-Policies 	V1Send          	0x100
+USR-VALUE           IP-RIP-Policies 	V1Receive               0x200
+USR-VALUE           IP-RIP-Policies 	V2Receive               0x400
+USR-VALUE           IP-RIP-Policies 	Silent          	0x80000000
+
+USR-ATTRIBUTE   Simple-Auth-Password         0x982B string #r
+USR-ATTRIBUTE   Ip-Rip-Input-Filter          0x982C string #r
+USR-ATTRIBUTE   Ip-Call-Input-Filter         0x982D string #r
+USR-ATTRIBUTE   Ipx-Rip-Input-Filter         0x982E string #r
+USR-ATTRIBUTE   MP-MRRU                      0x982F integer #r
+USR-ATTRIBUTE   Ipx-Call-Input-Filter        0x9830 string #r
+USR-ATTRIBUTE   Ip-Rip-Output-Filter         0x9836 string #r
+USR-ATTRIBUTE   Ip-Call-Output-Filter        0x9837 string #r
+USR-ATTRIBUTE   Ipx-Rip-Output-Filter        0x9838 string #r
+USR-ATTRIBUTE   Ipx-Call-Output-Filter       0x9839 string #r
+
+USR-ATTRIBUTE 	Ip-Default-Route-Option  0x9840 integer
+#       IP Default Route Option Values      
+USR-VALUE           IP-Default-Route-Option     set         1
+USR-VALUE           IP-Default-Route-Option     unset       2
+
+USR-ATTRIBUTE 	MP-Endpoint-ID           0x9841 integer #r
+
+
+USR-ATTRIBUTE 	Modem-Training-Time	    0x9842 integer
+USR-ATTRIBUTE 	If-Index		    0x9843 integer
+
+USR-ATTRIBUTE 	Tunnel-Security	    0x9844 integer #rt
+#	Tunnel Security Enumerations 
+USR-VALUE		Tunnel-Security		None			0
+USR-VALUE		Tunnel-Security		Control-Only		1
+USR-VALUE		Tunnel-Security		Data-Only		2
+USR-VALUE		Tunnel-Security		Both			3
+
+# Port-Tap Feature Attributes
+
+USR-ATTRIBUTE	    Port-Tap		    0x9845 integer #r
+#       Tapping Values
+USR-VALUE               Port-Tap                Disabled                0
+USR-VALUE               Port-Tap                Enabled                 1
+
+USR-ATTRIBUTE	    Port-Tap-Format	    0x9846 integer #r
+# 	Port Tap Format Enumerations 
+USR-VALUE               Port-Tap-Format         Ascii                   0
+USR-VALUE               Port-Tap-Format         Hex                     1
+USR-VALUE               Port-Tap-Format         Clear                   2
+
+USR-ATTRIBUTE	    Port-Tap-Output	    0x9847 integer #r
+# 	Port Tap Output Enumerations 
+USR-VALUE               Port-Tap-Output         Syslog                  0
+USR-VALUE               Port-Tap-Output         Console                 1
+
+USR-ATTRIBUTE	    Port-Tap-Facility    0x9848 integer #r
+# 	Port Tap Facility Enumerations 
+USR-VALUE               Port-Tap-Facility       Log-Auth                1
+USR-VALUE               Port-Tap-Facility       Log-Level0              2
+USR-VALUE               Port-Tap-Facility       Log-Level1              3
+USR-VALUE               Port-Tap-Facility       Log-Level2              4
+USR-VALUE               Port-Tap-Facility       Log-Level3              5
+USR-VALUE               Port-Tap-Facility       Log-Level4              6
+USR-VALUE               Port-Tap-Facility       Log-Level5              7
+USR-VALUE               Port-Tap-Facility       Log-Level6              8
+USR-VALUE               Port-Tap-Facility       Log-Level7              9
+
+USR-ATTRIBUTE   Port-Tap-Loglevel		0x9849 integer #r
+#	Port Tap Log Level Enumerations
+USR-VALUE       Port-Tap-Loglevel       		    Critical                0
+USR-VALUE       Port-Tap-Loglevel       		    Unusual                 1
+USR-VALUE       Port-Tap-Loglevel       		    Common                  2
+USR-VALUE       Port-Tap-Loglevel       		    Verbose                 3
+
+USR-ATTRIBUTE   Port-Tap-Address			0x984A ipaddr #r
+USR-ATTRIBUTE   MobileIP-Home-Agent-Address 	0x984B ipaddr #r
+USR-ATTRIBUTE   Tunneled-MLPP          		0x984C integer #rt
+USR-ATTRIBUTE   Multicast-Proxy         	        0x984D integer #r
+USR-ATTRIBUTE   Multicast-Receive        	0x984E integer #r
+USR-ATTRIBUTE   Multicast-Forwarding        	0x9850 integer #r
+USR-ATTRIBUTE   IGMP-Query-Interval         	0x9851 integer #r
+USR-ATTRIBUTE   IGMP-Maximum-Response-Time  	0x9852 integer #r
+USR-ATTRIBUTE   IGMP-Robustness             	0x9853 integer #r
+USR-ATTRIBUTE   IGMP-Version                	0x9854 integer #r
+USR-ATTRIBUTE   IGMP-Routing                	0x9855 integer #r
+USR-ATTRIBUTE   Vts-Session-Key         	        0x9856 integer #r
+USR-ATTRIBUTE   Orig-NAS-Type                    0x9857 string #c
+USR-ATTRIBUTE   Call-Arrived-Time         	0x9858 integer
+USR-ATTRIBUTE   Call-Lost-Time         		0x9859 integer
+USR-ATTRIBUTE   Multicast-Routing-Ttl          	0x9860 integer #r
+USR-ATTRIBUTE   Multicast-Routing-Rate-Limit   	0x9861 integer #r
+USR-ATTRIBUTE   Multicast-Routing-Protocol     	0x9862 integer #r
+USR-ATTRIBUTE   Mcast-Routing-Boundary-Filtr	0x9863 string #r
+USR-ATTRIBUTE   Dvmrp-Metric       	    	0x9864 integer #r
+USR-ATTRIBUTE   Chat-Script-Name            	0x9865 string #r
+USR-ATTRIBUTE   Chat-Script-Rules           	0x9866 string #r
+USR-ATTRIBUTE   Rad-Location-Type      	    	0x9867 integer #r
+USR-ATTRIBUTE   Tunnel-Switch-Endpoint     	0x9868 string #rt
+USR-ATTRIBUTE   OSPF-Addressless-Index      	0x9869 integer #r
+USR-ATTRIBUTE   Callback-Type               	0x986A integer #r
+USR-ATTRIBUTE   Tunnel-Auth-Hostname        	0x986B string #rt
+USR-ATTRIBUTE   Acct-Reason-Code            	0x986C integer
+USR-ATTRIBUTE   QoS-Queuing-Mehtod          	0x986D integer #r
+USR-ATTRIBUTE   PQ-Default-Priority         	0x986E integer #r
+USR-ATTRIBUTE   Ip-Source-Address-Filter    	0x9870 integer #r
+USR-ATTRIBUTE   FQ-Default-Priority         	0x9871 integer #r
+USR-ATTRIBUTE   IPP-Enable                  	0x9872 integer #r
+USR-ATTRIBUTE   Pre-shared-MN-Key		0x9873 string #r
+USR-ATTRIBUTE   MIP-NAI				0x9874 integer #r
+USR-ATTRIBUTE   DNIS-ReAuthentication       	0x9875 integer #r
+
+USR-ATTRIBUTE   Agent				0x9876 integer #r
+USR-VALUE	Agent		FA		1
+USR-VALUE	Agent		HA		2
+
+USR-ATTRIBUTE   PQ-Parameters               	0x9877 integer #r
+USR-ATTRIBUTE   Dvmrp-Prune-Lifetime        	0x9878 integer #r
+USR-ATTRIBUTE   Special-Xon-Xoff-Flow       	0x9879 integer #r
+USR-ATTRIBUTE   Dvmrp-Advertised-Metric     	0x987A integer #r
+USR-ATTRIBUTE   Dvmrp-Retransmit-Prunes     	0x987B integer #r
+USR-ATTRIBUTE   Dvmrp-Non-Pruners           	0x987C integer #r
+USR-ATTRIBUTE   Dvmrp-Route-Transit         	0x987D integer #r
+USR-ATTRIBUTE   Dvmrp-Input-Filter          	0x987E string #r
+USR-ATTRIBUTE   Dvmrp-Output-Filter         	0x9880 string #r
+USR-ATTRIBUTE   Policy-Access               	0x9881 integer #r
+USR-ATTRIBUTE   Policy-Configuration        	0x9882 integer #r
+USR-ATTRIBUTE   Policy-Filename             	0x9883 string #r
+USR-ATTRIBUTE   Policy-Type                 	0x9884 integer #r
+USR-ATTRIBUTE   Mobile-Session-ID           	0x9885 integer #r
+USR-ATTRIBUTE   Mobile-Accounting-Type      	0x9886 integer #r
+USR-ATTRIBUTE   Mobile-Service-Option       	0x9887 integer #r
+USR-ATTRIBUTE   Wallclock-Timestamp         	0x9888 integer
+USR-ATTRIBUTE   Nas-Supports-Tags           	0x9889 integer #r
+USR-ATTRIBUTE   Dvmrp-Initial-Flooding      	0x988A integer #r
+
+USR-ATTRIBUTE   Disconnect-Reason           	0x988B integer
+USR-VALUE       Disconnect-Reason			no-error	0
+USR-VALUE       Disconnect-Reason		no-carrier	1
+USR-VALUE       Disconnect-Reason		no-dsr		2
+USR-VALUE       Disconnect-Reason		timeout		3
+USR-VALUE       Disconnect-Reason		reset           4
+USR-VALUE       Disconnect-Reason		call-drop-req   5
+USR-VALUE       Disconnect-Reason		idle-timeout    6
+USR-VALUE       Disconnect-Reason		session-timeout 7
+USR-VALUE       Disconnect-Reason		user-req-drop   8
+USR-VALUE       Disconnect-Reason		host-req-drop   9
+USR-VALUE       Disconnect-Reason		service-interruption    10
+USR-VALUE       Disconnect-Reason		service-unavailable     11
+USR-VALUE       Disconnect-Reason		user-input-error        12
+USR-VALUE       Disconnect-Reason		nas-drop-for-callback 13
+USR-VALUE       Disconnect-Reason		nas-drop-misc-non-error 14
+USR-VALUE       Disconnect-Reason		nas-internal-error 15
+USR-VALUE       Disconnect-Reason		line-busy 16
+USR-VALUE       Disconnect-Reason		RESERVED 17
+USR-VALUE       Disconnect-Reason		RESERVED 18
+USR-VALUE       Disconnect-Reason		tunnel-term-unreach 19
+USR-VALUE       Disconnect-Reason		tunnel-refused 20
+USR-VALUE       Disconnect-Reason		tunnel-auth-failed 21
+USR-VALUE       Disconnect-Reason		tunnel-session-timeout 22
+USR-VALUE       Disconnect-Reason		tunnel-timeout 23
+USR-VALUE       Disconnect-Reason		RESERVED 24
+USR-VALUE       Disconnect-Reason		radius-res-reclaim 25
+USR-VALUE       Disconnect-Reason		dnis-auth-failed 26
+USR-VALUE       Disconnect-Reason		pap-auth-failure 27
+USR-VALUE       Disconnect-Reason		chap-auth-failure 28
+USR-VALUE       Disconnect-Reason		ppp-lcp-failed 29
+USR-VALUE       Disconnect-Reason		ppp-ncp-failed 30
+USR-VALUE       Disconnect-Reason		radius-timeout 31
+
+USR-ATTRIBUTE   Telnet-Options              	0x988C integer #r
+USR-ATTRIBUTE   CDMA-PktData-Network-ID     	0x988D integer
+USR-ATTRIBUTE   Auth-Next-Server-Address    	0x988E ipaddr #r
+USR-ATTRIBUTE   User-PPP-AODI-Type          	0x988F integer #r
+USR-ATTRIBUTE   MLPPP-Fragmentation-Threshld  	0x9890 integer #r
+USR-ATTRIBUTE   Unnumbered-Local-IP-Address 	0x9891 ipaddr #r
+USR-ATTRIBUTE   Traffic-Threshold           	0x9892 integer #r
+USR-ATTRIBUTE   Keep-Alive-Interval         	0x9893 integer #r
+USR-ATTRIBUTE   Tunnel-Challenge-Outgoing        0x9894 integer
+USR-ATTRIBUTE   X25-Trunk-Profile                0x9895 string
+USR-ATTRIBUTE   X25-Acct-Input-Segment-Count     0x9896 integer
+USR-ATTRIBUTE   X25-Acct-Output-Segment-Coun     0x9897 integer
+USR-ATTRIBUTE   X25-Acct-Segment-Size            0x9898 integer 
+USR-ATTRIBUTE   X25-Acct-Termination-Code        0x9899 integer
+USR-ATTRIBUTE   X25-SVC-Logical-Channel-Numb     0x989a integer
+USR-ATTRIBUTE   Nailed-B-Channel-Indicator       0x989b integer
+USR-ATTRIBUTE   X25-SVC-Call-Attributes          0x989c integer
+
+#Pre-Paid Billing attributes added for Nwang on Nov 12 2001
+USR-ATTRIBUTE   INIT-REG-SERVER-ADDR		0x989d ipaddr #r
+USR-ATTRIBUTE   RE-REG-SERVER-ADDR		0x989e ipaddr #r
+USR-ATTRIBUTE   BYTES-TX-REMAIN			0x989f integer #r
+USR-ATTRIBUTE   BYTES-RX-REMAIN			0x98a0 integer #r
+USR-ATTRIBUTE   SESSION-TIME-REMAIN		0x98a1 integer #r
+USR-ATTRIBUTE   PRE-PAID-ENABLED			0x98a2 integer #r
+USR-ATTRIBUTE   REG-SERVER-PROV-TIMEOUT		0x98a3 integer #r
+
+#Soft-Hard rdirect
+USR-ATTRIBUTE   REDIRECT				0x98a4 integer
+
+#HA VLAN Tag attribute added for Rbhatia on Jan 22,2002
+USR-ATTRIBUTE   VLAN-TAG                             0x98a5 integer#r
+
+# Attribute added for Gary Samad on Mar 13, 2002   
+# Attribute used for defining hierarchical IP address pools
+USR-ATTRIBUTE  RAD-IP-POOL-DEFINITION             0x98a6 string #rt
+
+#Attributes added for Anurag Batta on Mar 13, 2002
+USR-ATTRIBUTE RAD-NMC-CALL-PROGRESS-STATUS       0x98a7 integer #r 
+USR-ATTRIBUTE RAD-NMC-BLOCKS_RX                  0x98a8 integer #r 
+#
+USR-ATTRIBUTE RAD_NMC_V92_CONTROL                   0x98a9 integer #r
+USR-ATTRIBUTE RAD_NMC_V92_PCM_UP                    0x98aa integer #r
+USR-ATTRIBUTE RAD_NMC_V92_QCK_P1                    0x98ab integer #r
+USR-ATTRIBUTE RAD_NMC_V92_QCK_P2                    0x98ac integer #r
+USR-ATTRIBUTE RAD_NMC_V92_HLD_TO                    0x98ad integer #r
+USR-ATTRIBUTE RAD_NMC_V92_HLD_TTO                   0x98ae integer #r
+
+#
+USR-ATTRIBUTE RAD_NMC_CALL_DIRECTION		    0x98af integer #r
+USR-ATTRIBUTE RAD-QOS-TRAFFIC-CLASS		    0x98b0 integer #r
+
+USR-ATTRIBUTE   NMC-Chassis-Slot                    0xBF39 integer
+USR-ATTRIBUTE   NMC-Chassis-Channel                 0xBF38 integer
+USR-ATTRIBUTE   NMC-Call-Start-Date-Time            0xBFF7 integer
+USR-ATTRIBUTE   NMC-Call-End-Date-Time              0xBFF6 integer
+USR-ATTRIBUTE   NMC-Connect-Term-Reason             0x009B integer
+USR-ATTRIBUTE   NMC-Failure-To-Conn-Reason          0x0069 integer
+USR-ATTRIBUTE   NMC-Last-Number-Dialed-Out          0x0066 string
+USR-ATTRIBUTE   NMC-Last-Num-Dialed-In-DNIS         0x00E8 string
+USR-ATTRIBUTE   NMC-Last-Num-Dialed-In-ANI          0x00E9 string
+USR-ATTRIBUTE   NMC-Characters-Sent                 0x0071 integer
+USR-ATTRIBUTE   NMC-Characters-Received             0x0072 integer
+USR-ATTRIBUTE   NMC-Number-Of-Blocks-Sent           0x0075 integer
+USR-ATTRIBUTE   NMC-Number-Of-Blocks-Receivd        0x0076 integer
+USR-ATTRIBUTE   NMC-Number-Of-Blocks-Resent         0x0077 integer
+USR-ATTRIBUTE   NMC-Number-Of-Retrains-Rqstd        0x0078 integer
+USR-ATTRIBUTE   NMC-Number-Of-Retrains-Grntd        0x0079 integer
+USR-ATTRIBUTE   NMC-Number-Of-Line-Reversals        0x007A integer
+USR-ATTRIBUTE   NMC-Number-Of-Char-Lost             0x007B integer
+USR-ATTRIBUTE   NMC-Number-Of-Blers                 0x007D integer
+USR-ATTRIBUTE   NMC-Number-Of-Link-Timeouts         0x007E integer
+USR-ATTRIBUTE   NMC-Number-Of-Fallbacks             0x007F integer
+USR-ATTRIBUTE   NMC-Number-Of-Upshifts              0x0080 integer
+USR-ATTRIBUTE   NMC-Number-Of-Link-Naks             0x0081 integer
+USR-ATTRIBUTE   NMC-Init-Rx-Link-Data-Rate          0xBF2D integer
+USR-ATTRIBUTE   NMC-Final-Rx-Link-Data-Rate         0xBF2C integer
+USR-ATTRIBUTE   NMC-Init-Tx-Link-Data-Rate          0x006A integer
+USR-ATTRIBUTE   NMC-Final-Tx-Link-Data-Rate         0x006B integer
+USR-ATTRIBUTE   NMC-Default-DTE-Data-Rate           0x005E integer
+USR-ATTRIBUTE   NMC-Sync-Async-Mode                 0x0067 integer
+USR-ATTRIBUTE   NMC-Originate-Answer-Mode           0x0068 integer
+USR-ATTRIBUTE   NMC-Initial-Modulation-Type         0x0923 integer
+USR-ATTRIBUTE   NMC-Equalization-Type               0x006F integer
+USR-ATTRIBUTE   NMC-Fallback-Enabled                0x0070 integer
+USR-ATTRIBUTE   NMC-Back-Channel-Data-Rate          0x007C integer
+USR-ATTRIBUTE   NMC-RMMIE-Manufacture-Id            0x01DF integer
+USR-ATTRIBUTE   NMC-RMMIE-Product-Code              0x01E0 string
+USR-ATTRIBUTE   NMC-RMMIE-Serial-Number             0x01E1 string
+USR-ATTRIBUTE   NMC-RMMIE-Firmware-Revision         0x01E2 string
+USR-ATTRIBUTE   NMC-RMMIE-Firmware-Bld-Date         0x01E3 string
+USR-ATTRIBUTE   NMC-RMMIE-Status                    0x01CD integer
+USR-ATTRIBUTE   NMC-RMMIE-Number-Of-Updates         0x01CE integer
+USR-ATTRIBUTE   NMC-RMMIE-X2-Status                 0x0909 integer
+USR-ATTRIBUTE   NMC-RMMIE-Planned-Disconnect        0x090A integer
+USR-ATTRIBUTE   CDMA-Call-Reference-Number          0x0183 integer
+USR-ATTRIBUTE   Mbi-Ct-PRI-Card-Slot                0x0184 integer
+USR-ATTRIBUTE   Mbi-Ct-TDM-Time-Slot                0x0185 integer
+USR-ATTRIBUTE   Mbi-Ct-PRI-Card-Span-Line           0x0186 integer
+USR-ATTRIBUTE   Mbi-Ct-BChannel-Used                0x0187 integer
+USR-ATTRIBUTE   Event-Date-Time                     0xBF2F time
+USR-ATTRIBUTE   Event-Id                            0xBFBE integer
+USR-ATTRIBUTE   IWF-IP-Address			   0x03F4 ipaddr #C
+USR-ATTRIBUTE   Mobile-IP-Address		   0x088E ipaddr
+USR-ATTRIBUTE   Called-Party-Number		   0x0890 string #C
+USR-ATTRIBUTE   Calling-Party-Number		   0x088F string #C
+USR-ATTRIBUTE   Call-Type			   0x0891 integer #C
+USR-ATTRIBUTE   ESN				   0x0892 string #C
+USR-ATTRIBUTE   IWF-Call-Identifier		   0x0893 integer #C
+USR-ATTRIBUTE   IMSI				   0X0894 integer #C
+USR-ATTRIBUTE   Service-Option			   0x0895 integer #C
+USR-ATTRIBUTE   Disconnect-Cause-Indicator	   0x0896 integer
+USR-ATTRIBUTE   Mobile-NumBytes-Txed		   0x0897 integer
+USR-ATTRIBUTE   Mobile-NumBytes-Rxed		   0x0898 integer
+USR-ATTRIBUTE   Num-Fax-Pages-Processed		   0x0899 integer
+USR-ATTRIBUTE   Compression-Type			   0x089A integer
+USR-ATTRIBUTE   Call-Error-Code			   0x089B integer
+USR-ATTRIBUTE   Modem-Setup-Time			   0x089C integer
+USR-ATTRIBUTE   Call-Connecting-Time		   0x089D integer
+USR-ATTRIBUTE   Connect-Time			   0x089E integer
+USR-ATTRIBUTE   QNC1-Service-Destination		   0x08f4 ipaddr #C
+
+
+
+####################################################################################
+# 3Com Corporation Total Control Hub VSA dictionary.
+####################################################################################
+
+#   VOIP CDR Attributes
+
+USR-ATTRIBUTE	CW-Version-Id		0x8000 integer
+USR-ATTRIBUTE	CW-Account-Id		0x8001 string
+
+USR-ATTRIBUTE	CW-Acct-Type		0x8002 integer
+#   CW-Acct-Type
+USR-VALUE   CW-Acct-Type         COMS_UNKNOWN_ACCT_TYPE  0
+USR-VALUE   CW-Acct-Type         COMS_PREPAID_ACCT  	 1
+USR-VALUE   CW-Acct-Type         COMS_NEW_ACCT 			 2
+USR-VALUE   CW-Acct-Type         COMS_SUSPENDED_ACCT  3
+USR-VALUE   CW-Acct-Type         COMS_ADMINISTRATIVE_ACCT  4
+
+USR-ATTRIBUTE	CW-Acct-Identification-Code	0x8003 integer
+USR-ATTRIBUTE	CW-Service-Type		0x8004 integer
+USR-ATTRIBUTE	CW-Rate-Plan-Id		0x8005 integer
+
+USR-ATTRIBUTE	CW-Source-Identifier		0x8006 integer
+#   CW-Source-Identifier
+USR-VALUE   CW-Source-Identifier         COMS_UNKNOWN_SOURCE  0
+USR-VALUE   CW-Source-Identifier         COMS_INGRESS_OPEN  257
+USR-VALUE   CW-Source-Identifier         COMS_EGRESS_OPEN  258
+USR-VALUE   CW-Source-Identifier         COMS_GTKPR_GEN_INGR_OPEN  259
+USR-VALUE   CW-Source-Identifier         COMS_GTKPR_GEN_EGR_OPEN  260
+USR-VALUE   CW-Source-Identifier         COMS_INGRESS_CLOSE  513
+USR-VALUE   CW-Source-Identifier         COMS_EGRESS_CLOSE  514
+USR-VALUE   CW-Source-Identifier         COMS_GTKPR_GEN_INGR_CLOSE  515
+USR-VALUE   CW-Source-Identifier         COMS_GTKPR_GEN_EGR_CLOSE  516
+
+USR-ATTRIBUTE	CW-Session-Id		0x8007 string
+USR-ATTRIBUTE	CW-Num-Call-Attempt-Session	0x8008 integer
+USR-ATTRIBUTE	CW-Session-Sequence-Num		0x8009 integer
+
+USR-ATTRIBUTE	CW-Session-Sequence-End		0x800A integer
+#   CW_SESSION_SEQUENCE_END
+USR-VALUE   CW-Session-Sequence-End         NOT_THE_LAST_CALL   0
+USR-VALUE   CW-Session-Sequence-End         LAST_CALL           1
+
+USR-ATTRIBUTE	CW-Authentication-Fail-Cnt	0x800B integer
+
+USR-ATTRIBUTE	CW-Clg-Party-E164-Type		0x800C integer
+#  CW-Clg-Party-E164-Type
+USR-VALUE   CW-Clg-Party-E164-Type         comsUnknown  1
+USR-VALUE   CW-Clg-Party-E164-Type         comsInternationalNumber  2
+USR-VALUE   CW-Clg-Party-E164-Type         comsNationalNumber  3
+USR-VALUE   CW-Clg-Party-E164-Type         comsNetworkSpecificNumber  4
+USR-VALUE   CW-Clg-Party-E164-Type         comsSubscriberNumber  5
+USR-VALUE   CW-Clg-Party-E164-Type         comsAbbreviatedNumber  6
+USR-VALUE   CW-Clg-Party-E164-Type         comsReserved  7
+
+USR-ATTRIBUTE	CW-Clg-Party-E164-Number	0x800D string
+
+USR-ATTRIBUTE	CW-Clg-Party-Trans-Protocol	0x800E integer
+#   CW_CALLING_PARTY_TRANSPORT_PROTOCOL
+USR-VALUE   CW-Clg-Party-Trans-Protocol         TCP  1
+USR-VALUE   CW-Clg-Party-Trans-Protocol         UDP  2
+USR-VALUE   CW-Clg-Party-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Clg-Party-Trans-Port		0x800F integer
+USR-ATTRIBUTE	CW-Clg-Party-Trans-IP		0x8010 ipaddr
+USR-ATTRIBUTE	CW-Clg-Party-Trans-DNS		0x8011 string
+
+USR-ATTRIBUTE	CW-Cld-Party-E164-Type		0x8012 integer
+#  CW-Cld-Party-E164-Type
+USR-VALUE   CW-Cld-Party-E164-Type         comsUnknown  1
+USR-VALUE   CW-Cld-Party-E164-Type         comsInternationalNumber  2
+USR-VALUE   CW-Cld-Party-E164-Type         comsNationalNumber  3
+USR-VALUE   CW-Cld-Party-E164-Type         comsNetworkSpecificNumber  4
+USR-VALUE   CW-Cld-Party-E164-Type         comsSubscriberNumber  5
+USR-VALUE   CW-Cld-Party-E164-Type         comsAbbreviatedNumber  6
+USR-VALUE   CW-Cld-Party-E164-Type         comsReserved  7
+
+USR-ATTRIBUTE	CW-Cld-Party-E164-Number	0x8013 string
+
+USR-ATTRIBUTE	CW-Cld-Party-Trans-Protocol	0x8014 integer
+#   CW-Cld-Party-Trans-Protocol
+USR-VALUE   CW-Cld-Party-Trans-Protocol         TCP  1
+USR-VALUE   CW-Cld-Party-Trans-Protocol         UDP  2
+USR-VALUE   CW-Cld-Party-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Cld-Party-Trans-Port		0x8015 integer
+USR-ATTRIBUTE	CW-Cld-Party-Trans-IP		0x8016 ipaddr
+USR-ATTRIBUTE	CW-Cld-Party-Trans-DNS		0x8017 string
+USR-ATTRIBUTE	CW-Orig-Line-Identifier		0x8018 integer
+USR-ATTRIBUTE	CW-PSTN-Interface-Number	0x8019 integer
+
+USR-ATTRIBUTE	CW-Ingr-Gway-E164-Type		0x801A integer
+#   CW-Ingr-Gway-E164-Type
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsUnknown  1
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsInternationalNumber  2
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsNationalNumber  3
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsNetworkSpecificNumber  4
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsSubscriberNumber  5
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsAbbreviatedNumber  6
+USR-VALUE   CW-Ingr-Gway-E164-Type         comsReserved  7
+
+USR-ATTRIBUTE	CW-Ingr-Gway-E164-Number	0x801B string
+
+USR-ATTRIBUTE	CW-Ingr-Gway-Trans-Protocol	0x801C integer
+#  CW-Ingr-Gway-Trans-Protocol
+USR-VALUE   CW-Ingr-Gway-Trans-Protocol         TCP  1
+USR-VALUE   CW-Ingr-Gway-Trans-Protocol         UDP  2
+USR-VALUE   CW-Ingr-Gway-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Ingr-Gway-Trans-Port		0x801D integer
+USR-ATTRIBUTE	CW-Ingr-Gway-Trans-IP		0x801E ipaddr
+USR-ATTRIBUTE	CW-Ingr-Gway-Trans-DNS		0x801F string
+
+USR-ATTRIBUTE	CW-Egr-Gway-Trans-Protocol	0x8020 integer
+#  CW-Egr-Gway-Trans-Protocol
+USR-VALUE   CW-Egr-Gway-Trans-Protocol         TCP  1
+USR-VALUE   CW-Egr-Gway-Trans-Protocol         UDP  2
+USR-VALUE   CW-Egr-Gway-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Egr-Gway-Trans-Port		0x8021 integer
+USR-ATTRIBUTE	CW-Egr-Gway-Trans-IP		0x8022 ipaddr
+USR-ATTRIBUTE	CW-Egr-Gway-Trans-DNS		0x8023 string
+
+USR-ATTRIBUTE	CW-Ingr-Gtkpr-Trans-Protocol	0x8024 integer
+#  CW-Ingr-Gtkpr-Trans-Protocol
+USR-VALUE   CW-Ingr-Gtkpr-Trans-Protocol         TCP  1
+USR-VALUE   CW-Ingr-Gtkpr-Trans-Protocol         UDP  2
+USR-VALUE   CW-Ingr-Gtkpr-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Ingr-Gtkpr-Trans-Port	0x8025 integer
+USR-ATTRIBUTE	CW-Ingr-Gtkpr-Trans-IP		0x8026 ipaddr
+USR-ATTRIBUTE	CW-Ingr-Gtkpr-Trans-DNS		0x8027 string
+
+USR-ATTRIBUTE	CW-Egr-Gtkpr-Trans-Protocol	0x8028 integer
+#  CW-Egr-Gtkpr-Trans-Protocol
+USR-VALUE   CW-Egr-Gtkpr-Trans-Protocol         TCP  1
+USR-VALUE   CW-Egr-Gtkpr-Trans-Protocol         UDP  2
+USR-VALUE   CW-Egr-Gtkpr-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Egr-Gtkpr-Trans-Port		0x8029 integer
+USR-ATTRIBUTE	CW-Egr-Gtkpr-Trans-IP		0x802A ipaddr
+USR-ATTRIBUTE	CW-Egr-Gtkpr-Trans-DNS		0x802B string
+USR-ATTRIBUTE	CW-Call-Identifier		0x802C string
+
+USR-ATTRIBUTE	CW-Call-Type		0x802D integer
+#  CW-Call-Type
+USR-VALUE    CW-Call-Type    COMS_UNKNOWN_CALLTYPE     0
+USR-VALUE    CW-Call-Type    COMS_PHONE_TO_PHONE      1
+USR-VALUE    CW-Call-Type    COMS_PHONE_TO_PC      2
+USR-VALUE    CW-Call-Type    COMS_PC_TO_PHONE      3
+USR-VALUE    CW-Call-Type    COMS_PC_TO_PC      4
+
+USR-ATTRIBUTE	CW-Call-Start-Ingr-GW-Sec	0x802E string
+USR-ATTRIBUTE	CW-Call-Start-Ingr-GW-Msec	0x802F integer
+USR-ATTRIBUTE	CW-Call-Start-Time-Ans-Sec	0x8030 string
+USR-ATTRIBUTE	CW-Call-Start-Time-Ans-Msec	0x8031 integer
+USR-ATTRIBUTE	CW-Call-End-Time-Sec		0x8032 string
+USR-ATTRIBUTE	CW-Call-End-Time-Msec		0x8033 integer
+USR-ATTRIBUTE	CW-Call-Durn-Connect-Disc	0x8034 integer
+
+USR-ATTRIBUTE	CW-Codec-Type		0x8035 integer
+#   CW-Codec-Type
+USR-VALUE    CW-Codec-Type    COMS_UNDEFINED_CODEC   0
+USR-VALUE    CW-Codec-Type    COMS_G723_1        1
+USR-VALUE    CW-Codec-Type    COMS_G729_A        2
+USR-VALUE    CW-Codec-Type    COMS_G710_ALaw 3
+USR-VALUE    CW-Codec-Type    COMS_G711_MuLaw    4
+USR-VALUE    CW-Codec-Type    COMS_FAX_MODULATION    255
+
+USR-ATTRIBUTE	CW-Call-Termination-Cause	0x8036 integer
+#   CW-Call-Termination-Cause
+USR-VALUE    CW-Call-Termination-Cause CAUSE_UNKNOWN    0
+USR-VALUE    CW-Call-Termination-Cause CAUSE_CLD_PARTY_TERMINATE    1
+USR-VALUE    CW-Call-Termination-Cause CAUSE_CLG_PARTY_TERMINATE    2
+USR-VALUE    CW-Call-Termination-Cause CAUSE_ACCT_BAL_DEPLETED  3
+USR-VALUE    CW-Call-Termination-Cause CAUSE_NO_EGR_PORTS_AVAIL 4
+USR-VALUE    CW-Call-Termination-Cause CAUSE_H225_UNABLE_TO_CON 5
+USR-VALUE    CW-Call-Termination-Cause CAUSE_H245_UNABLE_TO_CON 6
+USR-VALUE    CW-Call-Termination-Cause CAUSE_INGR_FACILITY_DISC 7
+USR-VALUE    CW-Call-Termination-Cause CAUSE_EGR_FACILITY_DISC  8
+USR-VALUE    CW-Call-Termination-Cause CAUSE_DIR_SERVER_DOWN    9
+USR-VALUE    CW-Call-Termination-Cause CAUSE_RATING_SERVER_DOWN 10
+USR-VALUE    CW-Call-Termination-Cause CAUSE_GATEWAY_SHUTDOWN   11
+USR-VALUE    CW-Call-Termination-Cause CAUSE_GTKPR_TERMINATE    12
+USR-VALUE    CW-Call-Termination-Cause CAUSE_GTKPR_SHUTDOWN_GTWAY   13
+USR-VALUE    CW-Call-Termination-Cause CAUSE_RING_NO_ANSWER 14
+USR-VALUE    CW-Call-Termination-Cause CAUSE_BUSY   14
+USR-VALUE    CW-Call-Termination-Cause CAUSE_ABANDON    15
+USR-VALUE    CW-Call-Termination-Cause CAUSE_INVALID_LOGIN_LIMIT    16
+USR-VALUE    CW-Call-Termination-Cause CAUSE_NOACCTNUMBER_ENTRY 17
+USR-VALUE    CW-Call-Termination-Cause CAUSE_SUSPENDED_ACCT_LOGIN   18
+USR-VALUE    CW-Call-Termination-Cause CAUSE_AUTHENT_SERVER_DOWN    19
+USR-VALUE    CW-Call-Termination-Cause CAUSE_GATEKEEPER_TIMEOUT 20
+USR-VALUE    CW-Call-Termination-Cause CAUSE_GATEWAY_NO_RESOURCES   21
+USR-VALUE    CW-Call-Termination-Cause CAUSE_ACCT_INUSE 22
+USR-VALUE    CW-Call-Termination-Cause CAUSE_DEBIT_ACCT_BAL_ZERO    23
+USR-VALUE    CW-Call-Termination-Cause CAUSE_DEBIT_ACCTBAL_INSUFF   24
+USR-VALUE    CW-Call-Termination-Cause CAUSE_INVALID_DESTNUMBER_THRESH  25
+USR-VALUE    CW-Call-Termination-Cause CAUSE_NO_DESTNUMBER_ENTRY    26
+USR-VALUE    CW-Call-Termination-Cause CAUSE_SEQUENCE_DIALING_THRESH    27
+
+USR-ATTRIBUTE	CW-Audio-Packets-Sent		0x8037 integer
+USR-ATTRIBUTE	CW-Audio-Packets-Received	0x8038 integer
+USR-ATTRIBUTE	CW-Audio-Packets-Lost		0x8039 integer
+USR-ATTRIBUTE	CW-Audio-Packets-In-Frame	0x803A integer
+USR-ATTRIBUTE	CW-Audio-Bytes-In-Frame		0x803B integer
+USR-ATTRIBUTE	CW-Audio-Signal-In-Packet	0x803C integer
+USR-ATTRIBUTE	CW-Port-Id-For-Call		0x803D integer
+USR-ATTRIBUTE	CW-Slot-Id-For-Call		0x803E integer
+USR-ATTRIBUTE	CW-Acct-Balance-Start-Curr	0x803F integer
+USR-ATTRIBUTE	CW-Acct-Balance-Start-Amt	0x8040 integer
+USR-ATTRIBUTE	CW-Acct-Balance-Start-Dec	0x8041 integer
+USR-ATTRIBUTE	CW-Acct-Balance-Decr-Curr	0x8042 integer
+USR-ATTRIBUTE	CW-LRQ-Token		0x8043 string
+USR-ATTRIBUTE	CW-ARQ-Token		0x8044 string
+USR-ATTRIBUTE	CW-Token-Status		0x8045 integer
+USR-ATTRIBUTE	CW-SS7-Destn-Ptcode-Type	0x8046 integer
+USR-ATTRIBUTE	CW-SS7-Destn-Ptcode-Address	0x8047 integer
+USR-ATTRIBUTE	CW-SS7-Orig-Ptcode-Type		0x8048 integer
+USR-ATTRIBUTE	CW-SS7-Orig-Ptcode-Address	0x8049 integer
+USR-ATTRIBUTE	CW-SS7-CIC			0x804A integer
+USR-ATTRIBUTE	CW-MGC-Id			0x804B integer
+USR-ATTRIBUTE	CW-MG-Id			0x804C integer
+
+USR-ATTRIBUTE	CW-Signaling-Protocol		0x804D integer
+#   CW-Signaling-Protocol
+USR-VALUE   CW-Signaling-Protocol         SIG_UNKNOWN  0
+USR-VALUE   CW-Signaling-Protocol         SIG_SIP  1
+USR-VALUE   CW-Signaling-Protocol         SIG_H323 2
+
+USR-ATTRIBUTE	CW-Protocol-Transport		0x804E integer
+#    CW-Protocol-Transport
+USR-VALUE   CW-Protocol-Transport         TCP  1
+USR-VALUE   CW-Protocol-Transport         UDP  2
+USR-VALUE   CW-Protocol-Transport         SCTP 3
+
+USR-ATTRIBUTE	CW-Local-Sig-Trans-Protocol	0x804F integer
+#    CW-Local-Sig-Trans-Protocol
+USR-VALUE    CW-Local-Sig-Trans-Protocol         TCP  1
+USR-VALUE    CW-Local-Sig-Trans-Protocol         UDP  2
+USR-VALUE    CW-Local-Sig-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Local-Sig-Trans-Port		0x8050 integer
+USR-ATTRIBUTE	CW-Local-Sig-Trans-IP		0x8051 ipaddr
+
+USR-ATTRIBUTE	CW-Local-Sig-Trans-DNS		0x8052 string
+#    CW-Remote-Sig-Trans-Protocol
+USR-VALUE    CW-Remote-Sig-Trans-Protocol         TCP  1
+USR-VALUE    CW-Remote-Sig-Trans-Protocol         UDP  2
+USR-VALUE    CW-Remote-Sig-Trans-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Remote-Sig-Trans-Protocol	0x8053 integer
+#    CW-Remote-Sig-Trans-Protocol
+USR-VALUE    CW-Remote-Sig-Trans-Protocol         TCP  1
+USR-VALUE    CW-Remote-Sig-Trans-Protocol         UDP  2
+USR-VALUE    CW-Remote-Sig-Trans-Protocol         SCTP 3
+USR-ATTRIBUTE	CW-Remote-Sig-Trans-Port	0x8054 integer
+USR-ATTRIBUTE	CW-Remote-Sig-Trans-IP		0x8055 ipaddr
+USR-ATTRIBUTE	CW-Remote-Sig-Trans-DNS		0x8056 string
+
+USR-ATTRIBUTE	CW-Local-MG-RTP-Protocol	0x8057 integer
+#    CW-Local-MG-RTP-Protocol
+USR-VALUE    CW-Local-MG-RTP-Protocol         TCP  1
+USR-VALUE    CW-Local-MG-RTP-Protocol         UDP  2
+USR-VALUE    CW-Local-MG-RTP-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Local-MG-RTP-Port		0x8058 integer
+USR-ATTRIBUTE	CW-Local-MG-RTP-IP		0x8059 ipaddr
+USR-ATTRIBUTE	CW-Local-MG-RTP-DNS		0x805A string
+
+USR-ATTRIBUTE	CW-Remote-MG-RTP-Protocol	0x805B integer
+#    CW-Remote-MG-RTP-Protocol
+USR-VALUE    CW-Remote-MG-RTP-Protocol         TCP  1
+USR-VALUE    CW-Remote-MG-RTP-Protocol         UDP  2
+USR-VALUE    CW-Remote-MG-RTP-Protocol         SCTP 3
+
+USR-ATTRIBUTE	CW-Remote-MG-RTP-Port		0x805C integer
+USR-ATTRIBUTE	CW-Remote-MG-RTP-IP		0x805D ipaddr
+USR-ATTRIBUTE	CW-Remote-MG-RTP-DNS		0x805E string
+USR-ATTRIBUTE	CW-Call-Model		0x805F integer
+USR-ATTRIBUTE	CW-Call-Plan-Id		0x8060 integer
+
+USR-ATTRIBUTE	CW-Trans-Cld-Party-E164-Type	0x8061 integer
+#  CW-Trans-Cld-Party-E164-Type
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsUnknown  1
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsInternationalNumber  2
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsNationalNumber  3
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsNetworkSpecificNumber  4
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsSubscriberNumber  5
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsAbbreviatedNumber  6
+USR-VALUE   CW-Trans-Cld-Party-E164-Type         comsReserved 7 
+
+USR-ATTRIBUTE	CW-Trans-Cld-Party-E164-Num	0x8062 string
+USR-ATTRIBUTE	CW-OSP-Source-Device		0x8063 string
+
+#   CW-Egr-Gway-E164-Type
+USR-VALUE   CW-Egr-Gway-E164-Type         comsUnknown  1
+USR-VALUE   CW-Egr-Gway-E164-Type         comsInternationalNumber  2
+USR-VALUE   CW-Egr-Gway-E164-Type         comsNationalNumber  3
+USR-VALUE   CW-Egr-Gway-E164-Type         comsNetworkSpecificNumber  4
+USR-VALUE   CW-Egr-Gway-E164-Type         comsSubscriberNumber  5
+USR-VALUE   CW-Egr-Gway-E164-Type         comsAbbreviatedNumber  6
+USR-VALUE   CW-Egr-Gway-E164-Type         comsReserved  7

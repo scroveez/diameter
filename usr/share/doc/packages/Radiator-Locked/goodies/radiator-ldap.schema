@@ -1,0 +1,292 @@
+# radiator-ldap.schema
+#
+# Sample OpenLDAP schema for Radiator (www.open.com.au/radiator) for
+# use with AuthLDAPRADIUS and AuthLDAPDIGIPASS
+#
+# To use this schema, add a line like this to your /etc/openldap/slapd.conf:
+#     include /path/to/your/radiator-ldap.schema
+#
+# A sample LDIF file to insert a sample record for testing can be found
+# in goodies/radiator-ldap.ldif
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2004-2006 Open System Consultants
+# $Id: radiator-ldap.schema,v 1.4 2007/06/06 02:39:16 mikem Exp $
+
+# The following OID arcs are defined:
+# 1.3.6.1.4.1.9048.1.1  OSC defined attribute types
+# 1.3.6.1.4.1.9048.1.2  OSC defined attribute syntaxes
+# 1.3.6.1.4.1.9048.1.3  OSC defined object classes
+
+############################################################################
+# oscRadiusRealm object defines which Radius servers to proxy users
+# from a given realm.
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.1 NAME 'oscRadiusTarget'
+        DESC 'Users with this realm will be proxied to the specified oscRadiusHost'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.2 NAME 'oscRadiusHost'
+        DESC 'Name or IP address of a radius host to proxy to'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.3 NAME 'oscRadiusSecret'
+        DESC 'Shared secret for Radius client or remote server'
+        EQUALITY caseExactMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.4 NAME 'oscRadiusAuthPort'
+        DESC 'Authentication port number or name'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{20}  SINGLE-VALUE)
+
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.5 NAME 'oscRadiusAcctPort'
+        DESC 'Accounting port number or name'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{20}  SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.6 NAME 'oscRadiusRetries'
+        DESC 'Max number of retransmissions'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.7 NAME 'oscRadiusRetryTimeout'
+        DESC 'Number of seconds to wait before retransmission'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.8 NAME 'oscRadiusUseOldAscendPasswords'
+        DESC 'True if old Ascend compatible passwords are to be sent'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.9 NAME 'oscRadiusServerHasBrokenPortNumbers'
+        DESC 'True if remote server replies from different port the request was sent to'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.10 NAME 'oscRadiusServerHasBrokenAddresses'
+        DESC 'True if remote server replies from different address the request was sent to'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.11 NAME 'oscRadiusIgnoreReplySignature'
+        DESC 'True if the signature in replies from the remote server are known to be incorrect'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+# Value of failure policy can be:
+# 0 ACCEPT
+# 1 REJECT
+# 2 IGNORE
+# 3 CHALLENGE
+# 4 REJECT_IMMEDIATE
+attributetype ( 1.3.6.1.4.1.9048.1.1.12 NAME 'oscRadiusFailurePolicy'
+        DESC 'How to respond to original request if no reply is ever received from remote server'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+objectclass ( 1.3.6.1.4.1.9048.1.3.1 NAME 'oscRadiusRealm' SUP top STRUCTURAL
+        DESC 'OSC Radius proxy realm'
+        MUST ( oscRadiusTarget $ oscRadiusHost $ oscRadiusSecret)
+        MAY  ( cn $ oscRadiusAuthPort $ oscRadiusAcctPort $ oscRadiusRetries $ oscRadiusRetryTimeout $
+	oscRadiusUseOldAscendPasswords $ oscRadiusServerHasBrokenPortNumbers $ oscRadiusServerHasBrokenAddresses $
+	oscRadiusIgnoreReplySignature $ oscRadiusFailurePolicy))
+
+
+############################################################################
+# oscRadiusClient object defines which Radius clients we are willing to accept
+# requests from. Note that the attribute names are derived from the standard Clinet clause paramter names, 
+# and are consistent with the default behaviour of the ClientListLDAP clause
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.21 NAME 'oscRadiusClientName'
+        DESC 'Requests from Radius clients with this name or address will be hounoured by Radiator'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.22 NAME 'oscRadiusIgnoreAcctSignature'
+        DESC 'True if the signature in accounting requests from this client are known to be incorrect'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.23 NAME 'oscRadiusDupInterval'
+        DESC 'Duplicate requests received withing this interval in seconds are ignored'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.24 NAME 'oscRadiusNasType'
+        DESC 'Type of NAS'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50}  SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.25 NAME 'oscRadiusSNMPCommunity'
+        DESC 'The Community name for accessing SNMP on this client'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50}  SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.26 NAME 'oscRadiusLivingstonOffs'
+        DESC 'Offset for calculating missing ports'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.27 NAME 'oscRadiusLivingstonHole'
+        DESC 'Gap for  calculating missing ports'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.28 NAME 'oscRadiusFramedGroupBaseAddress'
+        DESC 'Base address for calculating IP addresses'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.29 NAME 'oscRadiusFramedGroupMaxPortsPerClassC'
+        DESC 'Max number of IP addresses to be allocated within a class C address range'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.30 NAME 'oscRadiusFramedGroupPortOffset'
+        DESC 'Offset for calulating IP addresses'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.31 NAME 'oscRadiusRewriteUsername'
+        DESC 'Pattern for rewriting usernames'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{100} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.32 NAME 'oscRadiusStatusServerShowClientDetails'
+        DESC 'True if Status-Server requests from this client should include Clinet details in the reply'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.33 NAME 'oscRadiusPreHandlerHook'
+        DESC 'Perl code to be run before requests from this cleint are passed to a handler'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{1024} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.34 NAME 'oscRadiusPacketTrace'
+        DESC 'True if requests received from this client are top be packet-traced'
+        EQUALITY booleanMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.35 NAME 'oscRadiusIdenticalClients'
+        DESC 'Names and addresses of other Clients with identical configuration'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{50} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.36 NAME 'oscRadiusNoIgnoreDuplicates'
+        DESC 'Name of a request type for whioch duplicates will not be ignored'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{100} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.37 NAME 'oscRadiusDefaultReply'
+        DESC 'Names and values of reply attributes which will be added only if the reply would otherwise have no reply attributes'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.38 NAME 'oscRadiusFramedGroup'
+        DESC 'Base address for Framed-Group'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.39 NAME 'oscRadiusStripFromReply'
+        DESC 'Names of attributes which will be stripped from all replies to this client'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.40 NAME 'oscRadiusAllowInReply'
+        DESC 'Names of attributes which are allowed in replies to this client'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.41 NAME 'oscRadiusAddToReply'
+        DESC 'Names and values of reply attributes which will be added to the reply'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.42 NAME 'oscRadiusAddToReplyIfNotExist'
+        DESC 'Names and values of reply attributes which will be added to the reply only if they are not already present'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.43 NAME 'oscRadiusDynamicReply'
+        DESC 'Names of attributes which are eligible for runtime variable substitution'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.44 NAME 'oscRadiusStripfromRequest'
+        DESC 'Names of attributes which are to be stripped from the request before being passed to a Handler'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.45 NAME 'oscRadiusAddToRequest'
+        DESC 'Names and values of reply attributes which will be added to the request before being passed to a Handler'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.46 NAME 'oscRadiusAddToRequestIfNotExist'
+        DESC 'Names and values of reply attributes which will be added to the request before being passed to a Handler if they are not already present'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.47 NAME 'oscRadiusDefaultRealm'
+        DESC 'Default realm for a RADIUS client'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} SINGLE-VALUE)
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.48 NAME 'oscRadiusIdentifier'
+        DESC 'Identifier for a RADIUS client'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{200} SINGLE-VALUE)
+
+
+objectclass ( 1.3.6.1.4.1.9048.1.3.21 NAME 'oscRadiusClient' SUP top STRUCTURAL
+        DESC 'OSC Radius Client'
+        MUST ( oscRadiusClientName $ oscRadiusSecret)
+        MAY  ( cn $ oscRadiusIgnoreAcctSignature $ oscRadiusDupInterval $ oscRadiusNasType $
+	       oscRadiusSNMPCommunity $ oscRadiusLivingstonOffs $ oscRadiusLivingstonHole $
+	       oscRadiusFramedGroupBaseAddress $ oscRadiusFramedGroupMaxPortsPerClassC $
+	       oscRadiusFramedGroupPortOffset $ oscRadiusRewriteUsername $ oscRadiusUseOldAscendPasswords $
+	       oscRadiusStatusServerShowClientDetails $ oscRadiusPreHandlerHook $ oscRadiusPacketTrace $
+	       oscRadiusIdenticalClients $ oscRadiusNoIgnoreDuplicates $ oscRadiusDefaultReply $
+	       oscRadiusFramedGroup $ oscRadiusStripFromReply $ oscRadiusAllowInReply $ oscRadiusAddToReply $
+	       oscRadiusAddToReplyIfNotExist $ oscRadiusDynamicReply $ oscRadiusStripfromRequest $
+	       oscRadiusAddToRequest $ oscRadiusAddToRequestIfNotExist $ oscRadiusDefaultRealm $ oscRadiusIdentifier ))
+
+
+# Attributes and classes to support storage of Vasco Digipass token data in
+# LDAP:
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.100 NAME 'oscDigipassTokenSerial'
+        DESC 'Serial number of the token'
+        EQUALITY caseIgnoreMatch
+	SUBSTR caseIgnoreSubstringsMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{22} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.101 NAME 'oscDigipassTokenType'
+        DESC 'Type of the token'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{5} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.102 NAME 'oscDigipassTokenAlgoType'
+        DESC 'Algorithm type of the token'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{2} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.103 NAME 'oscDigipassTokenData'
+        DESC 'Token data'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{248} )
+
+attributetype ( 1.3.6.1.4.1.9048.1.1.104 NAME 'oscDigipassTokenAssignedTo'
+        DESC 'User name of the user the token is asssigned to' 
+	SUP name )
+
+objectclass ( 1.3.6.1.4.1.9048.1.3.100 NAME 'oscDigipassToken' SUP top STRUCTURAL
+        DESC 'OSC Digipass Token Data'
+        MUST ( oscDigipassTokenSerial $ oscDigipassTokenData )
+        MAY  ( cn $ oscDigipassTokenType $ oscDigipassTokenAlgoType $ oscDigipassTokenAssignedTo ))
+

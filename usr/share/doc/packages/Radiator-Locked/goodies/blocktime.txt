@@ -1,0 +1,96 @@
+
+
+The question of how to control Block Time users has come up a number of times,
+so here are some tips and some code to do it.
+
+There are essentially three parts involved in controlling block time.
+
+First, you must have an SQL database with a field that contains a TIMELEFT (or
+similar) field for each block time user. I have shown a stand-alone example
+below, but this can also be incorporated into a "normal" AuthBy SQL clause.
+
+Second, you need a hook to check the value of the Session-Timeout and reject the
+user if there is no time left.
+
+Third, you need to call the hook from your configuration file.
+
+I have included here an example AuthBy SQL clause, the PostAuthHook code, and an
+example of how to set up a Realm or Handler.
+
+
+Here is the AuthBy SQL clause:
+
+# configure AuthBy SQL
+# NB: block time checks only
+# also note the use of GlobalVar(s)
+# supported in Radiator 2.16.4 and later
+
+<AuthBy SQL>
+
+    Identifier Block-Time-SQL
+
+    DBSource        %{GlobalVar:SQLServer1}
+    DBUsername      %{GlobalVar:SQLUser1}
+    DBAuth          %{GlobalVar:SQLAuth1}
+
+    AuthSelect select TIMELEFT from BLOCK_USERS \
+        where USERNAME='%n'
+
+    AuthColumnDef 0, Session-Timeout, reply
+
+    AcctSQLStatement update BLOCK_USERS set \
+        TIMELEFT=TIMELEFT-0%{Acct-Session-Time} \
+        where USERNAME='%n'                 
+
+</AuthBy>
+
+
+Here is the hook code:
+
+# -*- mode: Perl -*-
+# CheckBlockTimeLeft
+#
+# PostAuthHook to check time left for a block user
+# by verifying the Session-Timeout attribute
+#
+# Author: Hugh Irvine (hugh@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# $Id: blocktime.txt,v 1.2 2009/04/16 21:19:56 mikem Exp $
+
+sub
+{
+    my $p = ${$_[0]};
+    my $rp = ${$_[1]};
+    my $result = ${$_[2]};
+
+    my $name = $p->get_attr('User-Name');
+    my $timeout = $rp->get_attr('Session-Timeout');
+
+    if (($result == $main::ACCEPT) && ($timeout <= 0))
+    {
+        &main::log($main::LOG_DEBUG, "User $name has no time left");
+        ${$_[2]} = $main::REJECT;
+    }
+    return;
+}                                       
+
+
+And here is an example Realm:
+
+# example Realm showing the use of a PostAuthHook
+# the file containing the hook code is installed in DbDir
+
+<Realm .....>
+
+	AuthByPolicy ContinueWhileAccept
+
+	# your normal AuthBy(s)
+	AuthBy ........ 
+	.........
+	AuthBy Block-Time-SQL
+
+	PostAuthHook file"%D/CheckBlockTimeLeft"
+
+</Realm>
+
+

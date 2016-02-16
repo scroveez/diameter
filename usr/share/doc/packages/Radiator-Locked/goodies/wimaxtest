@@ -1,0 +1,592 @@
+#!/usr/bin/perl
+#
+# wimaxtest
+# Simple client for testing AuthBy WIMAX
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2007 Open System Consultants
+# $Id: wimaxtest,v 1.11 2012/06/27 23:27:18 mikem Exp $
+
+use Radius::Util;
+use Radius::RDict;
+use Radius::SimpleClient;
+use Radius::WiMAXTLV;
+use Radius::EAP;
+use Radius::TLS;
+use Radius::Context;
+use strict;
+use Getopt::Long;
+
+# Default values for options
+$main::iterations     = 1;
+$main::replyTimeout   = 5.0;
+$main::desthost       = 'localhost';
+$main::secret         = 'mysecret';  # Shared secret on the term server
+$main::auth_port      = 1645;
+$main::acct_port      = 1646;
+$main::user           = 'mikem@open.com.au';
+$main::password       = 'fred';
+$main::nas_identifier = '203.63.154.1';
+$main::nas_port_type  = 'Wireless-IEEE-802.16';
+$main::service_type   = 'Framed-User';
+$main::ha_ip          = '1.2.3.4';
+$main::bsid           = 'XXXYYY';
+$main::nspid          = 'AAA';
+$main::timezoneoffset = -3600;
+$main::msid           = '006021A50A23';
+$main::retries        = 0;
+$main::hapassword     = 'mysecret';
+$main::mschapv2       = 0;
+
+GetOptions
+    ('h'                => \$main::opt_h,
+     'iterations=i'     => \$main::iterations,
+     'trace:i'          => \$main::opt_trace,
+     'notrace'          => \$main::opt_notrace,
+     'timeout=i'        => \$main::replyTimeout,
+     's=s'              => \$main::desthost,
+     'secret=s'         => \$main::secret,
+     'auth_port=s'      => \$main::auth_port,
+     'acct_port=s'      => \$main::acct_port,
+     'user=s'           => \$main::user,
+     'password=s'       => \$main::password,
+     'nas_identifier=s' => \$main::nas_identifier,
+     'nas_port_type=s'  => \$main::nas_port_type,
+     'service_type=s'   => \$main::service_type,
+     'dictionary=s'     => \$main::opt_dictionary,
+     'retries:i'        => \$main::retries,
+     'mschapv2'         => \$main::mschapv2,
+     'reauth:i'         => \$main::reauth,
+     'msid=s'           => \$main::msid,
+     'capability=s'     => \$main::capability,
+     'do_ha'            => \$main::do_ha,
+     'do_dhcp'          => \$main::do_dhcp,
+     ) || &usage;
+
+&usage if $main::opt_h;
+
+$main::errors = 0;
+$main::reject = 0;
+$main::stopSending = 0;
+
+# REVISIT: is this really what I want?
+$main::trace_level = (defined $main::opt_trace && $main::opt_trace eq 0) 
+    ? 4 : $main::opt_trace;
+$main::trace_level = 1 unless defined $main::trace_level;
+$main::trace_level = 0 if $main::opt_notrace;
+
+my $dictionary;
+if (defined $main::opt_dictionary)
+{
+    $dictionary = $main::opt_dictionary;
+}
+else
+{
+    # No explicit dict defined, look in the usual places
+    # Path to find a dictionary:
+    my @dictionaries = ('./dictionary', 
+		     '/etc/radiator/dictionary',  
+		     '/usr/local/etc/raddb/dictionary',
+		     '/usr/local/etc/radiator/dictionary',
+		     'c:/Program Files/Radiator/dictionary');
+    foreach (@dictionaries)
+    {
+	if  (-r $_)
+	{
+	    $dictionary = $_;
+	    last;
+	}
+    }
+}
+
+$main::dictionary = Radius::RDict->new(split(/,/, $dictionary))
+    or die "Couldn't create dictionary from file $dictionary";
+
+my $client = Radius::SimpleClient->new
+    ('Dest'    => "$main::desthost:$main::auth_port",
+     'Secret'  => $main::secret,
+     'Timeout' => $main::replyTimeout,
+     'Retries' => $main::retries,
+     'Trace'   => $main::trace_level)
+    or die "Couldnt create SimpleClient: $!";
+
+my $pseudo_id;
+
+$main::capability = 'Release=1.0,Accounting-Capabilities=0,Hotlining-Capabilities=0,Idle-Mode-Notification-Capabilities=0' 
+    unless defined $main::capability;
+my $sessionid;
+my $nextid;
+my $context;
+
+my $dhcp_server;
+my $dhcp_key_id;
+
+# Attributes common to all authentication requests
+my @auth_attrs =
+    (
+     'Calling-Station-Id'         => $main::msid,
+     'Service-Type'               => $main::service_type,
+     'NAS-Identifier'             => $main::nas_identifier,
+     'NAS-Port-Type'              => $main::nas_port_type,
+     'WiMAX-Capability'           => $main::capability,
+     'WiMAX-GMT-Timezone-Offset', => $main::timezoneoffset,
+     'WiMAX-BS-ID'                => $main::bsid,
+     'WiMAX-NSP-ID'               => $main::nspid,
+     'WiMAX-HA-RK-Key-Requested'  => 1,
+     'Chargeable-User-Identity'   => '',
+     'Message-Authenticator'      => "\000" x 16,
+     );
+    
+&sendAll();
+
+sub sendAll
+{
+    my $start_time = time;
+    my $i;
+    $main::stopSending = 0;
+    for ($i = 0; $i < $main::iterations && !$main::stopSending; $i++)
+    {
+	&sendOnce;
+    }
+    my $end_time = time;
+    my $elapsed_time = $end_time - $start_time;
+    announce("time for $main::iterations iterations: $elapsed_time s\n")
+	if $main::opt_time;
+}
+
+sub sendOnce
+{
+    $pseudo_id = unpack('H*', Radius::Util::random_string(16)) . '@open.com.au';
+    &sendAuth();
+    my $i;
+    for ($i = 0; $i < $main::reauth; $i++)
+    {
+	$pseudo_id = unpack('H*', Radius::Util::random_string(16)) . '@open.com.au';
+	&sendReauth();
+    }
+    &finishAuth();
+    &sendHA() if $main::do_ha;
+    &sendDHCP() if $main::do_dhcp;
+}
+
+# Pretend we are a DHCP server
+sub sendDHCP
+{
+    my $p = Radius::SimpleClient::request
+	($main::dictionary, 
+	 'Code'                       => 'Access-Request',
+	 'NAS-IP-Address'             => $dhcp_server,
+	 'WiMAX-DHCP-RK-Key-ID'       => $dhcp_key_id,
+	 'Message-Authenticator'      => "\0" x 16,
+	 );
+
+    my $reply = $client->sendAndWait($p);
+
+    die "no reply" unless $reply;
+    die "no WiMAX-DHCP-RK"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK');
+    die "no WiMAX-DHCP-RK-Key-ID"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK-Key-ID');
+    die "no WiMAX-DHCP-RK-Lifetime"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK-Lifetime');
+    die "no Message-Authenticator" 
+	unless defined $reply->get_attr('Message-Authenticator');
+    print "OK\n";
+}
+
+# Pretend we are an HA
+sub sendHA
+{
+    my $p = Radius::SimpleClient::request
+	($main::dictionary, 
+	 'Code'                       => 'Access-Request',
+	 'User-Name'                  => $pseudo_id,
+	 'User-Password'              => $main::hapassword,
+	 'WiMAX-AAA-Session-ID'       => $sessionid,
+	 'WiMAX-HA-IP-MIP4'           => $main::ha_ip,
+	 'WiMAX-HA-RK-Key-Requested'  => 1,
+	 'Message-Authenticator'      => "\0" x 16,
+	 );
+
+    my $reply = $client->sendAndWait($p);
+    die "no reply" unless $reply;
+    die "no WiMAX-FA-RK-KEY" 
+	unless defined $reply->get_attr('WiMAX-FA-RK-KEY');
+    die "no WiMAX-HA-RK-KEY" 
+	unless defined $reply->get_attr('WiMAX-HA-RK-KEY');
+    die "no Message-Authenticator" 
+	unless defined $reply->get_attr('Message-Authenticator');
+    print "OK\n";
+}
+
+sub sendAuth
+{
+    # Send initial EAP identity with the outer NAI set to a pseudo id
+    my $eapmessage = pack('C C n C a*', 2, 0, length($pseudo_id) + 5, 1, $pseudo_id);
+    my $p = Radius::SimpleClient::request
+	($main::dictionary, 
+	 'Code'                       => 'Access-Request',
+	 'EAP-Message'                => $eapmessage,
+	 'User-Name',                 => $main::user,
+#	 'User-Name',                 => $pseudo_id,
+	 @auth_attrs
+	 );
+    
+    my $reply = $client->sendAndWait($p);
+    die "no reply" unless $reply;
+    
+    my ($code, $identifier, $length, $type, $typedata) 
+	= unpack('C C n C a*', $reply->get_attr('EAP-Message'));
+    
+    die "unexpected reponse to identity"
+	unless $reply->code() eq 'Access-Challenge'
+	&& $code == $Radius::EAP::EAP_CODE_REQUEST 
+	&& $type == $Radius::EAP::EAP_TYPE_TTLS;
+    
+    die "could not start_tls" unless start_tls();
+    
+    # Send a TTLS-PAP request inside the TLS tunnel
+    my $inner = Radius::Radius->new($main::dictionary);
+    if ($main::mschapv2)
+    {
+	$inner->add_attr('User-Name', $main::user);
+
+	require Radius::MSCHAP;
+	# MSCHAPV2 inside TTLS has special requirements:
+	my ($authchallenge, $ident) = 
+	    unpack('a16 C', &Radius::TLS::PRF($context, 'ttls challenge', 17));
+	my $peerchallenge = pack('H*', '0000000000000000000000000000000');
+	my $flags = 0;
+	my $ntresponse = 
+	  Radius::MSCHAP::GenerateNTResponse($authchallenge, $peerchallenge, $main::user, Radius::MSCHAP::ASCIItoUnicode($main::password));
+	$inner->add_attr('MS-CHAP-Challenge', $authchallenge);
+	$inner->add_attr('MS-CHAP2-Response',
+		     pack('C C a16 a8 a24', $ident, $flags, $peerchallenge, undef, $ntresponse));
+    }
+    else
+    {
+	$inner->add_attr('User-Name', $main::user);
+	$inner->add_attr('User-Password', $main::password);
+    }
+    my $data;
+    ($reply, $data) = send_and_receive($context, $inner->packDiameterAttrs());
+
+    if ($main::mschapv2)
+    {
+	die "unexpected reply" unless $reply && $reply->code() eq 'Access-Challenge';
+
+	# Unpack the data
+	my $inner = Radius::Radius->new($main::dictionary);
+	$inner->unpackDiameterAttrs($data);
+	die "not an MSCHAPV2 success" 
+	    unless defined $inner->get_attr('MS-CHAP2-Success');
+
+	# Server now expects an Access-Request
+	# with an EAP-Message = <2><6><0><6><21><0>
+	my $eapmessage = pack('C C n C C', 2, 6, 6, 21, 0);
+	my $p = Radius::SimpleClient::request
+	    ($main::dictionary, 
+	     'Code'                       => 'Access-Request',
+	     'EAP-Message'                => $eapmessage,
+	 'User-Name',                 => $main::user,
+#	     'User-Name',                 => $pseudo_id,
+	     'WiMAX-AAA-Session-ID'       => $sessionid,
+	     'WiMAX-RRQ-HA-IP'            => $main::ha_ip,
+	     'WiMAX-HA-IP-MIP4'           => $main::ha_ip,
+	     'WiMAX-HA-RK-Key-Requested'  => 1,
+	     @auth_attrs
+	 );
+    
+	$reply = $client->sendAndWait($p);
+	die "no reply" unless $reply;
+    }
+
+    # That should have resulted in a success with all the reply attrs
+    # we can provoke at authentication time
+    die "unexpected reply" unless $reply && $reply->code() eq 'Access-Accept';
+    my ($code, $identifier, $length, $type, $typedata) 
+	= unpack('C C n C a*', $reply->get_attr('EAP-Message'));
+    die "not an EAP success" 
+	unless $code == $Radius::EAP::EAP_CODE_SUCCESS;
+    $sessionid = $reply->get_attr('WiMAX-AAA-Session-ID');
+    die "no WiMAX-AAA-Session-ID" unless defined $sessionid;
+    die "no WiMAX-MSK" 
+	unless defined $reply->get_attr('WiMAX-MSK');
+    my $capability = $reply->get_attr('WiMAX-Capability');
+    die "no WiMAX-Capability" 
+	unless defined $capability;
+    die "bad capability version"
+	unless $capability =~ /Release=1/;
+    die "no WiMAX-RRQ-MN-HA-KEY" 
+	unless defined $reply->get_attr('WiMAX-RRQ-MN-HA-KEY');
+    die "no WiMAX-FA-RK-KEY" 
+	unless defined $reply->get_attr('WiMAX-FA-RK-KEY');
+    die "no WiMAX-HA-RK-KEY" 
+	unless defined $reply->get_attr('WiMAX-HA-RK-KEY');
+    die "no Chargeable-User-Identity" 
+	unless defined $reply->get_attr('Chargeable-User-Identity');
+    die "no Framed-MTU" 
+	unless defined $reply->get_attr('Framed-MTU');
+    die "no WiMAX-DHCPv4-Server"
+	unless defined $reply->get_attr('WiMAX-DHCPv4-Server');
+    die "no WiMAX-DHCP-RK"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK');
+    die "no WiMAX-DHCP-RK-Key-ID"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK-Key-ID');
+    die "no WiMAX-DHCP-RK-Lifetime"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK-Lifetime');
+
+    # Need these to check the DHCP response later
+    $dhcp_server = $reply->get_attr('WiMAX-DHCPv4-Server');
+    $dhcp_key_id = $reply->get_attr('WiMAX-DHCP-RK-Key-ID');
+    &Net::SSLeay::set_quiet_shutdown($context->{ssl}, 1);
+    &Net::SSLeay::shutdown($context->{ssl});
+
+    print "OK\n";
+
+}
+
+sub finishAuth
+{
+    &Radius::TLS::contextSessionClear($context);
+    Radius::Context::destroy('wimax ttls context');
+}
+
+sub sendReauth
+{
+    # Send initial EAP identity with the outer NAI set to a pseudo id
+    my $eapmessage = pack('C C n C a*', 2, 0, length($pseudo_id) + 5, 1, $pseudo_id);
+    my $p = Radius::SimpleClient::request
+	($main::dictionary, 
+	 'Code'                       => 'Access-Request',
+	 'EAP-Message'                => $eapmessage,
+	 'User-Name',                 => $pseudo_id,
+	 @auth_attrs
+	 );
+    
+    my $reply = $client->sendAndWait($p);
+    die "no reply" unless $reply;
+    $sessionid = $reply->get_attr('WiMAX-AAA-Session-ID');
+    die "no WiMAX-AAA-Session-ID" unless defined $sessionid;
+    
+    my ($code, $identifier, $length, $type, $typedata) 
+	= unpack('C C n C a*', $reply->get_attr('EAP-Message'));
+    
+    die "unexpected reponse to identity"
+	unless $reply->code() eq 'Access-Challenge'
+	&& $code == $Radius::EAP::EAP_CODE_REQUEST 
+	&& $type == $Radius::EAP::EAP_TYPE_TTLS;
+    
+    die "could not start_tls" unless start_tls_reauth();
+    my $data;
+    ($reply, $data) = send_and_receive($context, undef);
+ 
+    # That should have resulted in a success with all the reply attrs
+    # we can provoke at authentication time
+    die "unexpected reply" unless $reply && $reply->code() eq 'Access-Accept';
+    my ($code, $identifier, $length, $type, $typedata) 
+	= unpack('C C n C a*', $reply->get_attr('EAP-Message'));
+    die "not an EAP success" 
+	unless $code == $Radius::EAP::EAP_CODE_SUCCESS;
+    die "no WiMAX-MSK" 
+	unless defined $reply->get_attr('WiMAX-MSK');
+    die "no WiMAX-Capability" 
+	unless defined $reply->get_attr('WiMAX-Capability');
+    die "no WiMAX-RRQ-MN-HA-KEY" 
+	unless defined $reply->get_attr('WiMAX-RRQ-MN-HA-KEY');
+    die "no WiMAX-FA-RK-KEY" 
+	unless defined $reply->get_attr('WiMAX-FA-RK-KEY');
+    die "no WiMAX-HA-RK-KEY" 
+	unless defined $reply->get_attr('WiMAX-HA-RK-KEY');
+    die "no Chargeable-User-Identity" 
+	unless defined $reply->get_attr('Chargeable-User-Identity');
+    die "no Framed-MTU" 
+	unless defined $reply->get_attr('Framed-MTU');
+    die "no WiMAX-DHCPv4-Server"
+	unless defined $reply->get_attr('WiMAX-DHCPv4-Server');
+    die "no WiMAX-DHCP-RK"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK');
+    die "no WiMAX-DHCP-RK-Key-ID"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK-Key-ID');
+    die "no WiMAX-DHCP-RK-Lifetime"
+	unless defined $reply->get_attr('WiMAX-DHCP-RK-Lifetime');
+
+    # Need these to check the DHCP response later
+    $dhcp_server = $reply->get_attr('WiMAX-DHCPv4-Server');
+    $dhcp_key_id = $reply->get_attr('WiMAX-DHCP-RK-Key-ID');
+    &Net::SSLeay::set_quiet_shutdown($context->{ssl}, 1);
+    &Net::SSLeay::shutdown($context->{ssl});
+
+    print "OK\n";
+    
+}
+
+#####################################################################
+sub start_tls
+{
+    # Stuff TLS needs
+    my $object = {};
+    $object->{EAPTLS_CAFile} = './certificates/demoCA/cacert.pem';
+    $object->{EAPContextTimeout} = 1000;
+
+    $context = Radius::Context::get('wimax ttls context');
+    Radius::TLS::contextInit($context, $object);
+    my $ret;
+
+    while (($ret = &Net::SSLeay::connect($context->{ssl})) != 1)
+    {
+	my $reason = &Net::SSLeay::get_error($context->{ssl}, $ret);
+	my $state = &Net::SSLeay::get_state($context->{ssl});
+	my $errs = &Net::SSLeay::print_errs();
+
+	if ($ret == 0)
+	{
+	    # Handshake was unsuccessful
+	    warn "handshake failed";
+	    return;
+	}
+	elsif ($reason == Net::SSLeay::ERROR_WANT_READ
+	       || $reason == Net::SSLeay::ERROR_WANT_WRITE)
+	{
+	    # Get some handshake data to send to the peer
+	    send_and_receive_tls($context);
+	}
+	else
+	{
+	    # Error
+	    die "TLS error: $ret, $state, $errs";
+	}
+    }
+    return 1;
+}
+
+#####################################################################
+sub start_tls_reauth
+{
+    $context = Radius::Context::get('wimax ttls context');
+    my $ret;
+
+    while (($ret = &Net::SSLeay::connect($context->{ssl})) != 1)
+    {
+	my $reason = &Net::SSLeay::get_error($context->{ssl}, $ret);
+	my $state = &Net::SSLeay::get_state($context->{ssl});
+	my $errs = &Net::SSLeay::print_errs();
+
+	if ($ret == 0)
+	{
+	    # Handshake was unsuccessful
+	    warn "reauth handshake failed";
+	    return;
+	}
+	elsif ($reason == Net::SSLeay::ERROR_WANT_READ
+	       || $reason == Net::SSLeay::ERROR_WANT_WRITE)
+	{
+	    # Get some handshake data to send to the peer
+	    send_and_receive_tls($context);
+	}
+	else
+	{
+	    # Error
+	    die "TLS reauth error: $ret, $state, $errs";
+	}
+    }
+    return 1;
+}
+
+#####################################################################
+# Do one round of send TLS to the peer and get TLS reply
+sub send_and_receive_tls
+{
+    my ($context) = @_;
+
+    my $data = &Net::SSLeay::BIO_read($context->{wbio}, 10000);
+    my $eapmessage = pack('C C C n C a*', 
+		       $Radius::EAP::EAP_CODE_RESPONSE,
+		       $nextid,
+		       length($data),
+		       $Radius::EAP::EAP_TYPE_TTLS,
+		       0,
+		       $data);
+    my $p = Radius::SimpleClient::request
+	($main::dictionary, 
+	 'Code'                       => 'Access-Request',
+	 'EAP-Message'                => $eapmessage,
+	 'WiMAX-AAA-Session-ID'       => $sessionid,
+	 'WiMAX-RRQ-HA-IP'            => $main::ha_ip,
+	 'WiMAX-HA-IP-MIP4'           => $main::ha_ip,
+	 'WiMAX-HA-RK-Key-Requested'  => 1,
+	 'User-Name',                 => $main::user,
+#	 'User-Name',                 => $pseudo_id,
+	 @auth_attrs
+	 );
+    
+    my $r = $client->sendAndWait($p);
+
+    die "no reply" unless $r;
+
+    # Handshake data back from the peer
+    $eapmessage = join('', $r->get_attr('EAP-Message'));
+    my ($code, $identifier, $length, $type, $typedata) 
+	= unpack('C C n C a*', $eapmessage);
+    $nextid = $identifier;
+    return $r unless $r->code() eq 'Access-Challenge';
+	
+    die "unexpected reply from peer"
+	unless $r->code() eq 'Access-Challenge'
+	&& $code == $Radius::EAP::EAP_CODE_REQUEST 
+	&& $type == $Radius::EAP::EAP_TYPE_TTLS;
+    
+    my ($flags) = unpack('C', $typedata);
+    my ($tlsdata, $length);
+    
+    if ($flags & $Radius::TLS::FLAG_LENGTH_INCLUDED)
+    {
+	($flags, $length, $tlsdata) = unpack('C N a*', $typedata);
+    }
+    else
+    {
+	($flags, $tlsdata) = unpack('C a*', $typedata);
+    }
+    &Net::SSLeay::BIO_write($context->{rbio}, $tlsdata);
+    return $r;
+}
+
+#####################################################################
+# Send some app data through the tunnel
+# Return the reply packet and any decrypted app data that comes back
+sub send_and_receive
+{
+    my ($context, $data) = @_;
+
+    &Net::SSLeay::write($context->{ssl}, $data);
+    my $r = send_and_receive_tls($context);
+    return ($r) unless $r->code() eq 'Access-Challenge';
+
+    my ($data, $ret);
+    # Maybe multiple chunks waiting?
+    while (($data = &Net::SSLeay::read($context->{ssl})) ne '')
+    {
+	$ret .= $data;
+    }
+		   
+#    die "TLS read error: " . &Net::SSLeay::print_errs()
+#	unless defined $data;
+    return ($r, $ret);
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h] [-iterations n] 
+          [-trace [level]] [-s server] [-secret secret] 
+          [-timeout n]
+          [-auth_port port] [-acct_port port]
+          [-user username] [-password password]
+          [-reauth numberofreauths]
+          [-nas_identifier string] [-nas_port_type type]
+          [-service_type service] [-dictionary file,file]
+          [-mschapv2] [-retries n] [-msid Calling-Station-ID\n";
+    exit;
+}
+
+

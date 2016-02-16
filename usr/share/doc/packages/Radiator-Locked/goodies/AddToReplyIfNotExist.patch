@@ -1,0 +1,173 @@
+From oleane.net!Vincent.Gillet Thu Dec  3 02:10 EST 1998
+Received: (from uucp@localhost) by oscar.open.com.au (8.6.12/8.6.12) id CAA00932 for mikem@open.com.au; Thu, 3 Dec 1998 02:10:13 +1100
+  (8.8.8/IDA-1.7 for <mikem@open.com.au>); Thu, 3 Dec 1998 01:50:03 +1100 (EST)
+Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id BAA05787
+  (8.8.8/IDA-1.7 for <mikem@open.com.au>); Thu, 3 Dec 1998 01:50:03 +1100 (EST)
+Received: from warrane.connect.com.au (warrane.connect.com.au [192.189.54.33]) by yarrina.connect.com.au with ESMTP id BAA21599
+  (8.8.8/IDA-1.7 for <mikem@open.com.au>); Thu, 3 Dec 1998 01:50:03 +1100 (EST)
+Received: from bambi.oleane.net (bambi.oleane.net [194.2.33.34]) by warrane.connect.com.au with ESMTP id BAA28061
+  (8.8.8/IDA-1.7 for <mikem@open.com.au>); Thu, 3 Dec 1998 01:49:57 +1100 (EST)
+Received: from (vgi@localhost)
+          by bambi.oleane.net (8.8.5/jtpda-5.2.9.1) id PAA15996
+          ; Wed, 2 Dec 1998 15:49:49 +0100
+>Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id BAA05787
+  (8.8.8/IDA-1.7 for <mikem@open.com.au>); Thu, 3 Dec 1998 01:50:03 +1100 (EST)
+Message-ID: <19981202154948.B15490@oleane.net>
+Date: Wed, 2 Dec 1998 15:49:48 +0100
+From: Vincent Gillet <vgi@oleane.net>
+To: Mike McCauley <mikem@open.com.au>
+Subject: Re: (Fwd) Re: (RADIATOR) DefaultReply command
+References: <981201080547.ZM15045@oscar.open.com.au>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Mailer: Mutt 0.91.2
+In-Reply-To: <981201080547.ZM15045@oscar.open.com.au>; from Mike McCauley on Tue, Dec 01, 1998 at 08:05:47AM -0500
+Content-Type: text/plain; charset=iso-8859-1
+Content-Length: 4020
+Status: OR
+
+> Perhaps you can use the PostAuthHook, to add an attribute if it does not
+> already exist, or to strip out duplicates?
+> 
+> Perhaps you can use the StripFromReply to strip out the ones you know you are
+> going to replace with AddToReply?
+> 
+> >
+> > Would it be difficult for me to change de DefaultReply command to add
+> > attributes only if specific attribute is not in the answer ?
+> You will have to make a new version of AttrVal::parse (perhaps
+> AttrVal::parse_replace, and then call it from AuthGeneric::adjustReply.
+
+I did it. It works. Here is the patch if you want :
+
+*** old/AuthGeneric.pm	Tue Dec  1 15:29:57 1998
+--- AuthGeneric.pm	Tue Dec  1 15:31:13 1998
+***************
+*** 109,114 ****
+--- 109,118 ----
+      {
+  	$self->{AddToReply} = $value;
+      }
++     elsif ($keyword eq 'AddToReplyIfNotExist')
++     {
++ 	$self->{AddToReplyIfNotExist} = $value;
++     }
+      elsif ($keyword eq 'DefaultReply') 
+      { 
+  	$self->{'DefaultReply'} = $value; 
+***************
+*** 779,786 ****
+  }
+  
+  #####################################################################
+! # Adjust the reply packet with the StripFromReply, AddToReply
+! # and DefaultReply parameters
+  sub adjustReply
+  {
+      my ($self, $p, $rp) = @_;
+--- 783,790 ----
+  }
+  
+  #####################################################################
+! # Adjust the reply packet with the StripFromReply, AddToReply,
+! # AddToReplyIfNotExist and DefaultReply parameters
+  sub adjustReply
+  {
+      my ($self, $p, $rp) = @_;
+***************
+*** 797,802 ****
+--- 801,811 ----
+      {
+  	my $s = &main::format_special($self->{AddToReply}, $p);
+  	$rp->parse($s);
++     }
++     if (defined $self->{AddToReplyIfNotExist})
++     {
++ 	my $s = &main::format_special($self->{AddToReplyIfNotExist}, $p);
++ 	$rp->parse_ifnotexist($s);
+      }
+      # use default REPLY if no REPLY attributes are defined
+      if (   defined $self->{DefaultReply}
+*** old/AttrVal.pm	Tue Dec  1 15:29:57 1998
+--- AttrVal.pm	Tue Dec  1 15:31:13 1998
+***************
+*** 166,171 ****
+--- 166,225 ----
+  }
+  
+  #####################################################################
++ # idem parse() but add attribute only if it does not exist before
++ sub parse_ifnotexist
++ {
++     my ($self, $s) = @_;
++ 
++     my $count;
++     $s =~ s/^\s*//; # Strip leading white space
++     $s =~ s/\s*$//; # Strip trailing white space
++     $s =~ s/^,*//;   # Strip redundant leading commas
++     ATTRIBUT:
++     while ($s ne '')
++     {
++ 	if ($s =~ /^([^\s=]+)\s*=\s*"((\\"|[^"])*)",*/g)
++ 	{
++ 	    # Quoted value
++ 	    my ($attr, $value) = ($1, $2);
++ 	    my $attrib_ref;
++ 	    foreach $attrib_ref (@{$self->{Attributes}}) {
++ 	    	if ($$attrib_ref[0] eq $attr) {
++ 	    		$s = substr($s, pos $s);
++ 	    		next ATTRIBUT;
++ 	    	}
++ 	    }
++ 	    $value =~ s/\\"/"/g; # Unescape quotes
++ 	    push(@{$self->{Attributes}}, [ $attr, $value ]);
++ 	    $s = substr($s, pos $s);
++ 	    $count++;
++ 	}
++ 	elsif ($s =~ /^([^\s=]+)\s*=\s*([^,]*),*/g)
++ 	{
++ 	    # Unquoted value
++ 	    my ($attr, $value) = ($1, $2);
++ 	    my $attrib_ref;
++ 	    foreach $attrib_ref (@{$self->{Attributes}}) {
++ 	    	if ($$attrib_ref[0] eq $attr) {
++ 	    		$s = substr($s, pos $s);
++ 	    		next ATTRIBUT;
++ 	    	}
++ 	    }
++ 	    push(@{$self->{Attributes}}, [ $attr, $value ]);
++ 	    $s = substr($s, pos $s);
++ 	    $count++;
++ 	}
++ 	else
++ 	{
++ 	    &main::log($main::LOG_ERR, "Bad attribute=value pair: $s");
++ 	    last;
++ 	}
++ 	$s =~ s/^\s*//; # Strip leading white space
++     }
++     return $count;
++ }
++ 
++ #####################################################################
+  # Format the list in a pretty way and return it
+  # Every value is quoted
+  sub format
+
+> > Thanks.
+> >
+> > thanks also for the patch for autocleaning Online-DB.
+> Fine,
+> I would appreciate it if you can test it as soon as possible. I would like to
+> be sure it solves your problem.
+
+It does.
+Thanks.
+
+-- 
+Vincent Gillet                          E-mail: Vincent.Gillet@oleane.net
+Oleane
+Paris La défense
+France
+
+

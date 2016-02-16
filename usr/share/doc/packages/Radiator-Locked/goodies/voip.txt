@@ -1,0 +1,271 @@
+Subject: Re: (RADIATOR) VoIP Block Time Woes
+Date: Sat, 22 Dec 2001 08:49:41 +1030
+From: Simon Hackett <simon@internode.com.au>
+To: Zebaulon Kansal <zebaulon@hypnos.nocarrier.nu>, radiator@open.com.au
+
+Hi Zebaulon,
+
+I have done this before. Indeed, I do it now :)
+
+I wrote a prepaid card system from scratch for Cisco 5400's
+(identical to 5300's in voice terms - essentially the next generation
+hardware).
+
+There are two things here - one is related to understanding properly
+how voice accounting works on Cisco voice platforms, the other is the
+answer to your question about whether there is a 'trick' to
+organising to have prepaid cards only have their balance deducted
+'once' per call, not once per valid 'Stop' record for the call
+(because, yes, there are multiple of those).
+
+First thing. Its normal, and expected, to generate multiple stop records.
+
+In case you aren't aware of it, all calls have four 'legs' in
+principle (in practice you can even generate -more- than four legs in
+practice under certain circumstances).
+
+Try reading these url's for a start:
+
+http://www.cisco.com/warp/public/788/voip/dialpeer_call_leg.html
+
+http://www.cisco.com/univercd/cc/td/doc/product/access/acs_serv/vapp_dev/vsai
+g3.htm
+
+
+It can take a while to get ones' head around this stuff. The
+pathological case of more than four legs happens when a call tries to
+use (say) h323 to reach a remote voice node, that node rejects the
+call, and the originating voice gateway then hairpin's the call out
+locally. In that case you wind up with a Stop record for the zero
+duration attempted VoIP call, then a non-zero duration call (of call
+type 'Telephony') via the local gateway for the hairpinned call.
+
+You can also wind up with less than four call legs for calls that
+don't succeed.
+
+You will also get accounting Stop records from TWO gateways, not just
+one - the 'local' gateway and the 'remote' one all generate
+accounting records. So a Handler might not be good enough, you really
+need to figure out exactly -which- Stop record you want to use.
+
+Each call leg has a duration, and those durations can differ (as you
+correctly indicate - one of them has the whole 'IVR' interaction time
+in it, others have the resulting leg durations for the parts of the
+call that involved attempts to commit telephony with someone).
+
+The critical thing about these legs is that you can work out which
+leg (1, 2, 3 or 4) you're seeing by looking at the h323-call-type and
+the h323-call-origin.
+
+The h323-call-type can be 'Telephony' or 'VoIP' (well those are the
+most common values); The h323-call-origin can be 'originate' or
+'answer'.
+
+A 'standard' call leg set is literally:
+
+leg 1:  Telephony/Answer        (call from customer to your gateway)
+leg 2:  VoIP/Originate          (VoIP leg leaving your gateway to remote GW)
+leg 3:  VoIP/Answer             (the same connection arriving on the remote GW)
+leg 4:  Telephony/Originate     (the call into the PSTN made by the remote GW)
+
+In the standard case, the accounting records for legs 1 and 2 come from the
+local gateway and the accounting records for legs 3 and 4 come from the
+ remote gateway. Take a look at the nice pictures on the cisco web site from
+ those URL's I noted above.
+
+In cases where the call is hairpinned from the local voice gateway,
+there may be no VoIP legs at all, or there may (as indicated above)
+be a zero duration set of VoIP legs due to a remote failure followed
+by 'local' Telephony/Originate legs. This is actually a degenerate
+case where the local gw and the remote gw are the same gw, if you see
+what I mean.
+
+Second thing. You can handle this all 'properly', or you can use a
+hack. Of course :)
+
+What I do is get radiator to call an external perl program I wrote
+(worked out easier for me to deal with it that way), and the
+following is the logic in my code that decides whether to 'charge'
+the time inherent in a stop record that comes floating past the
+code...
+
+The critical point? That I decided after a lot of experimentation
+that the 'best' of the stop records to use is any leg which is of
+type 'originate' and which is of non-zero call duration, having
+discarded a few strange cases first. It turns out that there is only
+one of those per ultimate user session.
+
+By the way, what's the non-hack method? Doing it 'right' involves a
+LOT more work. That work involves using the h323-conf-id, which is
+the unique key across all legs in a call, to store every received leg
+of every call into sql tables, and to collect data from each of the
+legs as they arrive, and make a decision to bill once sufficient
+information is known about the call. This is actually very
+non-trivial in practice - some things you need to know are in some
+legs, some things you need to know are in others, and legs arrive
+separated in time, from the two gateways concerned, as the call
+proceeds.
+
+BUT: You actually don't need to do the above until you graduate to
+building a full post-paid billing engine for your VoIP nodes. I've
+done this, it's really quite non-trivial :) Ok -very- non-trivial :)
+
+Again, for prepaid, don't bother. The simple hack is to only 'act' on
+'originate' records with nonzero call durations. As it happens, those
+legs have the prepaid card ID in the username field, so you have
+everything you need in order to decrement the punters' card right
+there. The thing to do is make sure this is the only Stop record you
+process financially.
+
+In the following code segment:
+
+$inav is the attribute/value pairs hash from the radius accounting record.
+
+at this point in the code I've already pre-processed them to
+'de-convolute' the h323 attributes. As you will have noticed, they
+have this amazingly inside-its-own-navel format originally, like this:
+
+        cisco-h323-call-type = "h323-call-type=Telephony"
+
+Before the code segment below is reached, I've worked through all the
+attribute/value pairs and converted anything that looks like the
+above into just plain old 'h323-call-type' as the hash entry name and
+'Telephony' as the value. It makes things soooo much simpler. i.e.
+$inav is a copy of the original hash, with that 'deconvolution'
+applied to it.
+
+There are some other issues, too, like the standard radius 'trap for
+young players', of multiple stop records being written if your
+gateway doesn't see the ack for the first copy of one of them.
+You'll see a hack to pragmatically deal with that in the code below
+as well.
+
+'finish' writes the avpairs out to stdout for radiator to pick up and
+exits - so when I call that below, I'm getting out of town early (and
+not charging the card from -that- stop record).
+
+The 'table' calls in the below are calls to a sql-like database
+thingy I wrote for the task. You'll figure out what I'm trying to do.
+
+Read on...:
+
+[...]
+} elsif ($request_type eq "Accounting-Request") {
+
+         # we only need to respond to VoIP Originate calls.
+         # those are the ones with the calling card Id in them.
+         # other legs have clid/dnis but no calling card data at all.
+
+         # skip if this is not a 'Stop' record.
+
+         finish($rv_accept)
+                 if ($inav{'Acct-Status-Type'} ne 'Stop');
+
+         # don't store repeated attempts - this is the simple hack
+         # version, rendering retried calls free if we miss the first
+         # (delay time 0) record...this means we miss the entire call if
+        # we miss the initial attempt to give it to us, but since that is
+        # very occasional, we feel its better than double-charging the customer
+        # if we get the delay 0 copy and a later copy as well (which seems more
+        # common than missing the delay 0 copy)
+
+         finish($rv_accept)
+                 if ($inav{'Acct-Delay-Time'} ne '0');
+
+         # hack - there is a zero length accounting record written
+         # for hairpin calls where the gatekeeper bounces us and we hairpin
+         # via internal dial-peer search.
+         # The initial bounced attempt seems
+         # to return a call termination status of 15 and a remote address
+         # field of 255.255.255.255. Look for the latter, hopefully that will
+         # catch this case for the present.  Call duration is also zero.
+
+         finish($rv_accept)
+                 if (($inav{'h323-remote-address'} eq "255.255.255.255")
+                         && ($inav{'Acct-Session-Time'} eq '0'));
+
+         # second hack - zero length session with disconnect cause 3
+         # which seems to be a remote voip reject, again just before
+         # the local gateway hairpins the call instead.
+
+         finish($rv_accept)
+                 if (($inav{'h323-disconnect-cause'} eq '3')
+                         && ($inav{'Acct-Session-Time'} eq '0'));
+
+         # ok, continue.
+
+              $ts = $inav{'Timestamp'};
+
+              $calling = $inav{'Calling-Station-Id'};
+              $called  = $inav{'Called-Station-Id'};
+
+
+                # username is our card number
+              my $un = $inav{"User-Name"};
+
+                # these are the key to working out which call leg this is.
+              my $co = $inav{"h323-call-origin"};
+              my $ct = $inav{"h323-call-type"};
+
+              $gid = $inav{'h323-gw-id'};
+
+              $dcause = $inav{'h323-disconnect-cause'};
+
+              $confid = $inav{'h323-conf-id'};
+              $inconfid = $inav{'h323-incoming-conf-id'};
+
+              $vq = $inav{'h323-voice-quality'};
+
+                 #
+                 # the key is that the debitcard calls are Stop records
+                 # which are call-origin 'originate' and which
+                 # 'look' like a card # in the User-Name field.
+                 # (also card-num will not appear in the 'called' field)
+
+                 finish($rv_accept)
+                         if ($co ne 'originate');
+
+         # ok, connect to the back-end database
+         connect_database();
+
+                 # is the card number valid?
+                 print "Find card number <$un>\n"
+                         if ($debug);
+                 $id = table_findfirst('PREPAIDCARD', 'CardNumber', $un);
+
+                 # flag whether it is a valid card number
+                 $iscard = ($id ne "");
+
+
+         # so, we think we have a real record here.
+         # we need calculate the call cost
+
+         my $duration = $inav{'Acct-Session-Time'};
+         # update usage date information
+         my $usetime = $inav{'Timestamp'};
+
+         my $starttime = $usetime - $duration;
+
+        # charge the call!
+
+[...]
+
+
+You should get the idea from the above.
+
+Really the key is that issue of finding a valid looking, nonzero
+duration, **originate** leg. Thats the key item - and discard
+everything else.
+
+Most of the above is actually redundant, in the end the only tests
+you probably need are to discard all records except those with a
+nonzero duration of type 'originate', and to manage the standard
+radius issue of seeing multiple of those (with different values of
+Acct-Delay-Time) somehow - either with a full 'memory' of the records
+you see, or in the pragmatic way that I do it (discard everything
+except records with Acct-Delay-Time == 0).
+
+Cheers,
+   Simon Hackett
+   simon@agile.com.au
+   simon@internode.com.au

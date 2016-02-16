@@ -1,0 +1,95 @@
+After searching through your mailing list to find out if I could enable a
+"preauth" type situation whereby users dialing into an Ascend TNT NAS could
+be set to CHAP or PAP based on the Called-Station-Id attribute.  I noticed a
+reply by Hugh to someone saying it is NAS configured and not Radiator
+configured.  This is not entirely true - I have just got it working and it
+involves SOME NAS configuration but I have been able to get Radiator to
+check if the user should be using PAP or CHAP and then send this information
+to the TNT to setup the PPP connections.  All of this get's done while the
+modems are still negotiating so the end user doesn't see any delays.
+Remember this particular setup is COMPLETELY based on <Handler
+Called-Station-ID=...> so it worked fine for us but another setup with realm
+based authentication may be a little different.  I'm only sending this as
+reference for yourself and possibly the mailing list but if you already know
+then just disregard.
+
+Configuration on TNT
+********************
+TNT must first be in VSA mode:
+	read external-auth
+	set rad-auth-client auth-radius-compat = vendor-specific
+
+Then the TNT needs to use PreAuthentication
+	read answer
+	set clid-auth-mode = dnis-first
+	An explaination of the DNIS modes are shown below:
+		dnis-require:  	The Called # must be valid and match the value in the
+stored
+     					profile. If the profile also requires pap/chap/etc then do that in
+     					addition.
+ 		dnis-pref:  	Authenticate using the Called # if provided by the telco
+switch,
+     					otherwise fall back to using the encapsulation protocol's
+authentication.
+     					If DNIS authentication fails, refuse the call.
+ 		dnis-first:  	First authenticate using the Called # if provided by the
+telco
+     					switch. If Called # authentication fails, fall back to using the
+     					encapsulation protocol's authentication.
+
+Configuration on Radiator
+*************************
+The TNT (after the above changes are made) then sends an Access-Request to
+Radiator with User-Name=(Called-Station-Id) and User-Password=Ascend-DNIS.
+You just need to add a Handler above the one used for the customer in
+question matching on Called-Station-Id AND User-Name (same value).  For an
+example of the Handler code see below:
+
+<Handler Called-Station-Id=0293474101, User-Name=0293474101>
+        <AuthBy FILE>
+                Filename %D/papcustomers
+        </AuthBy>
+</Handler>
+<Handler Called-Station-Id=0293474101>
+        AuthByPolicy DoAll
+	  stuff...
+        <AuthBy SQL>
+                stuff...
+        </AuthBy>
+        <AuthBy RADIUS>
+                stuff...
+	  </AuthBy>
+</Handler>
+
+And the contents of the 'papcustomers' file is shown below:
+
+0293474101      Called-Station-Id=0293474101, User-Password="Ascend-DNIS"
+ Ascend-Require-Auth=Require-Auth,
+ Ascend-Auth-Type=3
+
+You must also edit your dictionary to include the line:
+VENDORATTR 529       Ascend-Auth-Type                 81     integer
+
+The reply-items setup PAP/CHAP/MS-CHAP/etc...  And the allowed value are
+listed below:
+
+Auth-Non (0) specifies that no tier-2 name and password authentication is
+required. Specifying this value has the same 			effect as setting
+Ascend-Require-Auth to Not-Require-Auth.
+Auth-Default (1) specifies that the connection uses the Receive-Auth-Mode
+setting.
+Auth-Any (2) specifies that the connection must use PAP, CHAP or MS-CHAP.
+Auth-PAP (3) specifies that the connection must use PAP.
+Auth-CHAP (4) specifies that the connection must use CHAP.
+Auth-MS-CHAP (5) specifies that the connection must use MS-CHAP.
+
+We have only needed this functionality because when Radius Proxied customers
+dialup using Win95/98/etc, Microsoft in their infinite wisdom try CHAP first
+then PAP.  As we want the TNT to support both we can't just disable one.
+Hence we need to set PAP/CHAP based on Called-Station-Id.
+
+Anyway hope this was actually helpful and not too long-winded and boring...
+
+Cheers
+Aaron
+

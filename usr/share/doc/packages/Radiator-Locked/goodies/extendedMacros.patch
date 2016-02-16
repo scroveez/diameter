@@ -1,0 +1,93 @@
+From owner-radiator@open.com.au Sun Nov 15 23:10 EST 1998
+Received: (from majordom@localhost) by oscar.open.com.au (8.6.12/8.6.12) id XAA07007 for radiator-list; Sun, 15 Nov 1998 23:10:12 +1100
+Received: (from uucp@localhost) by oscar.open.com.au (8.6.12/8.6.12) id XAA07003 for radiator@open.com.au; Sun, 15 Nov 1998 23:10:08 +1100
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Sun, 15 Nov 1998 22:47:44 +1100 (EST)
+Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id WAA11909
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Sun, 15 Nov 1998 22:47:44 +1100 (EST)
+Received: from phobos.kiss.de (phobos.kiss.de [194.77.116.2]) by yarrina.connect.com.au with ESMTP id WAA06844
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Sun, 15 Nov 1998 22:47:39 +1100 (EST)
+Received: from hades.kiss.de (hades.kiss.de [194.77.116.26])
+	by phobos.kiss.de (8.9.1/8.9.1) with ESMTP id MAA31155
+	for <radiator@open.com.au>; Sun, 15 Nov 1998 12:47:36 +0100
+Received: by hades.kiss.de with Internet Mail Service (5.5.2232.9)
+	id <W5RJQC3Q>; Sun, 15 Nov 1998 12:47:42 +0100
+>Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id WAA11909
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Sun, 15 Nov 1998 22:47:44 +1100 (EST)
+X-Delivered-To: <radiator@open.com.au>
+Message-ID: <31919E3CEE22D211A7530800092C25D7EEB7@hades.kiss.de>
+From: "Bonis, Wim" <bonis@kiss.de>
+To: "'radiator@open.com.au'" <radiator@open.com.au>
+Subject: (RADIATOR) A Improvement to the Variables
+Date: Sun, 15 Nov 1998 12:47:40 +0100
+MIME-Version: 1.0
+X-Mailer: Internet Mail Service (5.5.2232.9)
+Sender: owner-radiator@open.com.au
+Precedence: bulk
+Content-Type: text/plain;
+	charset="iso-8859-1"
+Content-Length: 2151
+Status: OR
+
+The following patch allows to write in the config file 
+the Atributes as 
+
+%{attr,integer}      The value of the named attribute as Integer (as in the
+dictionary)
+%{attr,NULL}         The value of the named attribute as String (But NULL if
+it is empty/missing)
+%{attr,integerNULL}  The value of the named attribute as Integer (as in the
+dictionary, But null if it is missing)
+%{attr,integer-date} The value of the named attribute as Integer-Date
+
+I need this because i keep the Attributes in my accounting files as numeric
+data.
+
+So i can write the following:
+
+AcctSQLStatement insert into usertime \
+                ( \
+			...
+                ) \
+                values \
+                (\
+		   	...
+                %{Acct-Session-Time,NULL},\
+                %{NAS-Port,NULL},\
+                %{NAS-Port-Type,integerNULL},\
+                %{Service-Type,integer},\
+                %{Framed-Protocol,integerNULL},\
+			...
+
+*** ../Radiator-2.12.1/radiusd  Wed Oct 21 13:37:49 1998
+--- radiusd     Sun Nov  8 14:41:17 1998
+***************
+*** 453,458 ****
+--- 453,462 ----
+      local $packet = $current_packet;
+  
+      $s =~ s/%([%acCdDhHLmMNnRtTyY])/&{$main::conversions{$1}}()/egs;
++     $s =~ s/%\{([^{]+),integerNULL\}/{my($v) =
+$packet->{Dict}->valNameToNum($1,$packet->get_attr($1)) ; defined $v ? $v :
+'NULL' }/egs;
++     $s =~
+s/%\{([^{]+),integer\}/{$packet->{Dict}->valNameToNum($1,$packet->get_attr($
+1))}/egs;
++     $s =~
+s/%\{([^{]+),integer-date\}/{&Radius::SqlDb::formatSQLDate($packet->get_attr
+($1))}/egs;
++     $s =~ s/%\{([^{]+),NULL\}/{my($v) = $packet->get_attr($1) ; defined $v
+? $v : 'NULL'}/egs;
+      $s =~ s/%\{([^{]+)\}/{$packet->get_attr($1)}/egs;
+  
+      return $s;
+
+-------------------------------------------------------------------
+Wim Bonis               ,+'^'+,                Telefon:0631-31662-0
+                KISS GmbH = DPN POP KL         Technik:0631-31662-15
+email: bonis@kiss.de    +,.,+                   privat:0631-36071-80
+Karl-Marx-Str 13                                67655 Kaiserslautern
+
+===
+To unsubscribe, email 'majordomo@open.com.au' with
+'unsubscribe radiator' in the body of the message.
+

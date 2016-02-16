@@ -1,0 +1,286 @@
+#!/usr/bin/perl
+#
+# tacacsplustest
+# Simple client for testing radius servers
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 1997-2007 Open System Consultants
+# $Id: tacacsplustest,v 1.21 2014/03/18 21:22:53 hvn Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+}
+
+require 5.6.0;
+use Getopt::Long;
+use Radius::TacacsClient;
+use Radius::Log;
+use strict;
+
+my @options = 
+    (
+     'h',          # Print usage
+     'user=s',     # Username
+     'password=s', # Users password
+     'key=s',      # Shared encryption key
+     'session_id=s',
+     'remote_addr=s', # users remote address
+     'userport=i', # incoming port number
+     'trace:i',	   # Emit trace of events
+     'notrace',    # No tracing
+     's=s',        # The server to send to 
+     'port=s',     # The server port to send to
+     'bind_address=s', # Local address
+     'input_octets=i',
+     'output_octets=i',
+     'noauthen',
+     'noauthor',
+     'noacct',
+     'nostart',
+     'nostop',
+     'author_args=s',     # arguments to send in Authorization requests
+     'acct_start_args=s', # arguments to send in Accounting start requests
+     'acct_stop_args=s',  # arguments to send in Accounting stop requests
+     'iterations=i',      # Number of times to run the test
+     'interactive',       # Permit getting of more data
+     'ascii',             # authen_type ASCII
+     'raw=s',      # Send raw data literally
+     'rawfile=s',  # Hex data from a file literallly
+     'single',          # Single connection
+     );
+
+&GetOptions(@options) || &usage;
+&usage if $main::opt_h;
+
+my $user = defined $main::opt_user ? $main::opt_user : 'mikem';
+my $password = defined $main::opt_password ? $main::opt_password : 'fred';
+my $key = $main::opt_key || 'mysecret';
+my $session_id = $main::opt_session_id || 1234;
+my $remote_addr = $main::opt_remote_addr || 'testclient';
+my $userport = $main::opt_userport || 123;
+my $server = $main::opt_s || 'localhost';
+my $port = $main::opt_port || $Radius::Tacacsplus::TAC_PLUS_PORT;
+my $local_addr = $main::opt_bind_address;
+my $input_octets = $main::opt_input_octets || 1000;
+my $output_octets = $main::opt_output_octets || 2000;
+my $trace_level = ($main::opt_trace eq '0') ? 4 : $main::opt_trace;
+$trace_level = 1 unless defined $trace_level;
+$trace_level = 0 if $main::opt_notrace;
+my @author_args = ('service=shell', 'cmd=telnet', 'cmd-arg=host1');
+@author_args = split(/,/, $main::opt_author_args) if defined $main::opt_author_args;
+my @acct_start_args = ('task_id=123');
+@acct_start_args = split(/,/, $main::opt_acct_start_args) if defined $main::opt_acct_start_args;
+my @acct_stop_args = ('task_id=123', "bytes_in=$input_octets", "bytes_out=$output_octets");
+@acct_stop_args = split(/,/, $main::opt_acct_stop_args) if defined $main::opt_acct_stop_args;
+my $iterations = $main::opt_iterations || 1;
+my $authen_type = $Radius::Tacacsplus::TAC_PLUS_AUTHEN_TYPE_PAP;
+$authen_type = $Radius::Tacacsplus::TAC_PLUS_AUTHEN_TYPE_ASCII if $main::opt_ascii;
+my $tacacsclientflags = $Radius::Tacacsplus::TAC_PLUS_SINGLE_CONNECT_FLAG if $main::opt_S;
+
+if ($main::opt_rawfile)
+{
+    open(RAW, $main::opt_rawfile) 
+	|| die "Could not open rawfile $main::opt_rawfile: $!";
+    # Slurp the whole file
+    local $/;
+    $main::opt_raw = <RAW>;
+    close RAW;
+}
+
+
+# Incrementing sequence number
+my $next_seq_no = 1;
+my $errors = 0;
+my $reject = 0;
+my $client;
+
+&log($main::LOG_DEBUG, "Connecting to TACACS+ server $server:$port");
+while ($iterations-- > 0)
+{
+    $client = Radius::TacacsClient->new
+	(Host => $server,
+	 Port => $port,
+	 Key  => $key,
+	 TFlags => $tacacsclientflags,
+	 LocalAddr => $local_addr)
+	or die "Could not connect to TACACS+ server $server:$port: $!\n";
+
+    &authentication() unless $main::opt_noauthen;
+    &authorization(@author_args) unless $main::opt_noauthor;
+    &accounting($Radius::Tacacsplus::TAC_PLUS_ACCT_START, @acct_start_args) 
+	unless $main::opt_noacct || $main::opt_nostart;
+    &accounting($Radius::Tacacsplus::TAC_PLUS_ACCT_STOP, @acct_stop_args)
+	unless $main::opt_noacct || $main::opt_nostop;
+    &sendRaw($main::opt_raw) if defined $main::opt_raw;
+}
+
+# Exit with 2 if errors, 1 if a rejection, 0 if all ok
+exit ($errors ? 2 : ($reject ? 1 : 0));
+
+#####################################################################
+sub authentication
+{
+    $client->reconnect();
+
+    my ($version, $type, $seq_no, $rflags, $session_id, $status, $tflags, $server_msg, $data)
+	= $client->authentication
+	(
+	 SessionId => $session_id,
+	 AuthenType => $authen_type,
+	 Username => $user,
+	 Userport => $userport,
+	 RemoteAddress => $remote_addr,
+	 Password => $password,
+	 Interactive => $main::opt_interactive,
+	 );
+    if (!defined $status)
+    {
+	# Connection failure
+	$errors++;
+    }
+    elsif ($status == $Radius::Tacacsplus::TAC_PLUS_AUTHEN_STATUS_PASS)
+    {
+	print "OK\n";
+    }
+    elsif ($status == $Radius::Tacacsplus::TAC_PLUS_AUTHEN_STATUS_FAIL)
+    {
+	print "FAIL\n";
+	$reject++;
+    }
+    else
+    {
+	&main::log($main::LOG_WARNING, "Bad status in authentication response: $status, '$server_msg'");
+	$errors++;
+    }
+}
+
+#####################################################################
+sub authorization
+{
+    my (@args) = @_;
+
+    $client->reconnect();
+    my ($version, $type, $seq_no, $tflags, $session_id, $status, $server_msg, $data)
+	= $client->authorization
+	(
+	 SessionId => $session_id,
+	 AuthenType => $authen_type,
+	 Username => $user,
+	 Userport => $userport,
+	 RemoteAddress => $remote_addr,
+	 AuthorArgs => [@args]);
+
+    if (!defined $status)
+    {
+	# Connection failure
+	$errors++;
+    }
+    elsif (   $status == $Radius::Tacacsplus::TAC_PLUS_AUTHOR_STATUS_PASS_ADD
+	|| $status == $Radius::Tacacsplus::TAC_PLUS_AUTHOR_STATUS_PASS_REPL)
+    {
+	print "OK\n";
+    }
+    elsif ($status == $Radius::Tacacsplus::TAC_PLUS_AUTHOR_STATUS_FAIL)
+    {
+	print "FAIL\n";
+	$reject++;
+    }
+    else
+    {
+	&main::log($main::LOG_WARNING, "Bad status in authorization response: $status, '$server_msg'");
+	$errors++;
+    }
+}
+
+	
+#####################################################################
+sub accounting
+{
+    my ($acct_type, @args) = @_;
+
+    $client->reconnect();
+    my ($version, $type, $seq_no, $tflags, $session_id, $status, $server_msg, $data)
+	= $client->accounting
+	(
+	 AFlags => $acct_type,
+	 SessionId => $session_id,
+	 AuthenType => $authen_type,
+	 Username => $user,
+	 Userport => $userport,
+	 RemoteAddress => $remote_addr,
+	 AcctArgs => [@args]);
+
+    if (!defined $status)
+    {
+	# Connection failure
+	$errors++;
+    }
+    elsif ($status == $Radius::Tacacsplus::TAC_PLUS_ACCT_STATUS_SUCCESS)
+    {
+	print "OK\n";
+    }
+    elsif ($status == $Radius::Tacacsplus::TAC_PLUS_ACCT_STATUS_ERROR)
+    {
+	print "FAIL\n";
+	$reject++;
+    }
+    else
+    {
+	&main::log($main::LOG_WARNING, "Bad status in accounting response: $status, '$server_msg'");
+	$errors++;
+    }
+    $client->disconnect() unless $main::opt_S && ($tflags & $Radius::Tacacsplus::TAC_PLUS_SINGLE_CONNECT_FLAG);
+}
+
+	
+#####################################################################
+# Send an aribtrary data
+sub sendRaw
+{
+    my ($raw) = @_;
+
+    $raw =~ s/\s//g;
+    print "RAW is $raw\n";
+    $raw = pack('H*', $raw);
+    $client->reconnect();
+    $client->{_socket}->send($raw);
+    my ($version, $type, $seq_no, $tflags, $session_id, $body) = 
+	&Radius::Tacacsplus::recv_response($client->{_socket}, $key);
+    if (defined $version)
+    {
+	print "GOT $version, $type, $seq_no, $tflags, $session_id, ", unpack('H*', $body), "\n";
+    }
+    else
+    {
+	&main::log($main::LOG_WARNING, "TacacsClient recv_response failed. Peer probably disconnected: $!");
+	$errors++;
+    }
+    $client->disconnect() unless $main::opt_S && ($tflags & $Radius::Tacacsplus::TAC_PLUS_SINGLE_CONNECT_FLAG);
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h] [-user username] [-password password]
+          [-trace [level]] [-notrace] [-s server] [-port port] [-key sharedkey] 
+          [-bind_address address] [-session_id string] [-input_octets n]
+          [-output_octets n] [-remote_addr address] [-userport n]
+          [-noauthen] [-noauthor] [-noacct] [-nostart] [-nostop]
+          [-author_args attr=val,attr=val,...]
+          [-acct_start_args attr=val,attr=val,...]
+          [-acct_stop_args attr=val,attr=val,...]
+          [-iterations n] [-ascii] [-single]\n";
+    exit;
+}
+
+
+#####################################################################
+sub log
+{
+    my ($priority, $s, $p) = @_;
+
+    print $s, "\n" if $priority <= $trace_level;
+}
+

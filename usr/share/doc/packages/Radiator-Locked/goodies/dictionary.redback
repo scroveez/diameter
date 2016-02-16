@@ -1,0 +1,355 @@
+################################################################################
+# Radiator dictionary file
+# dictionary.redback
+# 
+# 
+################################################################################
+
+ATTRIBUTE	User-Name			1	string
+ATTRIBUTE	User-Password		2	string
+ATTRIBUTE	CHAP-Password		3	binary
+ATTRIBUTE	NAS-IP-Address		4	ipaddr
+ATTRIBUTE	NAS-Port			5	integer
+ATTRIBUTE	Service-Type		6	integer
+VALUE		Service-Type		Login-User			1
+VALUE		Service-Type		Framed-User			2
+VALUE		Service-Type		Callback-Login-User	3
+VALUE		Service-Type		Callback-Framed-User	4
+VALUE		Service-Type		Outbound-User		5
+VALUE		Service-Type		Administrative-User	6
+VALUE		Service-Type		NAS-Prompt-User		7
+VALUE		Service-Type		Authenticate-Only		8
+VALUE		Service-Type		Callback-Admin-User	9
+VALUE      	Service-Type    		Call-Check              10
+
+ATTRIBUTE	Framed-Protocol		7	integer
+VALUE		Framed-Protocol		PPP				1
+VALUE		Framed-Protocol		SLIP				2
+VALUE		Framed-Protocol		ARA				3
+VALUE		Framed-Protocol		Gandalf			4
+
+
+ATTRIBUTE	Framed-IP-Address		8	ipaddr
+ATTRIBUTE	Framed-IP-Netmask		9	ipaddr
+ATTRIBUTE	Framed-Routing		10	integer
+VALUE		Framed-Routing		None				0
+VALUE		Framed-Routing		Broadcast			1
+VALUE		Framed-Routing		Listen			2
+VALUE		Framed-Routing		Broadcast-Listen		3
+
+
+ATTRIBUTE	Filter-Id			11	string
+ATTRIBUTE	Framed-MTU			12	integer
+ATTRIBUTE	Framed-Compression	13	integer
+VALUE		Framed-Compression	None				0
+VALUE		Framed-Compression	Van-Jacobson-TCP-IP	1
+VALUE		Framed-Compression	IPX-Header-Compression	2
+
+
+ATTRIBUTE	Login-IP-Host		14	ipaddr
+ATTRIBUTE	Login-Service		15	integer
+VALUE		Login-Service		Telnet			0
+VALUE		Login-Service		Rlogin			1
+VALUE		Login-Service		TCP-Clear			2
+VALUE		Login-Service		PortMaster			3
+VALUE		Login-Service		LAT				4
+	
+
+ATTRIBUTE	Login-TCP-Port		16	integer
+ATTRIBUTE	Old-Password		17	string  ### deprecated
+ATTRIBUTE	Reply-Message		18	string
+ATTRIBUTE	Callback-Number		19	string
+ATTRIBUTE	Callback-Id			20	string
+ATTRIBUTE	Expiration			21	date
+ATTRIBUTE	Framed-Route		22	string
+ATTRIBUTE	Framed-IPX-Network	23	ipaddr
+ATTRIBUTE	State				24	string
+ATTRIBUTE	Class				25	string
+ATTRIBUTE	Vendor-Specific		26	string
+ATTRIBUTE	Session-Timeout		27	integer
+ATTRIBUTE	Idle-Timeout		28	integer
+ATTRIBUTE	Termination-Action	29	integer
+ATTRIBUTE	Called-Station-Id		30	string
+ATTRIBUTE	Calling-Station-Id	31	string
+ATTRIBUTE	NAS-Identifier		32	string
+ATTRIBUTE	Proxy-State			33	binary
+ATTRIBUTE	Login-LAT-Service		34	string
+ATTRIBUTE	Login-LAT-Node 		35	string
+ATTRIBUTE	Login-LAT-Group		36	string
+ATTRIBUTE	Framed-AppleTalk-Link	37	integer
+ATTRIBUTE	Framed-AppleTalk-Network 38	integer
+ATTRIBUTE	Framed-AppleTalk-Zone	39	string
+ATTRIBUTE	Acct-Status-Type		40	integer
+ATTRIBUTE	Acct-Delay-Time		41	integer
+ATTRIBUTE	Acct-Input-Octets		42	integer
+ATTRIBUTE	Acct-Output-Octets	43	integer
+ATTRIBUTE	Acct-Session-Id		44	string
+ATTRIBUTE	Acct-Authentic		45	integer
+ATTRIBUTE	Acct-Session-Time		46	integer
+ATTRIBUTE	Acct-Input-Packets	47	integer
+ATTRIBUTE	Acct-Output-Packets	48	integer
+ATTRIBUTE	Acct-Terminate-Cause	49	integer
+ATTRIBUTE	Acct-Multi-Session-Id	50	string
+ATTRIBUTE	Acct-Link-Count		51	integer
+ATTRIBUTE	CHAP-Challenge		60	binary
+ATTRIBUTE	NAS-Port-Type		61	integer
+ATTRIBUTE	Port-Limit			62	integer
+ATTRIBUTE	Login-LAT-Port		63	string
+
+#
+#       IETF Tunneling Attributes
+#	Values for string attributes other than Tunnel-Password
+#	must _always_ have a 0 octet at the beginning, eg:
+#	Tunnel-Server-Endpoint "\000203.63.154.22 fr:20"
+#
+ATTRIBUTE   Tunnel-Type             64    tagged-integer
+VALUE       Tunnel-Type     		PPTP    			1
+VALUE       Tunnel-Type     		L2F     			2
+VALUE       Tunnel-Type     		L2TP    			3
+VALUE       Tunnel-Type     		ATMP    			4
+VALUE       Tunnel-Type     		VTP     			5
+VALUE       Tunnel-Type     		AH      			6
+VALUE       Tunnel-Type     		IP      			7
+VALUE       Tunnel-Type     		MIN-IP  			8
+VALUE       Tunnel-Type     		ESP     			9
+VALUE       Tunnel-Type     		GRE     			10
+VALUE       Tunnel-Type     		DVS     			11
+
+ATTRIBUTE   Tunnel-Medium-Type      65    tagged-integer
+VALUE       Tunnel-Medium-Type      IP                      1
+VALUE       Tunnel-Medium-Type      X25                     2
+VALUE       Tunnel-Medium-Type      ATM                     3
+VALUE       Tunnel-Medium-Type      Frame-Relay     		4
+
+ATTRIBUTE   Tunnel-Client-Endpoint  66    tagged-string
+ATTRIBUTE   Tunnel-Server-Endpoint  67    tagged-string
+ATTRIBUTE   Tunnel-ID       		68    tagged-string
+ATTRIBUTE   Tunnel-Password         69    string
+ATTRIBUTE   Tunnel-Private-Group-ID	81	tagged-string
+ATTRIBUTE   Tunnel-Assignment-ID	82	tagged-string
+ATTRIBUTE   Tunnel-Preference		83	tagged-integer
+VALUE	Tunnel-Preference	First	1
+VALUE	Tunnel-Preference	Load-Balance	2
+
+ATTRIBUTE   Tunnel-Client-Auth-ID	90	integer
+ATTRIBUTE   Tunnel-Server-Auth-ID	91	integer
+
+
+VENDORATTR   2352       RB-Client-DNS-Pri               		 1  ipaddr
+VENDORATTR   2352       RB-Client-DNS-Sec                          2  ipaddr
+VENDORATTR   2352       RB-DHCP-Max-Leases                         3  integer    
+VENDORATTR   2352       RB-Context-Name                            4  string
+VENDORATTR   2352       RB-Bridge-Group                            5  string
+VENDORATTR   2352       RB-BG-Aging-Time                           6  string
+VENDORATTR   2352       RB-BG-Path-Cost                            7  string
+VENDORATTR   2352       RB-BG-Span-Dis                             8  string
+VENDORATTR   2352       RB-BG-Trans-BPDU                           9  string
+VENDORATTR   2352       RB-Rate-Limit-Rate                         10  integer
+VENDORATTR   2352       RB-Rate-Limit-Burst                        11  integer
+VENDORATTR   2352       RB-Police-Rate                             12  integer
+VENDORATTR   2352       RB-Police-Burst                            13  integer
+VENDORATTR   2352       RB-Source-Validation                       14  integer
+VALUE 		RB-Source-Validation	Enabled		1
+VALUE 		RB-Source-Validation	Disabled	2
+
+VENDORATTR   2352       RB-Tunnel-Domain                           15  integer
+VALUE 		RB-Tunnel-Domain	Enabled		1
+VALUE 		RB-Tunnel-Domain	Disabled	2
+
+VENDORATTR   2352       RB-Tunnel-Local-Name                       16	string
+VENDORATTR   2352       RB-Tunnel-Remote-Name                      17	string
+VENDORATTR   2352       RB-Tunnel-Function                         18  integer
+VALUE           RB-Tunnel-Function         LAC-Only                1
+VALUE           RB-Tunnel-Function         LNS-Only                2
+VALUE           RB-Tunnel-Function         LAC-LNS                 3
+
+
+VENDORATTR   2352       RB-Tunnel-Max-Sessions                     21  integer
+VENDORATTR   2352       RB-Tunnel-Max-Tunnels                      22  integer
+VENDORATTR   2352       RB-Tunnel-Session-Auth                     23  integer
+VALUE           RB-Tunnel-Session-Auth     CHAP                    1
+VALUE           RB-Tunnel-Session-Auth     PAP                     2
+VALUE           RB-Tunnel-Session-Auth     CHAP-PAP                3
+
+
+VENDORATTR   2352       RB-Tunnel-Window                           24  integer
+VENDORATTR   2352       RB-Tunnel-Retransmit                       25  integer
+VENDORATTR   2352       RB-Tunnel-Cmd-Timeout                      26  integer
+VENDORATTR   2352       RB-PPPOE-URL                               27	string
+VENDORATTR   2352       RB-PPPOE-MOTM                              28	string
+VENDORATTR   2352       RB-Tunnel-Group                            29  integer
+VALUE		RB-Tunnel-Group	Enabled		1
+VALUE		RB-Tunnel-Group	Disabled	2
+
+VENDORATTR   2352       RB-Tunnel-Context                          30	string
+VENDORATTR   2352       RB-Tunnel-Algorithm                        31	integer
+VALUE 		RB-Tunnel-Algorithm	Enabled		1
+VALUE 		RB-Tunnel-Algorithm	Disabled	2
+
+VENDORATTR   2352       RB-Tunnel-Deadtime                         32  integer
+VENDORATTR   2352       RB-Mcast-Send                              33  integer
+VALUE           RB-Mcast-Send              NO-SEND                 1
+VALUE           RB-Mcast-Send              SEND                    2
+VALUE           RB-Mcast-Send              UNSOLICITED-SEND        3
+
+VENDORATTR   2352       RB-Mcast-Receive                           34  integer
+VALUE           RB-Mcast-Receive           NO-RECEIVE              1
+VALUE           RB-Mcast-Receive           RECEIVE                 2
+
+VENDORATTR   2352       RB-Mcast-MaxGroups                         35  integer
+VENDORATTR   2352       RB-Ip-Address-Pool-Name                    36	string
+VENDORATTR   2352       RB-Tunnel-DNIS                             37  integer
+VALUE           RB-Tunnel-DNIS             DNIS                                    1
+VALUE           RB-Tunnel-DNIS             DNIS-Only                               2
+
+VENDORATTR   2352       RB-Medium-Type                             38  integer
+VALUE		RB-Medium-Type		DSL		11
+VALUE		RB-Medium-Type		Cable		12
+VALUE		RB-Medium-Type		Wireless	13
+VALUE		RB-Medium-Type		Satelite	14
+
+
+VENDORATTR   2352       RB-PVC-Encapsulation-Type                  39  integer
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-RAW              1
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-ROUTE1483        2
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-AUTO1483         3
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-MULTI            4
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-BRIDGE1483       5
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-PPP              6
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-PPP-SERIAL       7
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-PPP-NLPID        8
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-PPP-AUTO         9
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-PPPOE            10
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-L2TP             11
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ATM-PPP-LLC          12
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-AUTO1490       13
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-MULTI          14
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-BRIDGE1490     15
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-PPP            16
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-PPP-AUTO       17
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-PPPOE          18
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-ROUTE1490      19
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-FRAME-L2TP           20
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-L2TP-VC-MUXED        21
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ETH                  22
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ETH-PPPOE            23
+VALUE   RB-PVC-Encapsulation-Type  AAA-ENCAPS-ETH-MULTI            24
+
+VENDORATTR   2352       RB-PVC-Profile-Name                        40  string
+VENDORATTR   2352       RB-PVC-Circuit-Padding                     41  integer
+VALUE   RB-PVC-Circuit-Padding     AAA-CIRCUIT-PADDING             1
+VALUE   RB-PVC-Circuit-Padding     AAA-CIRCUIT-NO-PADDING          2
+
+
+
+VENDORATTR   2352       RB-Bind-Type                               42  integer
+VALUE   RB-Bind-Type               AAA-AUTH-BIND                   1
+VALUE   RB-Bind-Type               AAA-BYPASS-BIND                 2
+VALUE   RB-Bind-Type               AAA-INTERFACE-BIND              3
+VALUE   RB-Bind-Type               AAA-SUBSCRIBE-BIND              4
+VALUE   RB-Bind-Type               AAA-TUNNEL-BIND                 5
+VALUE   RB-Bind-Type               AAA-SESSION-BIND                6
+VALUE   RB-Bind-Type               AAA-Q8021-BIND                  7
+VALUE   RB-Bind-Type               AAA-MULTI-BIND                  8
+
+
+
+VENDORATTR   2352       RB-Bind-Auth-Protocol                      43  integer
+VALUE   RB-Bind-Auth-Protocol      AAA-PPP-PAP                     1
+VALUE   RB-Bind-Auth-Protocol      AAA-PPP-CHAP                    2
+VALUE   RB-Bind-Auth-Protocol      AAA-PPP-CHAP-WAIT               3
+VALUE   RB-Bind-Auth-Protocol      AAA-PPP-CHAP-PAP                4
+VALUE   RB-Bind-Auth-Protocol      AAA-PPP-CHAP-WAIT-PAP           5
+
+
+VENDORATTR   2352       RB-Bind-Auth-Max-Sessions                  44  integer
+VENDORATTR   2352       RB-Bind-Bypass-Bypass                      45	string
+VENDORATTR   2352       RB-Bind-Auth-Context                       46  string
+VENDORATTR   2352       RB-Bind-Auth-Service-Grp                   47  string
+VENDORATTR   2352       RB-Bind-Bypass-Context                     48  string
+VENDORATTR   2352       RB-Bind-Int-Context                        49  string
+VENDORATTR   2352       RB-Bind-Tun-Context                        50  string
+VENDORATTR   2352       RB-Bind-Ses-Context                        51  string
+VENDORATTR   2352       RB-Bind-Dot1q-Slot                         52  integer
+VENDORATTR   2352       RB-Bind-Dot1q-Port                         53  integer
+VENDORATTR   2352       RB-Bind-Dot1q-Vlan-Tag-Id                  54  integer
+VENDORATTR   2352       RB-Bind-Int-Interface-Name                 55  string
+VENDORATTR   2352       RB-Bind-L2TP-Tunnel-Name                   56  string
+VENDORATTR   2352       RB-Bind-L2TP-Flow-Control                  57  integer
+VENDORATTR   2352       RB-Bind-Sub-User-At-Context                58  string
+VENDORATTR   2352       RB-Bind-Sub-Password                       59  string
+VENDORATTR   2352       RB-Ip-Host-Addr                            60  string
+VENDORATTR   2352       RB-IP-TOS-Field                            61  integer
+VENDORATTR   2352       RB-NAS-Real-Port                           62  integer
+VENDORATTR   2352       RB-Tunnel-Session-Auth-Ctx                 63  string
+VENDORATTR   2352       RB-Tunnel-Session-Auth-Service-Grp 	       64  string
+VENDORATTR   2352       RB-Tunnel-Rate-Limit-Rate                  65  integer
+VENDORATTR   2352       RB-Tunnel-Rate-Limit-Burst                 66  integer
+VENDORATTR   2352       RB-Tunnel-Police-Rate                      67  integer
+VENDORATTR   2352       RB-Tunnel-Police-Burst                     68  integer
+VENDORATTR   2352       RB-Tunnel-L2F-Second-Password              69  string
+VENDORATTR   2352       RB-ACL-Definition			             70  string
+VENDORATTR   2352       RB-PPPoE-IP-Route-Add		             71  string
+VENDORATTR   2352       RB-Acct-Input-Octets-64                    128  integer8
+VENDORATTR   2352       RB-Acct-Output-Octets-64                   129  integer8
+VENDORATTR   2352       RB-Acct-Input-Packets-64                   130  integer8
+VENDORATTR   2352       RB-Acct-Output-Packets-64                  131  integer8
+VENDORATTR   2352       RB-Assigned-IP-Address                     132  ipaddr
+VENDORATTR   2352       RB-Acct-Mcast-In-Octets                    133  integer
+VENDORATTR   2352       RB-Acct-Mcast-Out-Octets                   134  integer
+VENDORATTR   2352       RB-Acct-Mcast-In-Packets                   135  integer
+VENDORATTR   2352       RB-Acct-Mcast-Out-Packets                  136  integer
+VENDORATTR   2352       RB-LAC-Port                                137  integer
+VENDORATTR   2352       RB-LAC-Real-Port                           138  integer
+VENDORATTR   2352       RB-LAC-Port-Type                           139  integer
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-10BT      40
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-100BT     41
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-DS3-FR    42
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-DS3-ATM   43
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-OC3       44
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-HSSI      45
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-EIA530    46
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-T1        47
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-CHAN-T3   48
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-DS1-FR    49
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-E3-ATM    50
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-IMA-ATM   51
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-DS3-ATM-2 52
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-OC3-ATM-2 53
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-1000BSX   54
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-E1-FR     55
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-E1-ATM    56
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-E3-FR     57
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-OC3-POS   58
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-OC12-POS  59
+VALUE           RB-LAC-Port-Type           NAS-PORT-TYPE-PPPOE     60
+
+
+VENDORATTR   2352	      RB-LAC-Real-Port-Type                      140  integer
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-10BT      40
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-100BT     41
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-DS3-FR    42
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-DS3-ATM   43
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-OC3       44
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-HSSI      45
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-EIA530    46
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-T1        47
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-CHAN-T3   48
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-DS1-FR    49
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-E3-ATM    50
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-IMA-ATM   51
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-DS3-ATM-2 52
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-OC3-ATM-2 53
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-1000BSX   54
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-E1-FR     55
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-E1-ATM    56
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-E3-FR     57
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-OC3-POS   58
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-OC12-POS  59
+VALUE           RB-LAC-Real-Port-Type      NAS-PORT-TYPE-PPPOE     60
+
+VENDORATTR   2352       Session_Error_Code               142 integer
+VENDORATTR   2352       Session_Error_Msg                143 string
+
+
+

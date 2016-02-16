@@ -1,0 +1,291 @@
+This is a brief discussion about how to integrate FreeSwitch with Radiator.
+
+FreeSWITCH is a powerful and versatile telephony platform that can scale from
+a softphone to a PBX and even to a carrier-class softswitch.
+
+We tested Radiator 4.7+patches against FreeSwitch 1.0.6.
+
+-----------------------------------------
+CDRs
+
+FreeSwitch is able to record details about each call to RADIUS. These Call
+Data Records (CDR) are sent to RADIUS as Accounting Start and Accounting Stop
+requests. Once in Radiator, you can use them to update usage records,
+decrement credit values etc. See the Radiator documentation on how to do this.
+
+To enable RADIUS CDR recording in FreeSwitch, you must install the FreeSwitch
+mod_radius_cdr module, following the instructions at:
+
+http://wiki.freeswitch.org/wiki/Mod_radius_cdr
+
+The documentation does not clearly explain where to copy the config file and
+radius directory to:
+freeswitch-1.0.6/src/mod/event_handlers/mod_radius_cdr/mod_radius_cdr.conf.xml 
+  -> /usr/local/freeswitch/conf/autoload_configs
+freeswitch-1.0.6/src/mod/event_handlers/mod_radius_cdr/radius 
+  -> /usr/local/freeswitch/conf/
+
+We edited mod_radius_cdr.conf.xml so that it only had one acctserver
+entry for localhost (where Radiator was running):
+
+       <param name="acctserver" value="127.0.0.1:1645:mysecret"/>
+
+Note that you must restart FreeSwitch after copying or editing mod_radius_cdr.conf.xml to
+/usr/local/freeswitch/conf/autoload_configs
+
+After restarting FreeSwitch, enter this command into the FreeSwitch to enable
+the CDR. 
+freeswitch@zulu> load mod_radius_cdr   
+
+Later, after testing, you can make the module load happen automatically when
+FreeSwitch starts. 
+
+CAUTION: if the RADIUS server is down, and the CDR Accounting Start is not
+acknowledged, calls cannot be made.
+
+
+-----------------------------------------
+Here is the DEBUG trace resulting from a call from phone 1001 to 9999, the music on
+hold number:
+
+
+Tue Jan 18 18:14:41 2011: DEBUG: Packet dump:
+*** Received from 127.0.0.1 port 54405 ....
+Code:       Accounting-Request
+Identifier: 176
+Authentic:  <205><133><203>X>N1<214><22>Y<219><225><151>t@<166>
+Attributes:
+        Acct-Status-Type = Start
+        Acct-Session-Id = "b0dd981c-ca47-432b-b5ff-bd582a740eaf"
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "test phone 1"
+        Freeswitch-Dst = "9999"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Callstartdate = "2011-01-18T18:14:41.166170+1000"
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 127.0.0.1
+
+Tue Jan 18 18:14:41 2011: DEBUG: Handling request with Handler 'Realm=DEFAULT', Identifier ''
+Tue Jan 18 18:14:41 2011: DEBUG:  Adding session for 1001, 127.0.0.1, 0
+Tue Jan 18 18:14:41 2011: DEBUG: Handling with Radius::AuthFILE:
+Tue Jan 18 18:14:41 2011: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Jan 18 18:14:41 2011: DEBUG: Accounting accepted
+Tue Jan 18 18:14:41 2011: DEBUG: Packet dump:
+*** Sending to 127.0.0.1 port 54405 ....
+Code:       Accounting-Response
+Identifier: 176
+Authentic:  +A<170><187><18>k<160>'g<155>d<220><249>@)]
+Attributes:
+
+Tue Jan 18 18:14:52 2011: DEBUG: Packet dump:
+*** Received from 127.0.0.1 port 51606 ....
+Code:       Accounting-Request
+Identifier: 177
+Authentic:  <213><246><3>.M|<165><24>d}<238>.@<196><165><150>
+Attributes:
+        Acct-Status-Type = Stop
+        Acct-Session-Id = "b0dd981c-ca47-432b-b5ff-bd582a740eaf"
+        Freeswitch-Hangupcause = Normal-Clearing
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "test phone 1"
+        Freeswitch-Dst = "9999"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Lastapp = "playback"
+        Freeswitch-Billusec = 10709659
+        Freeswitch-Callstartdate = "2011-01-18T18:14:41.166170+1000"
+        Freeswitch-Callanswerdate = "2011-01-18T18:14:41.410177+1000"
+        Freeswitch-Callenddate = "2011-01-18T18:14:52.119836+1000"
+        Acct-Session-Time = 10
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 127.0.0.1
+
+Tue Jan 18 18:14:52 2011: DEBUG: Handling request with Handler 'Realm=DEFAULT', Identifier ''
+Tue Jan 18 18:14:52 2011: DEBUG:  Deleting session for 1001, 127.0.0.1, 0
+Tue Jan 18 18:14:52 2011: DEBUG: Handling with Radius::AuthFILE:
+Tue Jan 18 18:14:52 2011: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Jan 18 18:14:52 2011: DEBUG: Accounting accepted
+Tue Jan 18 18:14:52 2011: DEBUG: Packet dump:
+*** Sending to 127.0.0.1 port 51606 ....
+Code:       Accounting-Response
+Identifier: 177
+Authentic:  <215><184>#W<6><157><199>?=5<18><144>'uP<194>
+Attributes:
+
+
+-----------------------------------------
+Here are the RADIUS CDR records resulting from a single internal call from
+1001 to 1002. Note that there are 2 Starts and 2 Stops.
+
+
+Tue Jan 18 18:00:24 2011: DEBUG: Packet dump:
+*** Received from 127.0.0.1 port 43859 ....
+Code:       Accounting-Request
+Identifier: 168
+Authentic:  <216><242><165><18><132>*<22><159>P<128><228><17><169>g<224><13>
+Attributes:
+        Acct-Status-Type = Start
+        Acct-Session-Id = "56355d36-653b-4344-a1a7-262d8675474c"
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "test phone 1"
+        Freeswitch-Dst = "1002"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Callstartdate = "2011-01-18T18:00:24.491515+1000"
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 127.0.0.1
+
+Tue Jan 18 18:00:24 2011: DEBUG: Handling request with Handler 'Realm=DEFAULT', Identifier ''
+Tue Jan 18 18:00:24 2011: DEBUG:  Adding session for 1001, 127.0.0.1, 0
+Tue Jan 18 18:00:24 2011: DEBUG: Handling with Radius::AuthFILE:
+Tue Jan 18 18:00:24 2011: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Jan 18 18:00:24 2011: DEBUG: Accounting accepted
+Tue Jan 18 18:00:24 2011: DEBUG: Packet dump:
+*** Sending to 127.0.0.1 port 43859 ....
+Code:       Accounting-Response
+Identifier: 168
+Authentic:  'S<207><224>6t<31>h$<0>#<242><26><2>n>
+Attributes:
+
+Tue Jan 18 18:00:24 2011: DEBUG: Packet dump:
+*** Received from 127.0.0.1 port 53477 ....
+Code:       Accounting-Request
+Identifier: 169
+Authentic:  <215><166><188><246><27><189>c<210><11><181>,<241><8><241><248><221>
+Attributes:
+        Acct-Status-Type = Start
+        Acct-Session-Id = "764d191d-8cce-4d42-8f1a-9693ad56ea93"
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "Extension 1001"
+        Freeswitch-Dst = "1002"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Callstartdate = "2011-01-18T18:00:24.590314+1000"
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 127.0.0.1
+
+Tue Jan 18 18:00:24 2011: DEBUG: Handling request with Handler 'Realm=DEFAULT', Identifier ''
+Tue Jan 18 18:00:24 2011: DEBUG:  Adding session for 1001, 127.0.0.1, 0
+Tue Jan 18 18:00:24 2011: DEBUG: Handling with Radius::AuthFILE:
+Tue Jan 18 18:00:24 2011: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Jan 18 18:00:24 2011: DEBUG: Accounting accepted
+Tue Jan 18 18:00:24 2011: DEBUG: Packet dump:
+*** Sending to 127.0.0.1 port 53477 ....
+Code:       Accounting-Response
+Identifier: 169
+Authentic:  w<186><155><11><177>tn<206><135>H<209>!?<172><10><138>
+Attributes:
+
+Tue Jan 18 18:00:37 2011: DEBUG: Packet dump:
+*** Received from 127.0.0.1 port 52098 ....
+Code:       Accounting-Request
+Identifier: 170
+Authentic:  <161><173><176><182><249><7><229><13><141><176><211>5s<182>d<223>
+Attributes:
+        Acct-Status-Type = Stop
+        Acct-Session-Id = "764d191d-8cce-4d42-8f1a-9693ad56ea93"
+        Freeswitch-Hangupcause = Normal-Clearing
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "Extension 1001"
+        Freeswitch-Dst = "1002"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.60
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Billusec = 5768148
+        Freeswitch-Callstartdate = "2011-01-18T18:00:24.590314+1000"
+        Freeswitch-Callanswerdate = "2011-01-18T18:00:31.231448+1000"
+        Freeswitch-Callenddate = "2011-01-18T18:00:36.999596+1000"
+        Acct-Session-Time = 5
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 127.0.0.1
+
+Tue Jan 18 18:00:37 2011: DEBUG: Handling request with Handler 'Realm=DEFAULT', Identifier ''
+Tue Jan 18 18:00:37 2011: DEBUG:  Deleting session for 1001, 127.0.0.1, 0
+Tue Jan 18 18:00:37 2011: DEBUG: Handling with Radius::AuthFILE:
+Tue Jan 18 18:00:37 2011: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Jan 18 18:00:37 2011: DEBUG: Accounting accepted
+Tue Jan 18 18:00:37 2011: DEBUG: Packet dump:
+*** Sending to 127.0.0.1 port 52098 ....
+Code:       Accounting-Response
+Identifier: 170
+Authentic:  ><184><190><137><253>JV<138><222><180>.m<247>t<233><180>
+Attributes:
+
+Tue Jan 18 18:00:37 2011: DEBUG: Packet dump:
+*** Received from 127.0.0.1 port 54865 ....
+Code:       Accounting-Request
+Identifier: 171
+Authentic:  <230>-<249><162><239><229>3<219>vc<185><138><205><230><194>z
+Attributes:
+        Acct-Status-Type = Stop
+        Acct-Session-Id = "56355d36-653b-4344-a1a7-262d8675474c"
+        Freeswitch-Hangupcause = Normal-Clearing
+        User-Name = "1001"
+        Freeswitch-Src = "1001"
+        Freeswitch-CLID = "test phone 1"
+        Freeswitch-Dst = "1002"
+        Freeswitch-Dialplan = "XML"
+        Framed-IP-Address = 203.63.154.158
+        Freeswitch-RDNIS = ""
+        Freeswitch-Context = "default"
+        Freeswitch-Ani = "1001"
+        Freeswitch-Aniii = ""
+        Freeswitch-Source = "mod_sofia"
+        Freeswitch-Lastapp = "voicemail"
+        Freeswitch-Billusec = 5637877
+        Freeswitch-Callstartdate = "2011-01-18T18:00:24.491515+1000"
+        Freeswitch-Callanswerdate = "2011-01-18T18:00:31.363624+1000"
+        Freeswitch-Callenddate = "2011-01-18T18:00:37.001501+1000"
+        Acct-Session-Time = 5
+        NAS-Port = 0
+        Acct-Delay-Time = 0
+        NAS-IP-Address = 127.0.0.1
+
+Tue Jan 18 18:00:37 2011: DEBUG: Handling request with Handler 'Realm=DEFAULT', Identifier ''
+Tue Jan 18 18:00:37 2011: DEBUG:  Deleting session for 1001, 127.0.0.1, 0
+Tue Jan 18 18:00:37 2011: DEBUG: Handling with Radius::AuthFILE:
+Tue Jan 18 18:00:37 2011: DEBUG: AuthBy FILE result: ACCEPT,
+Tue Jan 18 18:00:37 2011: DEBUG: Accounting accepted
+Tue Jan 18 18:00:37 2011: DEBUG: Packet dump:
+*** Sending to 127.0.0.1 port 54865 ....
+Code:       Accounting-Response
+Identifier: 171
+Authentic:  D<156><215>}<218><226><169><137>U<198>B1<175>T<10><174>
+Attributes:
+
+

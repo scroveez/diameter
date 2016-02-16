@@ -1,0 +1,162 @@
+#!/usr/bin/perl
+#
+# -*- mode: Perl -*-
+#
+# radimportACCT
+# Simple program for importing standard radius accounting data
+# into an SQL database
+# Exit status depends on success:
+# 255: could not connect to database
+# 1: at least one insert failed, according to the database DBD
+# 0: all OK
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2002 Open System Consultants
+# $Id: radimportacct,v 1.3 2012/06/27 23:27:18 mikem Exp $
+
+use Getopt::Long;
+use DBI;
+
+my @options= 
+    (
+     'v',        # Print usage
+     'd',        # Debug
+     'f=s',      # comment (full name)
+     'p=s',      # Password
+     's=s',      # Shell
+     'u=i',      # UID
+     'g=i',      # GID
+     'h=s',      # Home dir
+     'c=s',      # Other check items
+     'r=s',      # Other reply items
+     't=s',      # Table name to insert
+     'dbsource=s',
+     'dbusername=s',
+     'dbauth=s',
+     );
+
+&GetOptions(@options) || &usage;
+&usage if $opt_v;
+
+# The name of trhe table to insert into and other
+# configuranble SQL parameters
+# You may want to edit these to suit your site
+my $table      = $opt_t          || 'ACCOUNTING';
+my $dbsource   = $opt_dbsource   || 'dbi:mysql:radius';
+my $dbusername = $opt_dbusername || 'mikem';
+my $dbauth     = $opt_dbauth     || 'fred';
+my $errors;
+
+# This table describes the data items to collect and where to put them.
+# IF a data item is not present in the incoming record, it will not 
+# be inserted into its corresponding column.
+# Each entry is 3 items:
+#  name of the data item in the details file
+#  Database column name
+my @items = 
+    (
+     ['User-Name',             'USERNAME'],
+     ['Realm',                 'REALM'],
+     ['Called-Station-Id',     'CALLEDSTATIONID'],
+     ['NAS-Identifier',        'NASIDENTIFIER'],
+     ['NAS-IP-Address',        'NASIPADDRESS'],
+     ['NAS-Port-Id',           'NASPORT'],
+     ['NAS-Port-Type',         'NASPORTTYPE'],
+     ['Acct-Input-Octets',     'ACCTINPUTOCTETS'],
+     ['Acct-Output-Octets',    'ACCTOUTPUTOCTETS'],
+     ['Acct-Input-Packets',    'ACCTINPUTPACKETS'],
+     ['Acct-Output-Packets',   'ACCTOUTPUTPACKETS'],
+     ['Acct-Status-Type',      'ACCTSTATUSTYPE'],
+     ['Acct-Delay-Time',       'ACCTDELAYTIME'],
+     ['Acct-Session-Id',       'ACCTSESSIONID'],
+     ['Acct-Session-Time',     'ACCTSESSIONTIME'],
+     ['Acct-Terminate-Cause',  'ACCTTERMINATECAUSE'],
+     ['Timestamp',             'TIME_STAMP'],
+     ['Service-Type',          'SERVICETYPE'],
+     ['Framed-Protocol',       'FRAMEDPROTOCOL'],
+     ['Framed-IP-Address',     'FRAMEDIPADDRESS'],
+     ['Request-Authenticator', 'REQUESTAUTH'],
+     );
+
+# mikems test config, works with standard Radiator goodies/*.sql
+#my @items = 
+#    (
+#     ['User-Name',             'USERNAME'],
+#     ['NAS-Identifier',        'NASIDENTIFIER'],
+#     ['NAS-Port-Id',           'NASPORT'],
+#     ['Acct-Input-Octets',     'ACCTINPUTOCTETS'],
+#     ['Acct-Output-Octets',    'ACCTOUTPUTOCTETS'],
+#     ['Acct-Status-Type',      'ACCTSTATUSTYPE'],
+#     ['Acct-Delay-Time',       'ACCTDELAYTIME'],
+#     ['Acct-Session-Id',       'ACCTSESSIONID'],
+#     ['Acct-Session-Time',     'ACCTSESSIONTIME'],
+#     ['Acct-Terminate-Cause',  'ACCTTERMINATECAUSE'],
+#     ['Timestamp',             'TIME_STAMP'],
+#     ['Framed-IP-Address',     'FRAMEDIPADDRESS'],
+#     );
+
+# First make sure we can connect to the database
+# Open the database
+$dbh = DBI->connect($dbsource, $dbusername,$dbauth) 
+    || die "Could not connect to $dbsource: $DBI::errstr";
+
+# Read each line in each file, gathering raw data into the %indata hash
+my %indata;
+while (<>)
+{
+    chomp;
+    if (/^\S/)
+    {
+	# Start of a new record, insert the last one
+	&insertRecord();
+	# REVISIT this is the date line. Need to do anything with it?
+    }
+
+    s/^\s+//; # Strip leading whitespace
+    if (/^([^\s=]+)\s*=\s*"((\\"|[^"])*)"/)
+    {
+	# Quoted value
+	$indata{$1} = $2;
+    }
+    elsif (/^([^\s=]+)\s*=\s*([^,]*)/)
+    {
+	# Unquoted value
+	$indata{$1} = $2;
+    }
+}
+# Do the trailing record, if not done yet
+&insertRecord();
+exit $errors ? 1 : 0;
+
+# Insert data from the %indata hash (if there is some to insert)
+sub insertRecord
+{
+    return unless (keys %indata);
+
+    my ($item, @cols, @vals);
+    foreach $item (@items)
+    {
+	# Dont insert missing data items
+	next unless defined $indata{$item->[0]};
+
+	push(@cols, $item->[1]);
+	push(@vals, $dbh->quote($indata{$item->[0]}));
+    }
+    my $cols = join(',', @cols);
+    my $vals = join(',', @vals);
+    my $q = "insert into $table ($cols) values ($vals)";
+    print "query is $q\n" if $opt_d;
+    $dbh->do($q) || $errors++;
+
+    # Clear the data for the next record
+    %indata = (); 
+}
+
+sub usage
+{
+    print "usage: $0 [-v] [-d]
+  [-t tablename] 
+  [-dbsource dbi:db:etc] [-dbusername username] [-dbauth password]
+  detailfile ...\n";
+    exit;
+}

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://open.com.au/Radius/SOAPRequest" xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://open.com.au/Radius/SOAPRequest-impl" xmlns:intf="http://open.com.au/Radius/SOAPRequest" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:radiusapi="http://open.com.au/Radius/SOAPRequest" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<wsdl:types>
+		<schema targetNamespace="http://open.com.au/Radius/SOAPRequest" xmlns="http://www.w3.org/2001/XMLSchema">
+			<import namespace="http://schemas.xmlsoap.org/soap/encoding/"/>
+			<complexType name="RadiusRequest">
+				<sequence>
+					<element name="code" type="xsd:string"/>
+					<element name="identifier" type="xsd:string"/>
+					<element name="authenticator" type="xsd:string"/>
+					<element name="attributes" type="radiusapi:ArrayOfRadiusAttribute"/>
+				</sequence>
+			</complexType>
+			<complexType name="RadiusAttribute">
+				<sequence>
+					<element name="type" type="xsd:string"/>
+					<element name="value" type="xsd:string"/>
+				</sequence>
+			</complexType>
+			<complexType name="ArrayOfRadiusAttribute">
+				<complexContent>
+					<restriction base="soapenc:Array">
+						<attribute ref="soapenc:arrayType" wsdl:arrayType="radiusapi:RadiusAttribute[]"/>
+					</restriction>
+				</complexContent>
+			</complexType>
+			<element name="RadiusRequest" nillable="true" type="radiusapi:RadiusRequest"/>
+			<complexType name="RadiusResponse">
+				<sequence>
+					<element name="code" type="xsd:string"/>
+					<element name="identifier" type="xsd:string"/>
+					<element name="authenticator" type="xsd:string"/>
+					<element name="attributes" type="radiusapi:ArrayOfRadiusAttribute"/>
+				</sequence>
+			</complexType>
+			<element name="RadiusResponse" nillable="true" type="radiusapi:RadiusResponse"/>
+		</schema>
+	</wsdl:types>
+	<wsdl:message name="RadiusResponse">
+		<wsdl:part name="return" type="radiusapi:RadiusResponse"/>
+	</wsdl:message>
+	<wsdl:message name="RadiusRequest">
+		<wsdl:part name="request" type="radiusapi:RadiusRequest"/>
+	</wsdl:message>
+	<wsdl:portType name="Radius">
+		<wsdl:operation name="radius" parameterOrder="request">
+			<wsdl:input message="intf:radiusRequest" name="radiusRequest"/>
+			<wsdl:output message="intf:radiusResponse" name="radiusResponse"/>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="RadiusSoapBinding" type="intf:Radius">
+		<wsdlsoap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<wsdl:operation name="radius">
+			<wsdlsoap:operation soapAction=""/>
+			<wsdl:input name="radiusRequest">
+				<wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://open.com.au/Radius/SOAPRequest" use="encoded"/>
+			</wsdl:input>
+			<wsdl:output name="radiusResponse">
+				<wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://open.com.au/Radius/SOAPRequest" use="encoded"/>
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="RadiusService">
+		<wsdl:port binding="intf:RadiusSoapBinding" name="Radius">
+			<wsdlsoap:address location="http://localhost:80/cgi-bin/soapradius.cgi"/>
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,503 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Radiator Installation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<style type="text/css">
+<!--
+@import url(../style/osc);
+-->
+</style>
+<script language="JavaScript" src="../images/mm_menu.js"></script>
+<script language="JavaScript" type="text/JavaScript">
+<!--
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+
+function MM_nbGroup(event, grpName) { //v6.0
+  var i,img,nbArr,args=MM_nbGroup.arguments;
+  if (event == "init" && args.length > 2) {
+    if ((img = MM_findObj(args[2])) != null && !img.MM_init) {
+      img.MM_init = true; img.MM_up = args[3]; img.MM_dn = img.src;
+      if ((nbArr = document[grpName]) == null) nbArr = document[grpName] = new Array();
+      nbArr[nbArr.length] = img;
+      for (i=4; i < args.length-1; i+=2) if ((img = MM_findObj(args[i])) != null) {
+        if (!img.MM_up) img.MM_up = img.src;
+        img.src = img.MM_dn = args[i+1];
+        nbArr[nbArr.length] = img;
+    } }
+  } else if (event == "over") {
+    document.MM_nbOver = nbArr = new Array();
+    for (i=1; i < args.length-1; i+=3) if ((img = MM_findObj(args[i])) != null) {
+      if (!img.MM_up) img.MM_up = img.src;
+      img.src = (img.MM_dn && args[i+2]) ? args[i+2] : ((args[i+1])? args[i+1] : img.MM_up);
+      nbArr[nbArr.length] = img;
+    }
+  } else if (event == "out" ) {
+    for (i=0; i < document.MM_nbOver.length; i++) {
+      img = document.MM_nbOver[i]; img.src = (img.MM_dn) ? img.MM_dn : img.MM_up; }
+  } else if (event == "down") {
+    nbArr = document[grpName];
+    if (nbArr)
+      for (i=0; i < nbArr.length; i++) { img=nbArr[i]; img.src = img.MM_up; img.MM_dn = 0; }
+    document[grpName] = nbArr = new Array();
+    for (i=2; i < args.length-1; i+=2) if ((img = MM_findObj(args[i])) != null) {
+      if (!img.MM_up) img.MM_up = img.src;
+      img.src = img.MM_dn = (args[i+1])? args[i+1] : img.MM_up;
+      nbArr[nbArr.length] = img;
+  } }
+}
+//-->
+</script>
+</head>
+
+<body bgcolor="#DADAA5" onLoad="MM_preloadImages('../images/software/radiator2_f2.gif','../images/software/radar_f2.gif','../images/software/radmin_f2.gif','../images/software/eapsim_f2.gif','../images/search_f2.gif','../images/head/headpic2_r2_c2_f3.gif','../images/head/headpic2_r2_c2_f2.gif','../images/head/headpic2_r4_c4_f3.gif','../images/head/headpic2_r4_c6_f3.gif','../images/head/headpic2_r4_c6_f2.gif','../images/head/headpic2_r4_c6_f4.gif','../images/head/headpic2_r4_c8_f3.gif','../images/head/headpic2_r4_c8_f2.gif','../images/head/headpic2_r4_c8_f4.gif','../images/head/headpic2_r4_c10_f3.gif','../images/head/headpic2_r4_c10_f2.gif','../images/head/headpic2_r4_c10_f4.gif','../images/head/headpic2_r4_c12_f3.gif','../images/head/headpic2_r4_c12_f2.gif','../images/head/headpic2_r4_c12_f4.gif','../images/features_f2.gif','../images/technical_f2.gif','../images/documentation_f2.gif','../images/evaluation_f2.gif','../images/downloads_f2.gif')">
+<table width="760" height="96" align="center" cellpadding="0" cellspacing="0" bgcolor="#BABAEF">
+  <tr align="center" valign="top">
+    <td width="763" height="94" valign="middle"><table border="0" cellpadding="0" cellspacing="0" width="760">
+      <!-- fwtable fwsrc="newindex.png" fwbase="headpic2.gif" fwstyle="Dreamweaver" fwdocid = "742308039" fwnested="0" -->
+      <tr>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="30" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="85" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="29" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="114" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="7" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="114" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="5" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="114" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="5" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="114" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="5" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="115" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="22" height="1" border="0"></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="1" height="1" border="0"></td>
+      </tr>
+      <tr>
+        <td colspan="13"><img name="headpic2_r1_c1" src="../images/head/headpic2_r1_c1.gif" width="759" height="35" border="0" alt=""></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="1" height="35" border="0"></td>
+      </tr>
+      <tr>
+        <td rowspan="4"><img name="headpic2_r2_c1" src="../images/head/headpic2_r2_c1.gif" width="30" height="72" border="0" alt=""></td>
+        <td><a href="/index.html" target="_top" onClick="MM_nbGroup('down','navbar1','headpic2_r2_c2','../images/head/headpic2_r2_c2_f3.gif',1)" onMouseOver="MM_nbGroup('over','headpic2_r2_c2','../images/head/headpic2_r2_c2_f2.gif','../images/head/headpic2_r2_c2_f3.gif',1)" onMouseOut="MM_nbGroup('out');"><img name="headpic2_r2_c2" src="../images/head/headpic2_r2_c2.gif" width="85" height="34" border="0" alt=""></a></td>
+        <td rowspan="2" colspan="11"><img name="headpic2_r2_c3" src="../images/head/headpic2_r2_c3.gif" width="644" height="46" border="0" alt=""></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="1" height="34" border="0"></td>
+      </tr>
+      <tr>
+        <td rowspan="3"><img name="headpic2_r3_c2" src="../images/head/headpic2_r3_c2.gif" width="85" height="38" border="0" alt=""></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="1" height="12" border="0"></td>
+      </tr>
+      <tr>
+        <td rowspan="2"><img name="headpic2_r4_c3" src="../images/head/headpic2_r4_c3.gif" width="29" height="26" border="0" alt=""></td>
+        <td><a href="/software.html" target="_top" onClick="MM_nbGroup('down','navbar1','headpic2_r4_c4','../images/head/headpic2_r4_c4_f3.gif',1)" onMouseOver="MM_nbGroup('over','headpic2_r4_c4','../images/head/headpic2_r4_c4_f3.gif','../images/head/headpic2_r4_c4_f3.gif',1)" onMouseOut="MM_nbGroup('out');"><img src="../images/head/headpic2_r4_c4_f3.gif" alt="" name="headpic2_r4_c4" border="0" onload="MM_nbGroup('init','navbar1','headpic2_r4_c4','../images/head/headpic2_r4_c4_f3.gif',1)"></a></td>
+        <td rowspan="2"><img name="headpic2_r4_c5" src="../images/head/headpic2_r4_c5.gif" width="7" height="26" border="0" alt=""></td>
+        <td><a href="/services.html" target="_top" onClick="MM_nbGroup('down','navbar1','headpic2_r4_c6','../images/head/headpic2_r4_c6_f3.gif',1)" onMouseOver="MM_nbGroup('over','headpic2_r4_c6','../images/head/headpic2_r4_c6_f2.gif','../images/head/headpic2_r4_c6_f4.gif',1)" onMouseOut="MM_nbGroup('out');"><img name="headpic2_r4_c6" src="../images/head/headpic2_r4_c6.gif" width="114" height="25" border="0" alt=""></a></td>
+        <td rowspan="2"><img name="headpic2_r4_c7" src="../images/head/headpic2_r4_c7.gif" width="5" height="26" border="0" alt=""></td>
+        <td><a href="/support.html" target="_top" onClick="MM_nbGroup('down','navbar1','headpic2_r4_c8','../images/head/headpic2_r4_c8_f3.gif',1)" onMouseOver="MM_nbGroup('over','headpic2_r4_c8','../images/head/headpic2_r4_c8_f2.gif','../images/head/headpic2_r4_c8_f4.gif',1)" onMouseOut="MM_nbGroup('out');"><img name="headpic2_r4_c8" src="../images/head/headpic2_r4_c8.gif" width="114" height="25" border="0" alt=""></a></td>
+        <td rowspan="2"><img name="headpic2_r4_c9" src="../images/head/headpic2_r4_c9.gif" width="5" height="26" border="0" alt=""></td>
+        <td><a href="/howtobuy.html" target="_top" onClick="MM_nbGroup('down','navbar1','headpic2_r4_c10','../images/head/headpic2_r4_c10_f3.gif',1)" onMouseOver="MM_nbGroup('over','headpic2_r4_c10','../images/head/headpic2_r4_c10_f2.gif','../images/head/headpic2_r4_c10_f4.gif',1)" onMouseOut="MM_nbGroup('out');"><img name="headpic2_r4_c10" src="../images/head/headpic2_r4_c10.gif" width="114" height="25" border="0" alt=""></a></td>
+        <td rowspan="2"><img name="headpic2_r4_c11" src="../images/head/headpic2_r4_c11.gif" width="5" height="26" border="0" alt=""></td>
+        <td rowspan="2"><a href="/aboutosc.html" target="_top" onClick="MM_nbGroup('down','navbar1','headpic2_r4_c12','../images/head/headpic2_r4_c12_f3.gif',1)" onMouseOver="MM_nbGroup('over','headpic2_r4_c12','../images/head/headpic2_r4_c12_f2.gif','../images/head/headpic2_r4_c12_f4.gif',1)" onMouseOut="MM_nbGroup('out');"><img name="headpic2_r4_c12" src="../images/head/headpic2_r4_c12.gif" width="115" height="26" border="0" alt=""></a></td>
+        <td rowspan="2"><img name="headpic2_r4_c13" src="../images/head/headpic2_r4_c13.gif" width="22" height="26" border="0" alt=""></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="1" height="25" border="0"></td>
+      </tr>
+      <tr>
+        <td height="2"><img name="headpic2_r5_c4" src="../images/head/headpic2_r5_c4.gif" width="114" height="1" border="0" alt=""></td>
+        <td><img name="headpic2_r5_c6" src="../images/head/headpic2_r5_c6.gif" width="114" height="1" border="0" alt=""></td>
+        <td><img name="headpic2_r5_c8" src="../images/head/headpic2_r5_c8.gif" width="114" height="1" border="0" alt=""></td>
+        <td><img name="headpic2_r5_c10" src="../images/head/headpic2_r5_c10.gif" width="114" height="1" border="0" alt=""></td>
+        <td><img src="../images/head/spacer.gif" alt="" name="undefined_2" width="1" height="1" border="0"></td>
+      </tr>
+    </table></td>
+  </tr>
+</table>
+<table width="760" height="16" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="142" height="16" background="../images/background.gif"><a href="/search.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image38','','../images/search_f2.gif',1)"><img src="../images/search.gif" name="Image38" width="70" height="10" border="0"></a></td>
+    <td width="73" height="16" background="../images/backgroundlight.gif"><div align="center"><a href="index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image32','','../images/software/radiator2_f2.gif',1)"><img src="../images/software/radiator_f2.gif" name="Image32" width="70" height="10" border="0"></a></div></td>
+    <td width="73" height="16" background="../images/backgroundlight.gif"><div align="center"><a href="/radar/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image33','','../images/software/radar_f2.gif',1)"><img src="../images/software/radar.gif" name="Image33" width="73" height="10" border="0"></a></div></td>
+    <td width="73" height="16" background="../images/backgroundlight.gif"><div align="center"><a href="/radmin/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image34','','../images/software/radmin_f2.gif',1)"><img src="../images/software/radmin.gif" name="Image34" width="73" height="10" border="0"></a></div></td>
+    <td width="73" height="16" background="../images/backgroundlight.gif"><div align="center"><a href="/eap-sim/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image35','','../images/software/eapsim_f2.gif',1)"><img src="../images/software/eapsim.gif" name="Image35" width="73" height="10" border="0"></a></div></td>
+    <td width="1" height="16" background="../images/backgroundlight.gif"> 
+      <div align="center"></div>
+    </td>
+    <td width="145" height="16" background="../images/background.gif">&nbsp;</td>
+    <td width="107" height="16" background="../images/background.gif">&nbsp;</td>
+  </tr>
+</table>
+<table width="760" height="465" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#BABAEF">
+  <tr>
+    <td width="142" align="center" valign="top" bordercolor="#BABAEF"><p>&nbsp;</p>
+      <p><img src="../images/Radiator2.gif" width="81" height="67"></p>      <p><a href="features.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image49','','../images/features_f2.gif',1)"><img src="../images/features.gif" name="Image49" width="100" height="16" border="0"></a></p>      
+      <p><a href="technical.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image50','','../images/technical_f2.gif',1)"><img src="../images/technical.gif" name="Image50" width="100" height="16" border="0"></a></p>      <p><a href="documentation.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image51','','../images/documentation_f2.gif',1)"><img src="../images/documentation_f2.gif" name="Image51" width="100" height="16" border="0"></a></p>      
+      <p><a href="evaluation.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image52','','../images/evaluation_f2.gif',1)"><img src="../images/evaluation.gif" name="Image52" width="100" height="16" border="0"></a></p>      <p><a href="downloads.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image48','','../images/downloads_f2.gif',1)"><img src="../images/downloads.gif" name="Image48" width="100" height="16" border="0"></a></p>
+    </td>
+    <td width="618" height="100%" valign="top" bgcolor="#FFFFFF" class="oscbody"><p><font color="#FFFFFF">n<span class="oschead"><br>
+    </span></font><span class="oschead"><h1>Radiator Installation</h1></span><p></p>
+      <p>Radiator is a well behaved Perl application, and installation
+            is usually easy, but you will need to be prepared to spend some time
+            configuring Radiator
+              to suit your needs. You will need to be a competent system administrator
+              in order to install Radiator. You will need to have a basic understanding
+              of RADIUS and your system's authentication and accounting requirements
+              in order to configure Radiator. You will need to have a basic understanding
+              of SQL in order to configure AuthBy SQL (if you plan to use it).
+          You will need to have a basic understanding of LDAP in order to configure
+            AuthBy
+              LDAP (if you plan to use it). </p>      <ul>
+        <li>          First, <a href=../ordering.html>order and pay for</a> Radiator.
+        <li>          Wait for a user name and password to be sent to you by email.
+        <li>          Fetch <a
+    href=/radiator/downloads/index.html>radiator</a> (user name and password
+            required). Choose the appropriate
+    package for your platform and requirements. Save the file in a work directory.
+    If you have problems downloading
+            the software, please contact <a href=mailto:info@open.com.au>info@open.com.au</a>.
+        <li>Now go to <a href=#unix>Unix installation</a> 
+	or <a href=#rpm>Linux RPM installation</a> 
+	    or <a href=#osx>Mac OS X installation</a> 
+	    or <a href=#solaris>Solaris package installation</a>
+	    or <a href=#win95>Windows installation with ActivePerl</a>
+	    or <a href=#windowsXAMPP>Windows installation with XAMPP</a>
+                </ul>
+
+      <a name=unix></a>      <span class="oschead"><h2>Unix</h2></span>      <ol>
+        <li>          Make sure you are (or have access to) a system administrator and
+            someone who understands your Radius authentication and accounting requirements.
+        <li>          Obtain and install <a
+	   href=http://www.perl.com/perl>Perl 5</a> version 5.6.0 or better.
+        <li>          Obtain and install Perl Digest-MD5 version 2.12 or later from your
+            nearest <a
+    href=http://www.perl.com/CPAN/README.html>CPAN</a> archive.
+        <li>          Obtain and install Perl Digest-SHA version 5 or later from your
+            nearest <a
+    href=http://www.perl.com/CPAN/README.html>CPAN</a> archive.
+        <li>          If you plan to use SQL for authentication and/or accounting, obtain
+            and install DBI (version 0.90 or better) and the DBD module for your
+            selected database. DBD modules are available for many commercial, free
+            and shareware RDBMSs. See your nearest <a
+    href=http://www.perl.com/CPAN/CPAN.html>CPAN</a> archive.
+        <li>          If you plan to use MS-CHAP or MS-CHAP2 authentication obtain and
+            install Digest-MD4 from your nearest <a
+    href=http://www.perl.com/CPAN/CPAN.html>CPAN</a> archive.
+        <li>          If you plan to use LDAP for authentication and/or accounting, obtain
+            and install perl-ldap (version 0.22 or better) See your nearest <a
+    href=http://www.perl.com/CPAN/CPAN.html>CPAN</a> archive.
+        <li>          If you plan to use EAP TLS, TTLS or PEAP for 802.1x authentication
+            obtain and install <a href=http://www.openssl.org>OpenSSL</a> version
+            0.9.7 or later, and Net_SSLeay version 0.22 or later, Digest-HMAC version
+            1.01 or later from your nearest <a
+    href=http://www.perl.com/CPAN/CPAN.html>CPAN</a> archive.
+        <li>          If you plan to use the GUI interface to radpwtst obtain and install
+            Perl Tk (version Tk800.002 or better) See your nearest <a
+    href=http://www.perl.com/CPAN/CPAN.html>CPAN</a> archive.
+        <li>          Unpack the distribution with <code>gunzip -c Radiator-x.x.tgz|tar
+            xvf -</code>. You will need the Gnu Unix tool gunzip(1) to do this.
+        <li>          Check the <a
+    href=/radiator/downloads/index.html>latest patches and bug alerts</a> for
+            patches that might be relevant to your installation.
+        <li>          Change to the distribution directory: <code>cd Radiator-x.x</code>
+        <li>          <code>perl Makefile.PL</code>
+        <li>          <code>make test</code> This is the regression test. You should see
+            lots of lines saying "ok" and none saying "not ok". 
+        <li>          As a final test, run Radiator with a simple configuration file:
+            <ul>
+              <li>                Run radiator with <code>perl radiusd -config_file goodies/simple.cfg</code>.
+                This runs Radiator with logging turned on (so you can see whats
+                happening), and authenticates all requests from the file <code>users</code>.
+                You will see some messages, followed by <code>INFO: Server started</code>.
+                Radiator is now waiting for requests to arrive.
+              <li>                In another window, change to your Radiator directory, and run
+                the test application with:<br>
+                <code>perl radpwtst -user fred -password fred</code> <br>
+                You should see "OK". 
+              <li>                Rerun radpwtst, this time with the wrong password from fred:<br>
+                <code>perl radpwtst -user fred -password wrong</code><br>
+                You should see "Rejected". 
+              <li>                If you configure a test NAS to use this server, you will able
+                to log in as the user "fred" with password "fred". 
+            </ul>
+        <li>          If all goes well, <code>make install</code>. This will install the
+            Radius perl modules in your site-perl directory, and radiusd, radpwtst,
+            builddbm and buildsql in your local executable directory.
+        <li>          Now go to <a href=#configuration>Configuration</a>
+                </ol>
+
+      <p><a name=rpm></a>      <span class="oschead"><h2>Linux RPM</h2></span><p></p>
+      <p class="oscbody">Linux users can easily
+          install from an RPM binary package </p>
+      <ol>
+        <li>          Make sure you are (or have access to) a system administrator and
+            someone who understands your Radius authentication and accounting requirements.
+        <li>          Log in as root
+        <li>          Install the package with <code>rpm -Uvh Radiator-x.x-x.noarch.rpm</code>
+        <li>          Start the server <code>/etc/init.d/radiator start</code>
+        <li>          Test authentication <code>radpwtst</code>
+        <li>          Edit /etc/radiator/radius.cfg to suit your site and needs. See the
+            reference manual in /usr/share/doc/Radiator-x.x for more details.
+      </ol>
+      <a name=osx></a>      <span class="oschead"><h2>Mac OS X</h2></span>      <ol>
+        <li>          See the detailed installation instructions in goodies/osx.txt in
+            your Radiator distribution.
+      </ol>
+
+      <a name=solaris></a>      <span class="oschead"><h2>Solaris</h2></span>  
+      <p>On Solaris, you can install the tarball as described above, however
+      you may find it easier to use the Radiator Solaris package. The Solaris package
+      works on Solaris 8, 9 and 10 on 32-bit and 64-bit Sparc and Intel platforms.
+      The Solaris package
+      requires Perl from <a href="http://www.sunfreeware.com">Sunfreeware</a>.
+      <ol>
+      <li>Make sure you are (or have access to) a system administrator and
+            someone who understands your Radius authentication and accounting requirements.
+      <li>Log in as root.
+      <li>Download and install the appropriate version of Perl from <a
+      href="http://www.sunfreeware.com">Sunfreeware</a>.
+      <li>Ensure you have gzip installed. It is also available from
+      Sunfreeware.
+      <li>Uncompress the package with <code>gunzip
+      Radiator-x.x-sol-noarch-local.pkg.gz</code>
+      <li>Install the package with <code>pkgadd -d
+      Radiator-x.x-sol-noarch-local.pkg OSCRadiat</code>
+      <li>Start the server with <code>/etc/init.d/radiator start</code>
+      <li>Test authentication with <code>/usr/local/bin/radpwtst</code>
+      </ol>
+      You can stop the server with <code>/etc/init.d/radiator stop</code>.
+      You can uninstall the package with  <code>pkgrm -n OSCRadiat</code>.
+      The package installs a simple Radaitor configuration file at
+      <code>/usr/local/etc/radiator/radius.cfg</code> and a flat file user
+      database (with one sample user) at
+      <code>/usr/local/etc/radiator/users</code>. You can edit these to suit
+      your needs.
+
+      <p><a name=win95></a>      <span class="oschead"><h2>Windows
+	    installation with ActivePerl</h2></span><p></p>
+      <p>On Microsoft Windows, we recommend that
+          you use ActivePerl from ActiveState, since it installs very easily,
+        and many additional modules are available
+          precompiled directly from ActiveState. </p>
+      <ol>
+        <li>          Make sure you are (or have access to) a system administrator and
+            someone who understands your Radius authentication and accounting requirements.
+        <li>          Download and install <a href=http://www.ActiveState.com/ActivePerl>ActivePerl</a> version
+            5.12 or later. During installation, accept all the defaults. Allow setup to
+            reboot your computer if it needs to. 
+        <li>          Connect your computer to the Internet so you will be able download
+            any required Perl modules from ActiveState using PPM in the next section.
+        <li>  Open a Command Prompt window and change to the perl PPM
+	  directory. Install some prerequisite Perl modules:<br>
+	    <code>
+	      c:
+	      cd \perl\bin
+	      ppm install Win32::Daemon
+	      ppm install Digest::HMAC 
+	      ppm install  Digest::MD4 
+	      ppm install perl-ldap
+	      </code>
+
+        <li>          If you plan to use SQL authentication, find the database
+	  specific Perl DBD module(s)
+            you want by typing <code>ppm search DBD</code>, then install the one(s)
+            you need for your database. For example, if you want to use ODBC to
+            connect to your database, type <code>ppm install DBD-ODBC</code>
+        <li>          <a
+    href=http://www.open.com.au/radiator/downloads.html>Download (username and
+            password required)</a> and run the self-extracting Radiator Zip file
+            for Windows. Let it unpack to the default location, c:\Radiator (we
+            will call this location <b>the distribution directory</b>).
+        <li>          Start an MSDOS command window, change directories to the distribution
+            directory.
+        <li>          Type <code>perl Makefile.PL</code>. This will check that your distribution
+            is complete.
+        <li>          Run the regression tests with <code>perl test.pl</code>. You should
+            see lots of lines like "ok xx", and none saying "not ok xx". 
+        <li>          Install Radiator with <code>perl Makefile.PL install</code>. This
+            will install the Radiator programs and libraries in the standard places,
+            and will create a basic Radiator configuration file in C:\Program Files\Radiator\radius.cfg
+            and a sample users file in C:\Program Files\Radiator\users.
+        <li>        Now test Radiator with the sample configuration file in c:\Program
+            Files\Radiator\radius.cfg which authenticates all requests from the
+            file <code>C:\Program Files\Radiator\users</code>, and logs extensively
+            to <code>C:\Program Files\Radiator\logfile</code>
+        <ul>
+          <li>            Run radiator with <br>
+              <code>perl c:\perl\bin\radiusd</code> (<code>perl
+		  c:\Perl64\bin\radiusd</code> with 64 bit ActivePerl) <br>
+          You will see some messages, followed by <code>INFO: Server started</code>.
+          Radiator is now waiting for requests to arrive.
+            <li>            In another command window run the test client program with:<br>
+              <code>perl c:\perl\bin\radpwtst -user mikem -password fred</code>  (<code>perl
+		  c:\Perl64\bin\radpwtst -user mikem -password fred</code> with 64 bit ActivePerl) <br>
+              You should see "OK". 
+            <li>            Rerun radpwtst, this time with the wrong password for mikem:<br>
+              <code>perl radpwtst -user mikem -password wrong</code> (<code>perl
+		  c:\Perl64\bin\radpwtst -user mikem -password wrong</code> with 64 bit ActivePerl) <br>
+              You should see "Rejected". 
+            <li>            If you configure a test NAS to use this server, you will able
+              to log in as the user "mikem" with password "fred". Note that
+	      with the default sample Radiator configuration, the RADIUS shared
+	      secret of the NAS should be "mysecret".
+          </ul>
+        <li>          To optionally arrange for Radiator to be run as a service automatically
+            at boot time, see the <a href=http://www.open.com.au/radiator/ref.pdf>Radiator
+            Reference Manual</a>
+        <li>          Now go to <a href=#configuration>Configuration</a>
+                </ol>
+
+      <p><a name=windowsXAMPP></a>      <span class="oschead"><h2>Windows
+	    installation with XAMPP</h2></span><p></p>
+      <p>XAMPP (http://www.apachefriends.org/en/xampp-windows.html) is an
+      excellent, easy to install bundle of useful tools such as Apache, MySQL,
+      Perl etc for Windows. It is a also good base for installing Radiator on
+      Windows, especially if you wish to use Radiator with RAdmin or a MySQL database.
+      <ol>
+        <li>Make sure you are (or have access to) a system administrator and
+            someone who understands your Radius authentication and accounting requirements.
+        <li>Download and install <a href="http://www.apachefriends.org/en/xampp-windows.html">XAMPP</a> from
+	  http://www.apachefriends.org/en/xampp-windows.html Accept the default
+	  to install in c:\xampp. When asked about which services to install,
+	  select MySQL if you need the MySQL database. Select Apache and MySQL
+	  if you are going to use Radiator with RAdmin.
+	<li>Using the XAMPP Control Panel, ensure Apache and MySQL are running if you need them.
+        <li>          <a
+    href=http://www.open.com.au/radiator/downloads.html>Download (username and
+            password required)</a> and run the self-extracting Radiator Zip file
+            for Windows. Let it unpack to the default location, c:\Radiator (we
+            will call this location <b>the distribution directory</b>).
+        <li>          Start an MSDOS command window, change directories to the distribution
+            directory.
+        <li>          Type <code>c:\xampp\perl\bin\perl Makefile.PL</code>. This will check that your distribution
+            is complete.
+        <li>          Run the regression tests with <code>c:\xampp\perl\bin\perl test.pl</code>. You should
+            see lots of lines like "ok xx", and none saying "not ok xx". 
+        <li>          Install Radiator with <code>c:\xampp\perl\bin\perl Makefile.PL install</code>. This
+            will install the Radiator programs and libraries in the standard places,
+            and will create a basic Radiator configuration file in C:\Program Files\Radiator\radius.cfg
+            and a sample users file in C:\Program Files\Radiator\users.
+        <li>        Now test Radiator with the sample configuration file in c:\Program
+            Files\Radiator\radius.cfg which authenticates all requests from the
+            file <code>C:\Program Files\Radiator\users</code>, and logs extensively
+            to <code>C:\Program Files\Radiator\logfile</code>
+        <ul>
+          <li>            Run radiator with <br>
+              <code>c:\xampp\perl\bin\perl c:\perl\bin\radiusd</code> <br>
+          You will see some messages, followed by <code>INFO: Server started</code>.
+          Radiator is now waiting for requests to arrive.
+            <li>            In another command window run the test client program with:<br>
+              <code>c:\xampp\perl\bin\perl c:\perl\bin\radpwtst -user mikem -password fred</code> <br>
+              You should see "OK". 
+            <li>            Rerun radpwtst, this time with the wrong password for mikem:<br>
+              <code>c:\xampp\perl\bin\perl radpwtst -user mikem -password wrong</code> <br>
+              You should see "Rejected". 
+            <li>            If you configure a test NAS to use this server, you will able
+              to log in as the user "mikem" with password "fred". Note that
+	      with the default sample Radiator configuration, the RADIUS shared
+	      secret of the NAS should be "mysecret".
+          </ul>
+        <li>          To optionally arrange for Radiator to be run as a service automatically
+            at boot time, see the <a href=http://www.open.com.au/radiator/ref.pdf>Radiator
+            Reference Manual</a>
+        <li>          Now go to <a href=#configuration>Configuration</a>
+                </ol>
+
+      <p><a name=configuration></a>      <span class="oschead"><h1>Configuration</h1></span><p></p>
+      <p>Now that Radiator is installed
+          and you know that it is working properly, you need to configure it
+        to suit your own local needs.
+    Radiator uses a <b>configuration file</b> to tell it important things like
+    which NASs it will talk to, and how to handle authentication and accounting
+    requests
+    from those NASs. Radiator has a large number of ways to handle authorisation
+    and accounting. You will have to create a configuration file for your site.
+    Because your needs will almost certainly be different from anyone else, you
+    will need
+    to spend some time building and testing it. </p>
+      <ol>
+  <li>    Read the <a href=ref.pdf>configuration reference manual</a>
+    <li>    Check the example configuration files in the goodies directory. You might
+      find one that suits your needs very closely.
+    <li>    Create and edit a configuration file. We suggest you start with a very
+      simple config file such as the the one in goodies/radius.cfg. Add extra features
+      as you go.
+    <li>    Run radiusd by hand, and test it with radpwtst until you are sure it is
+      configured the way you need for your site. You may want to specify your config
+      file with <code>-config_file filename</code>.
+    <li>    When you are sure Radiator is configured the way you want, arrange for
+      radiusd to start automatically at boot time (see the reference manual for
+      details of different ways to do this for different platforms)
+    <li>    Join the <a href=/mailing.html>Radiator Free Mailing List</a>. This will
+      allow you to exchange help and information with other Radiator owners.
+    </ol>
+      <span class="oschead"><h1>Additional Resources</h1></span><ul>
+  <li>    If you want to use Simultaneous-Use checking with USR Total Control, you
+      can get a copy of the pmwho program from <a href=http://www.open.com.au/radiator/free-downloads/pmwho-1.5.c>here</a>.
+    <li>    There is a complete archive of the <a href=/mailing.html>Radiator
+        Free Mailing list</a>.
+    <li>    Documentation is <a href=documentation.html>available online</a>
+    </ul>
+
+      <p class="oschead"><h1>If you have trouble</h1><p></p>
+      <p>If you have an <a href=/support.html>Email support contract</a> send
+        any questions to the relevant email support contract address,quoting
+        your Email Support User
+      Name. Otherwise, you may use the <a href=/mailing.html>Radiator Free Mailing
+      List</a> </p>
+      <p>Before you post to the email support address or free mailing list
+        asking for assistance, we suggest you go through the following check list:</p>
+      <ol>
+  <li>    If you have trouble downloading the software, please contact <a href=mailto:info@open.com.au>info@open.com.au</a>.
+    <li>    Consult the <a href=ref.pdf>Reference Manual</a>.
+    <li>    Consult the <a href=faq.html>FAQ</a> for extra hints.
+    <li>    Check that you are using the latest version of Radiator. See http://www.open.com.au/radiator/downloads,
+      use the username and password we have issued to you. Upgrade if you need
+      to.
+    <li>    Check whether there are any patches that address your problem. See the
+      README in the <a href=http://www.open.com.au/radiator/downloads/index.html>patches
+      directory</a> for your revision. Apply any patches that you think you might
+      need.
+    <li>      If you still have the problem post to the <a href=/mailing.html>free mailing
+        list</a> by mailing to <a href=mailto:radiator@open.com.au>radiator@open.com.au</a> (you
+        will need to subscribe before first posting to that list) Be sure to include
+        at least the following information:
+      <ul>
+        <li>          A detailed description of the problem.
+          <li>          Your Radiator configuration file (remove any secrets and passwords
+            first).
+          <li>          An extract from your Radiator log file (with Trace level of 4) illustrating
+            the problem, or at least what is happening at the time of the problem.
+          <li>          Details of the computer type, operating system etc.
+          </ul>
+          This information helps people to understand your problem and help find
+        a solution more quickly.
+  If you have a <a href=/support.html>support contract</a>, you may email us at <a href=mailto:radiator-support@open.com.au>radiator-support@open.com.au</a>.
+  Mail to this address will be ignored unless you have a support contract.
+    </ol>      
+      <p><font color="#FFFFFF">n</font></p></td>
+  </tr>
+  <tr>
+    <td height="19" colspan="2"><a href="mailto:info@open.com.au"><img src="../images/footer.gif" width="760" height="23" border="0"></a></td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+</body>
+</html>

@@ -1,0 +1,423 @@
+Integrating Radiator and Mera MVTS Pro VOIP Gateways
+
+This document briefly outlines the requirements for interfacing Radiator with
+Mera MVTS Pro VOIP gateways, along with examples of the types of requests and
+replies Radiator can be expected to handle when interfacing with MVTS Pro.
+
+Mera sell a range of VOIP gateways suporting SIP and H323.  Mera have changed
+their name in 2010 to ALOE Systems (http://www.aloe-systems.com)
+
+The MVTS Pro VOIP gateway can interface with a RADIUS server for call
+authorization, accounting and call routing.
+
+Pre-routing Call Authorization
+------------------------------
+
+The MVTS Pro sends the RADIUS server this type of authorization request before
+forwarding the call to destination along the selected path.
+
+Radiator replies with Tariff information, and other information to be used by
+the gateways for the call.
+
+The User-Name in this  Access-Request is the IP address of the MVTS Pro gateway, and
+the Password is hard configured in the MVTS Pro, and defaults to 'xpgk'. (Note
+thiat this password does not authenticate and end user, it authenticates the
+gatway. The User-Name is the Gateway IP Address)
+
+This type of request is identified by the attribute:
+     cisco-avpair = "xpgk-request-type=number"
+
+The Access-Accept must contain at least an h323-return-code=0
+attribute. However this is encoded in an unusual way. It is encoded as text in
+a cisco-h323-return-code RADIUS attribute. Thats not an error: the entire text
+'h323-return-code=0' is encoded in a cisco-h323-return-code reply attribute.
+
+The Access-Accept can also contain other attributes to control details of the
+call and its accounting, such as the Tariff to use, the amount of credit or
+time left etc.
+These other attributes are often encoded in a similarly unusual way, with the
+h323 attribute name encoded in cisco-avpair or cisco-h323-* attributes.
+
+See the MVTS Pro Administrators Guide for more details.
+
+You will probably want to configure your Radiator to look up a tariff based on
+the attributes in the Access-Request.
+
+As a simple example, you might configure a sample authorisation for a gateway
+with address 123.243.248.119 in a Radiator flat user file
+record like this:
+
+123.243.248.119	User-Password = xpgk
+        cisco-h323-billing-model = "h323-billing-model=0",
+        cisco-avpair = "h323-ivr-in=Tariff:CC-SipSubscribers",
+        cisco-avpair = "h323-ivr-in=DURATION:10000",
+        cisco-h323-return-code = "h323-return-code=0",
+        cisco-h323-currency-type = "h323-currency=AUD",
+        cisco-h323-credit-time = "h323-credit-time=10000",
+        cisco-h323-preferred-lang = "h323-preferred-lang=en"
+
+
+An incoming authorisation Access-Request from an MVTS Pro might look like this:
+
+*** Received from 123.243.248.123 port 39908 ....
+Code:       Access-Request
+Identifier: 0
+Authentic:  <14><249><193><244><158>Mt<137>I?7a<29><29><4>X
+Attributes:
+        NAS-IP-Address = 123.243.248.123
+        cisco-avpair = "xpgk-src-number-out=6129861111"
+        cisco-avpair = "xpgk-record-id=00000001-30219064"
+        cisco-avpair = "h323-gw-address=123.243.248.119"
+        cisco-avpair = "xpgk-request-type=number"
+        Acct-Session-Id = "00000001-30219064-0"
+        NAS-Port-Type = Async
+        User-Password = <127><137><253><175>E<7><241><242>X<27><137><130><188>6<245>L
+        cisco-h323-conf-id = "h323-conf-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        Service-Type = Login-User
+        cisco-avpair = "h323-incoming-call-id=CA71B5CE 7BC7BC2D 101C0821 23243248"
+        cisco-avpair = "h323-incoming-conf-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        cisco-avpair = "h323-call-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        cisco-h323-remote-address = "h323-remote-address=123.243.248.121"
+        cisco-avpair = "xpgk-dst-number-in=61288881111"
+        cisco-avpair = "xpgk-dst-number-out=61288881111"
+        Framed-Protocol = PPP
+        cisco-h323-gw-id = "h323-gw-id=ASG119"
+        cisco-avpair = "xpgk-local-src-signaling-address=123.243.248.123"
+        Calling-Station-Id = "6129861111"
+        NAS-Port = 0
+        User-Name = "123.243.248.119"
+        Called-Station-Id = "61288881111"
+        cisco-avpair = "xpgk-route-retries=1"
+        cisco-avpair = "h323-remote-id=ASG121"
+        cisco-avpair = "xpgk-src-number-in=6129861111"
+
+And a successful authorisation Access-Accept from the sample user record above
+might look like this:
+
+Code:       Access-Accept
+Identifier: 0
+Authentic:  pz<132>#<240><225>3<130><247><191>bS9*Jb
+Attributes:
+        cisco-h323-billing-model = "h323-billing-model=0"
+        cisco-avpair = "h323-ivr-in=Tariff:CC-SipSubscribers"
+        cisco-avpair = "h323-ivr-in=DURATION:10740"
+        cisco-h323-return-code = "h323-return-code=0"
+        cisco-h323-currency-type = "h323-currency=AUD"
+        cisco-h323-credit-time = "h323-credit-time=10740"
+        cisco-h323-preferred-lang = "h323-preferred-lang=en"
+
+
+Call Accounting
+---------------
+
+The MVTS Pro sends the RADIUS server the Accounting Start record upon arrival
+of a call (incoming leg) or on sending SETUP to the destination gateway
+(outgoing leg).
+
+The MVTS Pro sends the RADIUS server the Accounting Stop record on call
+termination.
+
+These are called CDRs (Call Detail Records) by MVTS Pro.
+
+You will probably want to configure your Radiator to record some or all of the
+details from such accounting requests, perhaps to an SQL database. This is a
+straightforward task that is described elsewhere in the Radiator
+documentation.
+
+This is what a sample Accounting-Request Start from the authorization above
+would look like:
+
+Code:       Accounting-Request
+Identifier: 1
+Authentic:  <141><3><176><190>M<157><182><215>B<194><223>@o<151><172><245>
+Attributes:
+        NAS-IP-Address = 123.243.248.123
+        Acct-Status-Type = Start
+        Acct-Session-Id = "00000001-30219064-OV1"
+        cisco-avpair = "xpgk-record-id=00000001-30219064"
+        cisco-avpair = "xpgk-local-src-signaling-address=123.243.248.123"
+        cisco-avpair = "xpgk-src-number-out=6129861111"
+        NAS-Port-Type = Async
+        cisco-avpair = "h323-remote-id=ASG121"
+        cisco-h323-conf-id = "h323-conf-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        Service-Type = Login-User
+        cisco-avpair = "h323-incoming-call-id=CA71B5CE 7BC7BC2D 101C0821 23243248"
+        cisco-avpair = "h323-incoming-conf-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        cisco-avpair = "h323-call-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        cisco-h323-call-origin = "h323-call-origin=originate"
+        cisco-avpair = "xpgk-dst-number-in=61288881111"
+        cisco-avpair = "xpgk-dst-number-out=61288881111"
+        Acct-Delay-Time = 0
+        cisco-h323-remote-address = "h323-remote-address=123.243.248.121"
+        cisco-h323-gw-id = "h323-gw-id=ASG119"
+        cisco-avpair = "h323-gw-address=123.243.248.119"
+        cisco-h323-connect-time = "h323-connect-time=23:45:32.465 UTC Sun Oct 17 2010"
+        cisco-h323-setup-time = "h323-setup-time=23:45:28.930 UTC Sun Oct 17 2010"
+        cisco-h323-call-type = "h323-call-type=VoIP"
+        Calling-Station-Id = "6129861111"
+        User-Name = "123.243.248.119"
+        Called-Station-Id = "61288881111"
+        cisco-avpair = "xpgk-route-retries=1"
+        cisco-avpair = "xpgk-src-number-in=6129861111"
+
+And this is what the corresponding Stop would look like:
+
+Code:       Accounting-Request
+Identifier: 2
+Authentic:  <251><241>q~<211><169>4<151>D<242>rm<221>%<9><199>
+Attributes:
+        NAS-IP-Address = 123.243.248.123
+        Acct-Session-Time = 4
+        Acct-Session-Id = "00000001-30219064-OV1"
+        cisco-avpair = "xpgk-record-id=00000001-30219064"
+        cisco-avpair = "xpgk-local-src-signaling-address=123.243.248.123"
+        cisco-avpair = "xpgk-pdd-time=0:00:00"
+        cisco-avpair = "xpgk-src-number-out=6129861111"
+        NAS-Port-Type = Async
+        Acct-Status-Type = Stop
+        cisco-avpair = "h323-remote-id=ASG121"
+        cisco-h323-conf-id = "h323-conf-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        Service-Type = Login-User
+        cisco-avpair = "h323-incoming-call-id=CA71B5CE 7BC7BC2D 101C0821 23243248"
+        cisco-avpair = "h323-incoming-conf-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        cisco-h323-disconnect-cause = "h323-disconnect-cause=10"
+        cisco-h323-disconnect-time = "h323-disconnect-time=23:45:36.612 UTC Sun Oct 17 2010"
+        cisco-avpair = "h323-call-id=9EE1298E DA4811DF A3C60013 21D425F8"
+        cisco-avpair = "xpgk-source-faststart=0"
+        cisco-h323-call-origin = "h323-call-origin=originate"
+        cisco-avpair = "xpgk-dst-number-in=61288881111"
+        cisco-avpair = "xpgk-dst-number-out=61288881111"
+        Acct-Delay-Time = 0
+        cisco-h323-remote-address = "h323-remote-address=123.243.248.121"
+        cisco-h323-gw-id = "h323-gw-id=ASG119"
+        cisco-avpair = "xpgk-destination-faststart=0"
+        cisco-avpair = "xpgk-scd-time=0:00:03.534220"
+        cisco-avpair = "h323-gw-address=123.243.248.119"
+        cisco-h323-connect-time = "h323-connect-time=23:45:32.466 UTC Sun Oct 17 2010"
+        cisco-h323-setup-time = "h323-setup-time=23:45:28.932 UTC Sun Oct 17 2010"
+        cisco-h323-call-type = "h323-call-type=VoIP"
+        cisco-avpair = "xpgk-last-cdr=1"
+        Calling-Station-Id = "6129861111"
+        User-Name = "123.243.248.119"
+        Called-Station-Id = "61288881111"
+        cisco-avpair = "xpgk-route-retries=1"
+        cisco-avpair = "xpgk-local-disconnect-cause=65546"
+        cisco-avpair = "xpgk-src-number-in=6129861111"
+
+Call Routing
+------------
+
+The MVTS Pro sends a routing Access-Request when the gateway, acting as a
+terminator, is marked as RADIUS routing server.
+
+The reply is expeted a list of routing options for termination of the call at
+its destination point. In addition the RADIUS server can also change the
+username and password for the call in question.
+
+The MVTS Pro can handle several route options sequentially attempting every
+next route after a successful call termination if the previous one proves
+impossible.
+
+This type of request is identified by the attribute:
+     cisco-avpair = "xpgk-request-type=route"
+
+This type is somewhat similar to the authorisation request and reply from
+above, but the reply includes a number of Cisco-Command-Code attributes
+containing routing options which the MVTS Pro will try in sequence. The text
+of each Cisco-Command-Code is in a special XPGK_XROUTING_ROUTING format which
+is documented in the MVTS Pro Administrator's Guide, but which is briefly:
+
+gateway/proxy_mode/source/dest/src_bill/dst_bill/ip-address[:port]/converter/extra
+
+where:
+gateway – GW name from the Equipment record;
+proxy_mode – mode of proxy operation:
+       0 – media proxying disabled.
+       1 – media proxying enabled.
+       2 – use proxying mode of originating gateway.
+       3 - use proxying mode of terminating gateway.
+source – calling number (src_number).
+dest – called party number that will be sent to the terminating gateway (dst_number).
+src_bill – calling number for the billing system.
+dst_bill – called number for the billing system.
+ip-address[:port] – IP address for connection (port number is optional).
+converter – name of the record for the converter through which the call is to be terminated.
+extra – extra parameters.
+
+If route authorization fails, or if the appropriate routes coould not be
+determined, Radiator should reply with an Access-Reject.
+
+The incoming Access-Request for a looks like this:
+
+Code:       Access-Request
+Identifier: 9
+Authentic:  <242><223>wd<197>us<127><201><217><201>,<179><1>h<188>
+Attributes:
+        NAS-IP-Address = 123.243.248.123
+        Acct-Session-Id = "00000004-05446763-0"
+        cisco-avpair = "xpgk-record-id=00000004-05446763"
+        cisco-avpair = "h323-gw-address=123.243.248.119"
+        cisco-avpair = "xpgk-request-type=route"
+        cisco-avpair = "xpgk-src-number-out=6129861111"
+        NAS-Port-Type = Async
+        User-Password = <17><22>@cM<12>k<135><144>#2<226>!<141><153><154>
+        cisco-h323-conf-id = "h323-conf-id=5D666962 DA6911DF A3C60013 21D425F8"
+        Service-Type = Login-User
+        cisco-avpair = "h323-incoming-call-id=CA71ED07 D5E8BC2D 101C0DB1 23243248"
+        cisco-avpair = "h323-incoming-conf-id=5D666962 DA6911DF A3C60013 21D425F8"
+        cisco-avpair = "h323-call-id=5D666962 DA6911DF A3C60013 21D425F8"
+        cisco-avpair = "xpgk-dst-number-in=61288881111"
+        cisco-avpair = "xpgk-routing-request=1"
+        cisco-avpair = "xpgk-dst-number-out=61288881111"
+        cisco-h323-gw-id = "h323-gw-id=ASG119"
+        cisco-avpair = "xpgk-local-src-signaling-address=123.243.248.123"
+        Calling-Station-Id = "6129861111"
+        User-Name = "123.243.248.119"
+        Called-Station-Id = "61288881111"
+        cisco-avpair = "xpgk-route-retries=1"
+        cisco-avpair = "xpgk-src-number-in=6129861111"
+
+
+And a sample Access-Accpt might look like this:
+
+Code:       Access-Accept
+Identifier: 9
+Authentic:  <12><192>+<185><30><144><156><149><244><11><12><181><13>yd&
+Attributes:
+        cisco-h323-billing-model = "h323-billing-model=0"
+        cisco-avpair = "h323-ivr-in=Tariff:CC-SipSubscribers"
+        cisco-avpair = "h323-ivr-in=DURATION:10740"
+        cisco-h323-return-code = "h323-return-code=0"
+        cisco-h323-currency-type = "h323-currency=AUD"
+        cisco-h323-credit-time = "h323-credit-time=10740"
+        cisco-h323-preferred-lang = "h323-preferred-lang=en"
+        Cisco-Command-Code = "sip:PORTAONE/1/6129861111/61288881111/6129861111/61288881111/123.243.248.121"
+        Cisco-Command-Code = "PORTAONE/1/6129861111/999961288881111/6129861111/999961288881111/123.243.248.121"
+        Cisco-Command-Code = "PH323/1/6129861111/0061288881111/6129861111/0061288881111/123.243.248.121:1720"
+
+And the subsequent Accounting Start and Stop might look like this:
+
+Code:       Accounting-Request
+Identifier: 10
+Authentic:  $r<21><193><245><157><145>P <255><203><133>TQ<190><133>
+Attributes:
+        NAS-IP-Address = 123.243.248.123
+        Acct-Status-Type = Start
+        Acct-Session-Id = "00000004-05446763-OV1"
+        cisco-avpair = "xpgk-record-id=00000004-05446763"
+        cisco-avpair = "xpgk-local-src-signaling-address=123.243.248.123"
+        cisco-avpair = "xpgk-src-number-out=6129861111"
+        NAS-Port-Type = Async
+        cisco-avpair = "h323-remote-id=sip:PORTAONE"
+        cisco-h323-conf-id = "h323-conf-id=5D666962 DA6911DF A3C60013 21D425F8"
+        Service-Type = Login-User
+        cisco-avpair = "h323-incoming-call-id=CA71ED07 D5E8BC2D 101C0DB1 23243248"
+        cisco-avpair = "h323-incoming-conf-id=5D666962 DA6911DF A3C60013 21D425F8"
+        cisco-avpair = "h323-call-id=5D666962 DA6911DF A3C60013 21D425F8"
+        cisco-h323-call-origin = "h323-call-origin=originate"
+        cisco-avpair = "xpgk-dst-number-in=61288881111"
+        cisco-avpair = "xpgk-dst-number-out=61288881111"
+        Acct-Delay-Time = 0
+        cisco-h323-remote-address = "h323-remote-address=123.243.248.121"
+        cisco-h323-gw-id = "h323-gw-id=ASG119"
+        cisco-avpair = "h323-gw-address=123.243.248.119"
+        cisco-h323-connect-time = "h323-connect-time=03:39:57.491 UTC Mon Oct 18 2010"
+        cisco-h323-setup-time = "h323-setup-time=03:39:52.273 UTC Mon Oct 18 2010"
+        cisco-h323-call-type = "h323-call-type=VoIP"
+        Calling-Station-Id = "6129861111"
+        User-Name = "123.243.248.119"
+        Called-Station-Id = "61288881111"
+        cisco-avpair = "xpgk-route-retries=1"
+        cisco-avpair = "xpgk-src-number-in=6129861111"
+
+
+Code:       Accounting-Request
+Identifier: 11
+Authentic:  i<219><171>@<225><8>DZ<158><171><161><242><180><217><156>x
+Attributes:
+        NAS-IP-Address = 123.243.248.123
+        Acct-Session-Time = 18
+        Acct-Session-Id = "00000004-05446763-OV1"
+        cisco-avpair = "xpgk-record-id=00000004-05446763"
+        cisco-avpair = "xpgk-local-src-signaling-address=123.243.248.123"
+        cisco-avpair = "xpgk-pdd-time=0:00:00"
+        cisco-avpair = "xpgk-src-number-out=6129861111"
+        NAS-Port-Type = Async
+        cisco-avpair = "xpgk-src-codec=pcma"
+        Acct-Status-Type = Stop
+        cisco-avpair = "h323-remote-id=sip:PORTAONE"
+        cisco-h323-conf-id = "h323-conf-id=5D666962 DA6911DF A3C60013 21D425F8"
+        Service-Type = Login-User
+        cisco-avpair = "h323-incoming-call-id=CA71ED07 D5E8BC2D 101C0DB1 23243248"
+        cisco-avpair = "h323-incoming-conf-id=5D666962 DA6911DF A3C60013 21D425F8"
+        cisco-h323-disconnect-cause = "h323-disconnect-cause=10"
+        cisco-h323-disconnect-time = "h323-disconnect-time=03:40:15.238 UTC Mon Oct 18 2010"
+        cisco-avpair = "h323-call-id=5D666962 DA6911DF A3C60013 21D425F8"
+        cisco-avpair = "xpgk-source-faststart=0"
+        cisco-h323-call-origin = "h323-call-origin=originate"
+        cisco-avpair = "xpgk-dst-number-in=61288881111"
+        cisco-avpair = "xpgk-dest-rtp-address=123.243.248.121"
+        cisco-avpair = "xpgk-dst-codec=pcma"
+        cisco-avpair = "xpgk-dst-number-out=61288881111"
+        cisco-avpair = "xpgk-source-rtp-address=123.243.248.119"
+        Acct-Delay-Time = 0
+        cisco-h323-remote-address = "h323-remote-address=123.243.248.121"
+        cisco-h323-gw-id = "h323-gw-id=ASG119"
+        cisco-avpair = "xpgk-destination-faststart=0"
+        cisco-avpair = "xpgk-scd-time=0:00:05.216503"
+        cisco-avpair = "h323-gw-address=123.243.248.119"
+        cisco-h323-connect-time = "h323-connect-time=03:39:57.492 UTC Mon Oct 18 2010"
+        cisco-h323-setup-time = "h323-setup-time=03:39:52.276 UTC Mon Oct 18 2010"
+        cisco-h323-call-type = "h323-call-type=VoIP"
+        cisco-avpair = "xpgk-last-cdr=1"
+        Calling-Station-Id = "6129861111"
+        User-Name = "123.243.248.119"
+        Called-Station-Id = "61288881111"
+        cisco-avpair = "xpgk-route-retries=1"
+        cisco-avpair = "xpgk-local-disconnect-cause=65546"
+        cisco-avpair = "xpgk-src-number-in=6129861111"
+
+
+Authentication of registering devices
+-------------------------------------
+
+When an end device (phone or user) is being registered, MVTS Pro sends an
+Access-Request with the attribute:
+ cisco-avpair = "xpgk-request-type=user"
+
+The Access-Request may be a conventional PAP, CHAP or SIP Digest
+authentication, all of which Radiator will handle automatically. MVTS Pro can
+also send a type of MD5 authentication with the MD5 hash encoded in an
+xpgk-md5-auth attribute. This last type is not supported by Radiator.
+
+In the following example, MVTS Pro sends a RADIUS PAP authentication request
+for user '1122':
+
+Code:       Access-Request
+Identifier: 204
+Authentic:  <176>N<194>U<202><220>z<8><178><2><243>m<193>=<246><143>
+Attributes:
+        User-Password = <31><9><165>9<248>`es@.<149><132>!<201><232><134>
+        NAS-IP-Address = 123.243.248.123
+        User-Name = "1122"
+        Service-Type = Login-User
+        cisco-avpair = "xpgk-request-type=user"
+        NAS-Port-Type = Async
+
+
+The Access-Accept must include the h323-return-code=0 attribute. Other
+optional reply attributes are also permitted, as in the follwoing example.
+
+Code:       Access-Accept
+Identifier: 204
+Authentic:  <200>u<15><215>z<242>A<231><26><130><14><190><23>V<160><169>
+Attributes:
+        cisco-h323-billing-model = "h323-billing-model=1"
+        cisco-avpair = "h323-ivr-in=Tariff:CC-SipSubscribers"
+        cisco-avpair = "h323-ivr-in=available-funds:9.90"
+        cisco-h323-return-code = "h323-return-code=0"
+        cisco-h323-currency-type = "h323-currency=AUD"
+        cisco-h323-preferred-lang = "h323-preferred-lang=en"
+
+
+

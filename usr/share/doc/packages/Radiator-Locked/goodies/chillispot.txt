@@ -1,0 +1,259 @@
+CAUTION:
+The ChilliSpot project has been abandoned and taken over by the CoovaChilli
+project at http://coova.org
+
+This documentation is retained for historical reasons since configuration of
+CoovaChilli is similar.
+
+For instructions on how to configure the CoovaAP hotspot see
+goodies/CoovaAP.txt
+
+The Radiator configuration instructions in this document can be used for
+authenticating CoovaCHilli and CoovaAP.
+
+Introduction
+------------
+
+This file documents how to install and configure ChilliSpot, Radiator and
+RAdmin for a complete, locally administered wireless hotspot solution,
+including prepaid time for users, user statistics, monitoring etc
+
+ChillSpot (http://www.chillispot.org) is a captive portal for wireless hotspots.
+This means that users can connect to a wireless hotspot, but before they can
+get complete internet access, they must provide a username and password. If
+they provide a correct username and password, then they can surf the net or
+use other internet services (at least until their prepaid time (if any) runs
+out).
+
+Radiator is a flexible, extensible fullsource Radius server from OPen Systerm
+Consultants (http://www.open.com.au/radiator). RAdmin is a companion product
+for Radiator that provide web-based Radius user management services
+(http://www.open.com.au/radmin). 
+
+In this solution, ChilliSpot provides the captive portal, Radiator provides
+the authentication and Radmin provides the tools for adding users,
+setting/changing their password, and setting prepaid time limits. Radmin can
+also be used to view user connection inforation, connection history etc.
+
+This solution was tested with Fedora Core 5, ChilliSpot 1.1.0, Raditor 3.15
+and Radmin 1.10.
+
+General Architecture
+--------------------
+
+The general architecture of this solution follows:
+
+Wireless PC <-->Wireless                   Linux Host
+Wireless PC <-->Access <-internal network->eth1  eth0<--->Internet
+Wireless PC <-->Point                      Radiator
+                                           Radmin
+                                           ChilliSpot
+
+
+ChilliSpot, Radiator, Radmin, MySQL and Apache run on a Linux host. We will
+call this the ChilliSpot host. Any small PC compatible will work. Most common
+Linux distributions will be OK.  It must have 2 network interface cards: eth0
+and eth1.
+
+eth1 on the ChilliSpot host connects to the Internet either directly or
+indirectly.  One or more wireless access points are connected via the internal
+network to eth1 on the ChilliSpot host.
+
+Multiple PCs connect to the Wireless access point which is connected to the
+internal network, which is connected to eth1 on the ChilliSpot host..
+
+How It Works
+------------
+
+ChilliSpot supports 2 wireless connection methods, and this sulution supports
+both of them:
+
+1 Universal Access Method (UAM)
+
+This is the simplest to set up (for the ChilliSpot administrator and the end
+user) and probably the most common model commercially, but has security
+implications for the end user.
+
+In this method, the wireless access point is configured for 'open'
+access. This means the end user can get a connection to the wireless access
+point easily, but the resulting wireless connection is not encrypted. Most
+wireless clinets (such as windows XP etc) make it very easy to establish such
+an 'open' wireless connection to a hotspot.
+
+After the wireless connection is set up, the Access point will generally
+allocate and IP address to the wireless client, and the wireless IP connection
+is set up (but the user has no connection tot he internet yet)
+
+After getting a wireless connection, the end user will generally try to access
+a web page on the internet. ChilliSpot intercepts all traffic from the access
+points, and when it sees a reques from an IP address it has not seen before,
+it will redirec the web page to a ChilliSpot login page at
+/cgi-bin/hotspotlogin.cgi on the Apache server at localhost. This web page
+requests a username and password from the user. When the user fills and and
+sends the username and password, they are sent to Radiator for
+authentication. Radiator checks the username and password in the RAdmin MySQL user
+database and grants access. ChilliSpot then allows all the IP traffic fom
+that IP address to pass to and from the Internet on eth0. All clients on all
+access points are NATted before access to the external internet.
+
+If the user authenticated successfully from Radiator with a Session-Timeout,
+ChilliSpot will cut off the traffic to the internet after the Session-timeout
+expires and force the user to reauthenticate.
+
+ChilliSpot will also send Radius Accounting messages to Radiator allowing
+Radiator+RAdmin to keep track of how much time the user has connected for and
+used up.
+
+This is the simplest method to set up, and many wireless access points will work
+with this model without any configuration at all: you can just take the AP out
+of the box and connect it to eth1. However, be warned: the end users wireless
+traffic is not encrypted.
+
+2. EAP
+
+Some wireless access points can be configured to do EAP authentication of new
+wireless connections and to pass the authentication requests directly to a
+Radius server. This means that the wireless connection is encrypted, but usually
+requires the end user to configure their wireless PC so it can do the EAP
+authentication. Most PC operating systems can support EAP authentication of
+wireless connections, but with a variety of difficulty levels.
+
+In this method, the wireless access plint is configured to send Radius/EAP
+requests to the ChilliSpot host. ChilliSpot will then redirect the Radius
+requests to Radiator which will authenticate them using whatever EAP protocol
+is required. When Radiator grants access, the users IP address will be given
+access to the internet as for UAM.
+
+This model usually requires the ChilliSpot administrator to provide PKI
+certificates to support EAP authentication (at least for PEAP and TTLS), and
+will also have to configure the access points to require EAP authentication
+(APs usally call this RADIUS or WPA Enterprise mode), and to send Raidus
+requests to the ChilliSpot host. The end user wil be required to configure
+their Wireless PC to use the EAP authentication, and to configure their
+ChilliSpot usernamer and password into their wireless software. Whilst this is
+a lot more difficult for everyone, it can result in very secure, encrypted
+wireless radio communications.
+
+Installation on FC5
+-------------------
+
+All steps generally to be run as root:
+
+
+0. Confirm the host has 2 network cords, MySQL server, Apache server, OpenSSL,
+   Perl, perl-Digest-MD4, a 233MHz or faster processor and 64Mb or more RAM
+   installed. Configure eth0 to connect to the internet or whatever you want
+   to give end users access to. Configure eth1 for DHCP. Plug in a suitably
+   configured access point to eth1. 
+
+1. Install extra perl modules (download from CPAN, http://www.cpan.org)
+tar zxvf Net_SSLeay.pm-1.30.tar.gz
+cd Net_SSLeay.pm-1.30
+perl Makefile.PL
+make
+make install
+
+2. Install Radiator from RPM
+rpm -Uvh Radiator-3.16-1.noarch.rpm
+cp /usr/share/doc/packages/Radiator/goodies/chilli-radmin.cfg /etc/radiator/radius.cfg
+cp -r /usr/share/doc/packages/Radiator/certificates /etc/radiator/
+/sbin/chkconfig radiator on
+/etc/init.d/radiator start
+
+3. Install RAdmin
+tar zxvf Radmin-1.10.tgz
+cd Radmin-1.10
+sh installMsql.sh
+perl install.pl
+
+4. Test Radiator+Radmin
+#Web browser to http://localhost/cgi-bin/Radmin/private/editUser.pl
+#add a user 'mikem', with password 'fred'
+radpwtst
+# you should see:
+sending Access-Request...
+OK
+sending Accounting-Request Start...
+OK
+sending Accounting-Request Stop...
+OK
+
+4. Enable IPV4 forwarding
+#edit /etc/sysctl.conf
+#change 
+net.ipv4.ip_forward = 0
+#to
+net.ipv4.ip_forward = 1
+#then run
+/sbin/sysctl -p
+
+5. Configure the firewall
+# Disable SELinux and any other firewall
+/etc/init.d/iptables stop
+sh /usr/share/doc/packages/Radiator/goodies/chillispot.iptables
+/etc/init.d/iptables save
+/sbin/chkconfig iptables on
+
+6. Install ChilliSpot
+rpm -Uvh chillispot-1.1.0.i386.rpm
+cp /usr/share/doc/packages/Radiator/goodies/chilli.conf /etc
+
+7. Install the UAM login script on Apache
+cp /usr/share/doc/chillispot-1.1.0/hotspotlogin.cgi /var/www/cgi-bin/
+
+8. Start ChilliSpot
+/sbin/chkconfig chilli on
+/etc/init.d/chilli start
+
+9. Connect
+Configure the wireless PC to connect to the access point
+with the browser on the wireless PC, attempt to access a web page on the
+internet. Instead of the requested page, you should see a 'ChilliSpot Login'
+page. Enter Username 'mikem' Password 'fred' (from step 4 above). Should then
+see a 'Logged in to ChilliSpot' window and the page you originally asked for
+in the browser. 
+
+10. Troubleshooting.
+Radiator logs are in /var/log/radius/logfile
+ChillSpot messages appear in /var/log/messages
+you can run chilli by hand to check for errors:
+/etc/init.d/chilli stop
+chilli --debug --fg
+ .... debugging
+/etc/init.d/chilli start
+You can run Radiator by hand to check for errors:
+cd /etc/radiator
+/etc/init.d/radiator stop
+radius -config radius.cfg -trace 4 -log_stdout -foreground
+... debugging
+/etc/init.d/radiator start
+Refer to http://www.chillispot.org for problems with ChilliSpot
+
+11. Secure your installation
+In particular, make sure ordinary users do not have access to
+http://192.168.182.1/cgi-bin/Radmin/private. This should only be accessible by
+administrators who are permitted to administer the user database.
+
+12. Use Radmin to administer users
+Use http://localhost/cgi-bin/Radmin/private/editUser.pl to add new users.
+Use http://localhost/cgi-bin/Radmin/private/listUsers.pl to find and edit
+users.
+When editing a user, set the 'Login time left' field to set or reset the
+number of prepaid seconds the user has. ChilliSpot will only let them connect
+to the internet for up to that number of seconds.
+
+
+Further Ideas
+-------------
+
+This solution can be used as a starting point for building an externally
+administered system, with the Radiator Radius server and user administration
+at a remote location. This allows you to build a complete hotspot network
+business using Radiator and RAdmin. In this model, multiple hotspot locations
+would all be configured to proxy Radius requests to a central location, where
+all the user records are kept and administered.
+
+If this were done, it is suggested that RadSec be used to carry Radius traffic
+between the hotspot Radiator and the central Radiator. This will ensure that
+authentication is carried reliably and securely encrypted between the hotspots
+and the central Radiator/RAdmin system.

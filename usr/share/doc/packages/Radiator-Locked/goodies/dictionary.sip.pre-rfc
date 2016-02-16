@@ -1,0 +1,54 @@
+# This is a specialised dictionary for recognising 
+# SIP radius attributes as described in draft-sterman-aaa-sip-00.txt
+# and draft-schulzrinne-sipping-radius-accounting-00.txt
+# They are included in this separate dictionary because they conflict with 
+# other common and standard attributes.
+# They override attribues 206 Ascend-Menu-Item and 207 Ascend-PW-Warntime
+# in the standard dictionary.
+#
+# You can append this to your standard dictionary in Radiator with
+# a Radiator configuration parameter like this:
+# DictionaryFile %D/dictionary,%D/dictionary.sip
+#
+# Author: Mike McCauley mikem@open.com.au
+# $Id: dictionary.sip.pre-rfc,v 1.1 2007/02/10 06:04:44 mikem Exp $
+
+ATTRIBUTE       Sip-Method              101     integer
+ATTRIBUTE       Sip-Response-Code       102     integer
+ATTRIBUTE       Sip-Cseq                103     string
+ATTRIBUTE       Sip-To-Tag              104     string
+ATTRIBUTE       Sip-From-Tag            105     string
+ATTRIBUTE       Sip-Translated-Request-URI 107  string 
+ATTRIBUTE       Digest-Response         206     string
+ATTRIBUTE       Digest-Attributes       207     binary
+ATTRIBUTE       Sip-Uri-User            208     string
+ATTRIBUTE       Sip-Group               211     string
+ATTRIBUTE       Sip-Rpid                213     string
+ATTRIBUTE       SIP-AVP                 225     string
+
+# Pseudo attributes. Must not appear in transmitted packets
+
+ATTRIBUTE       Digest-Realm            1063 string
+ATTRIBUTE       Digest-Nonce            1064 string
+ATTRIBUTE       Digest-Method           1065 string
+ATTRIBUTE       Digest-URI              1066 string
+ATTRIBUTE       Digest-QOP              1067 string
+ATTRIBUTE       Digest-Algorithm        1068 string
+ATTRIBUTE       Digest-Body-Digest      1069 string
+ATTRIBUTE       Digest-CNonce           1070 string
+ATTRIBUTE       Digest-Nonce-Count      1071 string
+ATTRIBUTE       Digest-User-Name        1072 string
+
+VALUE           Service-Type            SIP     12
+
+VALUE		Sip-Method		Other			0
+VALUE		Sip-Method		Invite			1
+VALUE		Sip-Method		Cancel			2
+VALUE		Sip-Method		Ack			3
+VALUE		Sip-Method		Bye			4
+
+VALUE		Sip-Response-Code	Other			0
+VALUE		Sip-Response-Code	Invite			1
+VALUE		Sip-Response-Code	Cancel			2
+VALUE		Sip-Response-Code	Ack			3
+VALUE		Sip-Response-Code	Bye			4

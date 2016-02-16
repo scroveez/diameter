@@ -1,0 +1,103 @@
+From owner-radiator@open.com.au Fri May 14 11:10 EST 1999
+Received: (from majordom@localhost) by oscar.open.com.au (8.6.12/8.6.12) id LAA29665 for radiator-list; Fri, 14 May 1999 11:10:25 +1000
+Received: (from uucp@localhost) by oscar.open.com.au (8.6.12/8.6.12) id LAA29660 for radiator@open.com.au; Fri, 14 May 1999 11:10:20 +1000
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Fri, 14 May 1999 10:50:13 +1000 (EST)
+Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id KAA09043
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Fri, 14 May 1999 10:50:13 +1000 (EST)
+Received: from dove.mtx.net.au (dove.mtx.net.au [203.15.24.1]) by yarrina.connect.com.au with ESMTP id KAA08651
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Fri, 14 May 1999 10:50:13 +1000 (EST)
+Received: from localhost (paul@localhost)
+	by dove.mtx.net.au (8.9.1/8.9.1) with ESMTP id KAA19650
+	for <radiator@open.com.au>; Fri, 14 May 1999 10:20:15 +0930 (CST)
+>Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id KAA09043
+  (8.8.8/IDA-1.7 for <radiator@open.com.au>); Fri, 14 May 1999 10:50:13 +1000 (EST)
+Date: Fri, 14 May 1999 10:20:15 +0930 (CST)
+From: Paul Thornton <paul@dove.mtx.net.au>
+To: radiator@open.com.au
+Subject: (RADIATOR) Out of Memory (BSDI) Fix
+Message-ID: <Pine.BSI.4.05L.9905141004570.14436-100000@dove.mtx.net.au>
+MIME-Version: 1.0
+Sender: owner-radiator@open.com.au
+Precedence: bulk
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Length: 2564
+Status: ORS
+
+Hi all,
+
+If there is anyone running BSDI and are receiving an out of Memory
+problems when executing the server then here is the definitive answer to
+fixing the problem.
+
+Simply see how much memory Radiusd is running first. Use the unlimit
+command before executing radiusd so that it will run ok for now. Leave it
+for a while as the size may grow within a short period.
+
+radiusd on our server uses approximately 21M.
+
+In your Kernel Add these lines.
+
+Note # We are running with 512Mb of ram so you would need to adjust these
+figures to the amount of Ram you have! MAXDSIZ is the main culprit.
+
+-----SNIP------
+options         NMBCLUSTERS=4096
+options         NKMEMCLUSTERS=4096
+options         "KMEMSIZE=\(32*1024*1024\)"
+options         "DFLDSIZ=\(160*1024*1024\)"
+options         "DFLSSIZ=\(16*1024*1024\)"
+options         "MAXDSIZ=\(384*1024*1024\)"
+options         CHILD_MAX=512
+options         OPEN_MAX=256
+-----END SNIP-----
+
+Recompile your kernel but don't reboot yet.
+
+This is the main key to setting you datasize limit up to more than the
+default 16Mb that BSDI chooses to use. (Thankyou Mike!) Allow yourself
+some room for radius memory growth. We use 21M allowed 32M.
+
+Edit the login.conf file most likely in  /etc/login.conf 
+
+Locate the Default values.
+
+I.E.
+----
+default:\
+        :path=/bin /usr/bin /usr/contrib/bin:\
+        :datasize-cur=16M:\
+----
+
+Where you see :datasize-cur=16M:\  change this to more than what Radius
+requires to run. I have set ours up to :datasize-cur=32M:\ to allow radius
+to grow if needed.
+
+Reboot the server with the new kernel /  default datasize limit and
+you should be able to run radiusd from within inetd.conf, rather than
+standalone with the unlimit command or the use of RestartWrapper.
+
+Just to test it simply type limit after it reboots and you should now see
+your Datasize set to the amount of which you have in login.conf.
+
+** THANKS Mike for the help (Your a legend)
+
+* Manually test the server by executing it at the command line before
+  adding it to your inetd.conf file, just to be sure.
+
+Regards,
+
+Paul Thornton.
+
+   ,-      __             -,         DOVE AUSTRALIA SYSADMIN TEAM
+  /   \___/ /__ _  _____/   \
+ /  _ / _  / _ \ |/ / -_) _  \   Account queries: accounts@dove.net.au
+/.-   \_,_/\___/___/\__/    -.\  Tech Support:     support@dove.net.au
+       A U S T R A L I A         Sales queries:      sales@dove.net.au
+       http://dove.net.au        Admin queries:      admin@dove.net.au
+
+
+
+===
+To unsubscribe, email 'majordomo@open.com.au' with
+'unsubscribe radiator' in the body of the message.
+

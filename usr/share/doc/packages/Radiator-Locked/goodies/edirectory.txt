@@ -1,0 +1,363 @@
+This document discusses Novell eDirectory and Universal Passwords.
+It gives installation tips and configuration assistance.
+
+Novell eDirectory is an LDAP accessible user directory. It can be used to
+hold information about users, passwords, computers and other objects
+in your network. It is most often used to control access to networks of
+Windows computers.
+
+eDirectory runs on Windows, Linus, Solaris and HPUX. It provides an
+LDAP (Lightweight Directory Access Protocol) server interface which
+Radiator can use to search for and find users in order to control
+dialup, wired and wireless network access.
+
+Most LDAP servers prevent direct access to users passwords via LDAP,
+so authenticating with an LDAP server in the past has meant storing a
+separate per-user password field that can be fetched by LDAP, or else
+getting the LDAP server to authenticate the password using
+ServerChecksPassword.
+
+Recently, Novell has added 'Universal Password' to
+eDirectory. Universal Passsword is a mechanism where each user has
+just one password to control access to all the systems that are
+regulated by eDirectory.
+
+Radiator can be configured to fetch the Universal Password in
+plaintext from eDirectory, and can therefore be used to authenticate
+a wide range of authentication protocols such as PAP, CHAP, MSCHAP,
+MSCHAPV2, PEAP-MSCHAP, EAP-MSCHAP, EAP-MD5 etc. This is an improvement
+over Windows Active Directory, where it is impossible to recover the
+user's plaintext password from AD via LDAP, and thereore can only be
+used with PAP and TTLS-PAP using LDAP.
+
+Thie means that Radiator can be used to authenticate almost all dialup,
+wired and wireless network access with the same password that users
+use for local machine login, providing a better 'single signon'
+environment than used to be the case.
+
+----------------------------------------------------------------------
+Configuring Radiator to connect to eDirectory from Unix
+
+Radiator running on Unix can be configured to connect using AuthBy
+LDAP2 to eDirectory running on any platform, on the same host, locally
+or remotely. It can be configured with the GetNovellUP to fetch each users
+Universal Password and there to authenticate most type of Raditor
+authentication request.
+
+Prerequisites are:
+Perl 3.6 or later
+Radiator 3.11 plus patches or later
+perl-ldap module (provides Net::LDAP)
+IO::Socket::SSL Perl module (www.cpan.org)
+openssl 0.9.7 or later
+If EAP-TLS, EAP-TTLS or PEAP support is required, Net::SSLeay Perl
+  module (www.cpan.org)
+
+See goodies/edirectory.cfg and goodies/eap_edir_up.cfg for example
+configurations for connecting Radiator to eDirectory. We strongly
+suggest you start with one of these samples when developing your
+Radiator configuration. There is extensive documentation about each
+option in these example config files. Start with these and change them
+to suit your requirements, as they will proabably work with your system
+with very few changes.
+
+By default eDirectory only permits TLS LDAP connections, so you will
+need to configure Radiator to use TLS before it can connect to
+eDirectory, whether or not you wish to use Universal Passwords.
+
+Therefore you _must_ export the export the eDirectory LDAP server root
+certificate and convert it to PEM format as described below. You must
+then edit your Radiator configuration and set SSLCAFile to the full
+path name to your root certificate file in PEM format.
+
+You will also need to edit your config file to suit the way you
+installed and configured eDirectory: set the AuthDN and
+AuthPassword to the DN and password for your eDirectory
+administrator. You will also have to set BaseDN to the top of the LDAP
+directory tree that contains all your users.
+
+(If you do not wish to give the eDirectory administrator password out
+for use in the Radiator configuration, you can instead create a new
+user that Radiator will use to connect to eDirectory. Using iManager,
+create a new user, with a CN of, say 'radiusadmin'. Using
+Rights->Rights To Other Objects specify that radiusadmin is a Trustee
+for the container holding the users to be authenticated (the container
+could be the top level O=YOURORGNAME or any other group containing
+your users). Make sure the assigned rights of the radiusadmin trustee
+include both 'Read' and 'Write'.)
+
+You should now be able to run Radiator to connect to eDirectory:
+  radius -config goodies/edirectory.cfg -trace 4
+and use radpwtst to test authentication
+  radpwtst -noacct -user username -password userspassword
+where username and userspassword are the user and password you
+created above.
+If you have problems, send your configuration file and the trace level
+4 output from Radiator to the Radiator mailing list.
+
+----------------------------------------------------------------------
+Installing eDirectory
+
+These instructions are for eDirectory 8.8 SP5 with iManager 2.7, current at
+2010-11-20 and the VASCO_NMAS_Method_3.4_iMan27.zip with novell-radius-ldap-extensions-1.1.0-3.zip
+
+There are some mildy helpful documents here: 
+http://www.novell.com/documentation/edir_radius/pdfdoc/radiusadmin/radiusadmin.pdf
+http://www.novell.com/coolsolutions/assets/freeradius-edir.pdf
+but the following instructions are more explicit. 
+
+We tested with SLES 11 on VMWare.
+
+In these instructions, OPEN is the tree and OSC is the context. The Admin
+username is 'admin' and their password is 'admin'. Modify these to suit your
+organisation.
+
+0. Make sure the proposed eDirectory server host you have internet access,
+   static IP address and internal and external DNS host name assigned correctly
+   (else server certificate will have wrong name and must disable cert verify
+   with SSLVerify none)
+
+1. If you are installing on SLES 11 or similar, you will require the compat-2009
+   package. If you have SLES suport, install it from the SLES-EXtras repository,
+   else you can get it from
+http://www.eksiegowosc.com/repo/$RCE/SLES11-Extras/sle-11-i586/rpm/i586/
+
+2. The NDS distribution might be in a tarball or a disk. Unpack the tarball or
+   mount the disk. cd to the distribution
+
+3. Install eDirectory 2.7.4:
+sh nds-install
+ndsconfig new -t OPEN -n o=OSC -a cn=admin.o=OSC
+> enter password for admin: admin
+
+4. Install iManager 2.7:
+tar zxvf iMan_27_linux.tgz
+cd iManager/installs/linux
+sh iManagerInstallLinux.bin
+(ensure you enter the same admin.OSC.OPEN from above as the qualified user)
+When asked about installing plugins, as for: 9, radius, nmas, password
+management, novell certificate server, nmas plugins
+
+5. With a modern browser such as Firefox, browse to port 8443 on the eDirectory server:
+eg https://linux-no66.site:8443/nps/
+log in with the details of the Admin user you entered above 
+eg admin.OSC, admin, OPEN
+You should then be in iManager
+
+6. Extract the self-signed server Root certificate (The certificate is
+   required to connect to the TLS secured LDAP port):
+In iManager:
+Directory administration->Modify Object, browse to Security->OPEN CA, OK,
+Certificates Tab, select Self Signed Certificate, Export. Disable 'Export
+private key'. Export Format DER, Next>>, 'Save the exported certificate'. Get
+cert.der
+
+7. Convert the self-signed server Root certificate to PEM format (the format
+Radiator requires)
+openssl x509 -inform DER -outform PEM -in cert.der -out cert.pem        
+
+8. Configure iManager and eDirectory:
+In iManager: 
+Passwords->Password Policies, Sample Password Policy observer Universal Passwords are enabled
+ click on universal Password tab enable 'Allow Admin to retrieve Passwords' OK
+In iManager: 
+Passwords->Password Policies, Sample Password Policy 
+ click on Policy Assignments tab browse to OSC, select, OK. Should then see Assignments: OSC
+add a user, set the password
+
+9. Configure Radiator for universal passwords, SSLCAFile cert.pem from above, see
+   the sample goodies/edirectory.cfg in the Radiator distribution.
+
+
+10. To enable the freeradius compatible RADIUS schema:
+In iManager: 
+Schema->Delete Class, RADIUS::Profile, OK (else plugin schema wont load
+without conflicts, see radiusadmin.pdf 4.1.2 scenario 1)
+import the .der certificate from above into Java (else cant install the scema)
+keytool -import -file cert.der -keystore /opt/novell/jdk1.6.0/jre/lib/security/cacerts
+restart tomcat:
+/etc/init.d/novell-tomcat5 restart
+In iManager: 
+Radius->Extend Schema->OK
+
+11. Install more NMAS methods for various types of authentications:
+In iManager:
+NMAS->NMAS Login Methods->New browse to one of the zip files in
+nmas/NmasMethods/Novell/ in your eDirectory distribution (or in
+novell-nmas-methods.i386.rpm) which also comes with the distribution.
+rpm -Uvh  novell-nmas-methods.i386.rpm
+The zip files will be installed in /opt/novell/nmas/nmasmthd/
+
+12. To install the Vasco NMAS method, download the method module
+http://www.vasco.com/large_download/Downloads/VASCO_NMAS_Method_3_4_iMan27.zip
+follow the instructions included
+
+13. Ask Novell for novell-radius-ldap-extensions-1.1.0-3.i586.rpm
+and radauth_ldapxtn.ldif files. The installation of these files is described
+in
+http://www.novell.com/documentation/edir_radius/pdfdoc/radiusadmin/radiusadmin.pdf
+however, the files are not readily available. Novell say they wil be included
+in the distribution in the future but at the time of writing they were only
+available through a service request to Novell. Follow the instructions in
+radiusadmin.pdf to install novell-radius-ldap-extensions-1.1.0-3.i586.rpm,
+modify and load radauth_ldapxtn.ldif and to restart the LDAP server.
+
+
+----------------------------------------------------------------------
+The following instructions are for an older version of 
+eDirectory and are obsolete at 2010-11-20
+
+Follow these steps to install and configure eDirectory 8.7.3. You
+_must_ install the 8.7.3.4 patches, otherwise eDirectory will suffer
+from mysterious crashes, hangs etc. Detailed install instructions for
+RedHat 9 and similar Linux hosts are installed below.
+
+0. request an eDirectory evaluation license, or purchase a full
+   license from www.novell.com.
+1. Install eDirectory 8.7.3 (download.novell.com)
+2. Install iManager 2.0.2 (download.novell.com)
+3. Install ConsoleOne 1.3.6d (download.novell.com)
+4. Install Passsword Manager 2.0.1 (download.novell.com)
+5. Install eDirectory 8.7.3.4 patches (download.novell.com)
+6. Using ConsoleOne->My World->NDS->YOURTREEENAME->Your Organsiation->SSLCertificateDNS, 
+   export the eDirectory LDAP server root certificate in DER format.
+7. Using openssl convert to root certificate to PEM form:
+   openssl x509 -inform DER -outform PEM -in TrustedRootCert.der -out TrustedRootCert.pem
+   You will need the file TrustedRootCert.pem later when you configure Radiator.
+--- if you intend to use Universal Passwords, keep going -----
+8. Using iManager->Password Manager->Manage Password Policies, create
+   a Passsword Policy that includes:
+   'Enable Universal Password'
+   'Allow user agent to retrieve password'
+   'Allow password retrieval by admin'.
+   (Your version of Password Manager may not include the 'Allow
+   password retrieval by admin' option. If not see below.)
+9. Assign the new Password Policy to the appropriate object or group
+   in your eDirectory.
+10.Using iManager->Users->Create User, create a new user, but dont
+   specify a password yet.
+11.Using iManager->Password Management->Set Universal Password, choose
+   the new user and set their Universal Password
+
+
+----------------------------------------------------------------------
+Detailed installation instructions for Linux RedHat 9
+These are the detailed instructions corresponding to the brief
+installation steps above.
+ Tested eDirectory running on RedHat 9:
+ eDirectory 8.7.3 + 8.7.3.4 patches (you will get odd hangs and 
+   crashes in eDirectory 8.7.3 without the 8.7.3.4 patches)
+ iManager 2.0.2
+ ConsoleOne 1.3.6d
+ PasswordManager 2.0.1
+
+as root:
+1. Install eDirectory 8.7.3 (download.novell.com)
+$ tar zxvf eDir_873_linux_full.tar.gz
+$ cd Linux/setup
+$ ./nds-install
+  (enter license path /path/to/your/license/file/nnnnnn.nfk when
+  prompted)
+  create new directory tree (select organisation name and admin username)
+$ ndsconfig new -t test -n o=YOURORGNAME -a cn=admin.o=YOURORGNAME
+  (enter new admin password: adminpw)
+
+2. Install iManager 2.0.2 (download.novell.com)
+$ tar xvf iMan_202_linux.tgz
+$ cd iManager_linux
+$ ./install.sh
+  (select install, express: yes, enter cn=admin.o=YOURORGNAME, adminpw)
+
+3. Install ConsoleOne 1.3.6d (download.novell.com)
+$ tar zxvf c1_136d-linux.tar.gz
+$ cd Linux
+$ ./c1-install
+  (select language, select all snapins, dont reinstall JSDK)
+
+4. Install Passsword Manager 2.0.1 (download.novell.com)
+$ cp pwd_mgmt_2.0.1_nw_lin.jar /tmp
+$ /opt/novell/java/bin/java -Djava.library.path=/tmp -cp /tmp/pwd_mgmt_2.0.1_nw_lin.jar install
+  (fill in the prompts, cn=admin,o=YOURORGNAME adminpw, accept defaults for
+  everything else)
+
+
+
+5. Install eDirectory 8.7.3.4 patches (download.novell.com)
+$ tar zxvf edir8734_slh.tgz
+$ cd edir8734_slh/security
+$ tar zxvf nmmth236.tgz
+$ cd nmas236/ServerMethods/Novell
+$ nmasinst -addmethod admin.OSC test AdvX509/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test ChallengeResponse/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test EnhancedPwd/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test NDS/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test SimplePassword/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test X509Cert/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test CertMutual/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test DigestMD5/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test EntrustAdv/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test NDSChangePwd/config.txt -w admin
+$ nmasinst -addmethod admin.OSC test USmartCard/config.txt -w admin
+$ cd ../../..
+$ rm -rf nmas236
+$ tar zxvf nmsrv236.tgz
+$ cd nmas236/UNIX
+$ sh ./install.sh
+$ cd ../..
+$ rm -rf nmas236
+# secupd7 will fail because the version of nici is too low
+#$ tar zxvf secupd7.tgz
+#$ cd secupd7/unix/
+#$ ./install.sh
+$ cd ..
+$ cd edircore
+$ /etc/init.d/ndsd stop
+$ /etc/init.d/novell-httpd stop
+$ /etc/init.d/novell-tomcat4 stop
+$ ./install.sh
+$ /etc/init.d/ndsd start
+$ /etc/init.d/novell-tomcat4 start
+$ /etc/init.d/novell-httpd start
+
+
+6. Using ConsoleOne->My World->NDS->YOURTREEENAME->Your Organsiation->SSLCertificateDNS, 
+   export the eDirectory LDAP server root certificate in DER format.
+
+7. Using openssl convert to root certificate to PEM form:
+   openssl x509 -inform DER -outform PEM -in TrustedRootCert.der -out TrustedRootCert.pem
+   You will need the file TrustedRootCert.pem later when you configure Radiator.
+
+8. Using iManager->Password Manager->Manage Password Policies, create
+   a Passsword Policy that includes:
+   'Enable Universal Password'
+   'Allow user agent to retrieve password'
+   'Allow password retrieval by admin'.
+   (Your version of Password Manager may not include the 'Allow
+   password retrieval by admin' option. If not see below.)
+
+If your version of Password Manager does not include the 'Allow
+   password retrieval by admin' option, you will have to set that flag
+   using ConsoleOne. Caution: hex arithmetic required.
+
+-. Run ConsoleOne with
+   $ C1_JRE_HOME=/opt/novell/java/ /usr/ConsoleOne/bin/ConsoleOne
+-. Select treename->Security->Password Policies
+-. Select the password policy currently in force (Im using 'Sample Password Policy')
+-. Click on the Other tab
+-. Select nspmConfigurationOptions
+-. Change the value of the nspmConfigurationOptions bitmask according to 
+ http://www.directory-info.com/Java/Passwords/nspm.sch, so that the 
+ 'Allow password retrieval by admin' bit (0x20) is set on. Mine was changed from decimal 852 (=0x354) 
+ to decimal 884 (=0x374). Setting the admin bit is the same as adding
+ decimal 32 to nspmConfigurationOptions.
+
+9. Assign the new Password Policy to the appropriate object or group
+   in your eDirectory. We set it to the top of the tree o=OSC. IN your
+   case you could use o=YOURORGNAME
+
+10.Using iManager->Users->Create User, create a new user, but dont
+   specify a password yet.
+
+11.Using iManager->Password Management->Set Universal Password, choose
+   the new user and set their Universal Password
+

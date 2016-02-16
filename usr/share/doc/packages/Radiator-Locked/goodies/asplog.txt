@@ -1,0 +1,41 @@
+Problem: You are running Radiator and you want to display your SQL database
+of accounting logs via the web using ASP / VB script.
+Easy to do.. but you came across this strange thing of Radius storing the
+login date/time in Unix Epoch time (Time in seconds since Jan 1, 1970).
+So you want to find some code in VB to convert these seconds into Normal
+human time but for some reason you can't find the code on the net.
+Search no more...
+
+Solution:  Block copy this into your .asp page and amaze your friends.
+------------------------------------------------
+
+   Dim VBDate
+
+   VBDate =  DateAdd("s", PUT YOUR RADIATOR UNIX TIME HERE , "1/1/1970")
+   VBDate = DateAdd("h", -5, VBDate) ' convert to your time zone:  use -5 for Eastern, -8 pacific etc.
+
+'Now that we have the time.. we have to check daylight savings time
+
+   Dim StartDaylight
+   Dim EndDaylight
+
+   ' get the last day of March by subtracting one day from 4/1
+   StartDaylight = DateAdd("d", -1, DateSerial(Year(VBDate), 4, 1))
+
+   ' now skip to the next Sunday
+   StartDaylight = DateAdd("d", 5 - WeekDay(StartDaylight), StartDaylight)
+   StartDaylight = DateAdd("h", 2, StartDaylight)
+   EndDaylight = DateSerial(Year(VBDate), 11, 1)
+
+   ' back up to the previous Sunday
+   EndDaylight = DateAdd("d", -5 + WeekDay(EndDaylight), EndDaylight)
+   EndDaylight = DateAdd("h", 1, EndDaylight)
+
+   If (VBDate >= StartDaylight And VBDate < EndDaylight) Then
+       VBDate = DateAdd("h", 1, VBDate)
+   End If
+
+
+'Display your time
+  response.write(VBDate)
+

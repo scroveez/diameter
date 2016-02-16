@@ -1,0 +1,49 @@
+Date: Fri, 13 Oct 2000 13:39:52 +1000
+From: "Anton Sparrius" <asparrius@vivanet.com.au>
+
+
+Hi,
+
+FYI
+
+I've added a little code to add a "milliseconds" report to the log file.
+You need to download and install the Time-HiRes-01.20.tar.gz package which
+can be downloaded from CPAN.
+
+Then, a small adjustment to LogFILE.pm,
+
+(at the beginning of the module)
+
+use Time::HiRes qw( usleep ualarm gettimeofday tv_interval );
+
+(in sub log)
+
+sub log
+{
+    my ($self, $p, $s) = @_;
+
+my $seconds;
+my $micro;
+
+    if ($p <= $self->{Trace})
+    {
+        ($seconds, $micro) = gettimeofday;
+
+        my $ctime = localtime(time);
+        my $message = "$ctime.$micro: $Radius::Log::priorityToString[$p]:
+$s\n";
+
+
+
+This changes the output of the timestamping to
+
+Fri Oct 13 12:57:01 2000.171639: DEBUG: Packet dump:
+
+While the milliseconds are added after the year, they do at least give you
+the ability to view with a lot more precision how long all steps are taking,
+and if there is a delay occuring somewhere.
+
+Regards,
+
+Anton.
+

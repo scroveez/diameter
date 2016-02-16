@@ -1,0 +1,32 @@
+This hook is designed for use with an AuthBy LDAP2 clause, to add a prefix of
+"{nthash}" to the password string returned from the LDAP database.
+
+The LDAP database has the user passwords stored in an encrypted form in an
+attribute called "sambaNTPassword", which Radiator can deal with provided the
+string has a prefix of "{nthash}".
+
+The hook retrieves the "User-Password" from the internal user object being
+created after the LDAP database is queried, and adds "{nthash}" to the
+beginning of the string.
+
+
+#
+# PostSearchHook:  addnthashprefix.pl
+#
+# add "{nthash}" prefix to the sambaNTPassword retrieved from LDAP
+#
+# Hugh Irvine, OSC, 20090215
+#
+
+sub
+{
+       my $password = $_[3]->get_check->get_attr('User-Password');
+       $password = '{nthash}'.$password;
+       $_[3]->get_check->change_attr('User-Password', $password);
+
+       &main::log($main::LOG_DEBUG,"User-Password changed to $password");
+
+       return;
+}
+
+

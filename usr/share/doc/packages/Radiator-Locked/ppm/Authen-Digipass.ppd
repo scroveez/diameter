@@ -1,0 +1,45 @@
+<SOFTPKG NAME="Authen-Digipass" VERSION="1,9,0,1">
+	<TITLE>Authen-Digipass</TITLE>
+	<ABSTRACT>Perl extension for Vasco Digipass Vacman Controller AAL2 authentication library</ABSTRACT>
+	<AUTHOR>Mike McCauley &lt;mikem@open.com.au&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.8/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.10" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.10/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.12" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.12/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.14" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.14/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.16" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.16/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.18" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.18/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<OS NAME="MSWin32" />
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.20" />
+		<CODEBASE HREF="MSWin32-x86-multi-thread-5.20/Authen-Digipass.tar.gz" />
+	</IMPLEMENTATION>
+</SOFTPKG>

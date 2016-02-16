@@ -1,0 +1,127 @@
+Yubikeys are small USB tokens for one-time-password authentication.
+They are produced by Yubico (yubico.com) and are relativeley inexpensive. Much
+of the surrounding technology and sample code is open source. They can support
+one factor or 2 factor authentication, but not challenge-response.
+
+A Yubikey produces a unique one-time-password each time the the little button
+on it is pressed. The interesting thing is that the Yubikey acts like a USB
+keyboard, so the one-time-password is automatically typed into wherever the
+keyboard cursor is placed. This means that the user does not have to type in
+their token code by hand, as with manyu other tokens. It also means that it
+can work easily with many existing wired and wireless authentication methods,
+supplicants, web pages, Radius clients and other applications. The keys work
+on Windows, Linux, MAC OSX and probably many other platforms.
+
+Each Yubikey has a secret AES key programmed into it in the factory. This secret
+key can be used to authenticate the key against any of the public services
+provided by Yubico. In order to use a Yubikey in a 3rd party authentication
+service such as Radiator, it is necessary to reprogram each token with a new (known) AES
+secret key, and to record that same key in the Radiator database. See below
+for more information about that process.
+
+Yubico provide a numer of sample open source programs for managing and
+authenticating Yubikeys.  A typical one is the Yubico Java Server, a YubiKey
+OTP validation server in Java. This is a Tomcat application which provides an
+HTTP based web service API for authenticating Yubikeys. It looks up the secret
+key in a MySQL database and checks whether a Yubikey one-time password is
+correct.
+
+Radiator now ships with the AuthBy SQLYUBIKEY module and a sample configuration
+file in goodies/yubikey.cfg. It supports RADIUS PAP, EAP-One-Time-Password and
+EAP-Generic-Token-Card protocols. It also supports optional 2 factor
+authentication of Yubikey tokens, where the user is required to enter a
+static password as well as their Yubikey one-time-password.
+
+RAdmin from Open System Consultants (http://www.open.com.au/radmin)
+also supports Yubikeys, and provides an
+easy-to-use web-based tool for administering users and Yubikey tokens,
+including importing, allocating and deallocating tokens to users. 2 factor
+authentication is also supported in RAdmin.
+
+The design of the AuthBy SQLYUBIKEY module allows it to be configured to work
+with a wide range of database schemas, but by default it works with the
+schema that comes with the Yubico Java Server. This means that
+you can provide web services API based authentication _and_ Radius
+authentication for Yubikeys from the one token database.
+
+AuthBy SQLYUBIKEY can be optionally configured to support or require 2 factor
+authentication if the token database also contains a static password for each
+user. In this case, the user types their static password first, followed by
+the output from the one-time-password token. The user will only be
+authenticated if both the static password and the one-time password are
+correct. AuthBy SQLYUBIKEY supports replay attack detection.
+
+Radiator does not come with any tools for managing the Yubikey token database.
+Use RAdmin (http://www.open.com.au/radmin), or use one of the tools
+provided by Yubico. It would be relatively easy to integrate this with almost
+any existing user database.
+
+The example configuration file goodies/yubikey.cfg in the Radiator
+distribution shows the main configuration options. It will work with
+the database schema in goodies/yubikey.sql, but can be customised
+for many other SQL database schemas.
+
+Radiator can also authenticate Yubikeys against the Yubikey Validation Server
+using the Yubikey PAM module and AuthBy PAM. 
+
+Testing:
+
+AuthBy SQLYUBIKEY requires the Auth-Yubikey_Decrypter module from CPAN
+(www.cpan.org) and the Crypt::Rijndael module, also available from CPAN.
+
+Yubico provide a utility (Yubico Personalization Tool) for reprogramming a
+Yubikey with a custom Token ID and AES secret. It is necessary to do this
+before importing the token details into the AuthBy SQLYUBIKEY database.
+
+The Yubico Personalization Tool can be downloaded from
+http://www.yubico.com/developers/personalization/
+
+When you use that to reprogram a Yubikey, ensure the token is programmed:
+- With a public identity (Token ID) of 6 bytes (no other length of public identity is
+  compatible with Auth SQLYUBIKEY. It can be random or selected by you.
+  Record it for entry into the AuthBy SQLYUBIKEY database.
+- With a random private identity (optionally required by Auth
+  SQLYUBIKEY). Record it for entry into the AuthBy SQLYUBIKEY 
+  database.
+- The AES key (AES secret) should be random. Record it for entry into the AuthBy SQLYUBIKEY
+  database.
+
+You can set up a test database with the yubikey.sql 
+mysql -uroot -prootpassword 
+>create database yubico;
+>grant all privileges on yubico.* to 'readwrite'@'localhost' identified by 'password';
+>flush privileges;
+>exit
+mysql -Dyubico -ureadwrite -ppassword <goodies/yubikey.sql
+
+To program a yubikey for use with yubikey.cfg:
+ 
+Get the Personalisation tool from http://www.yubico.com/personalization-tool
+Use the Personalisation tool in Yubico OTP mode to configure Slot 1 of a Yubikey
+Get the following data from the Personalisation tool:
+Public Identity (in modhex format), something like 'vvcjnihvlfbv'
+Private Identity (in hex format), something like '5a50d3651e91'
+Secret Key (in hex format), something like '829e70e675b46c610c6fa1c62d6d8fff'
+(you can cut and paste them from the Personalisation tool or get them from the
+tool's configuration log (typically in ~/configuration_log.csv or C:\Documents
+and Settings\username\configuration_log.csv)
+
+Add records to the database for each token like this:
+mysql -Dyubico -ureadwrite -ppassword
+
+insert into clients values(1,1,true,now(), "mikem", "fred");
+insert into yubikeys values (1, 1, 1, now(), now(), 'vvcjnihvlfbv', '5a50d3651e91', '829e70e675b46c610c6fa1c62d6d8fff', 0, 0, 0);
+
+Then run Radiator with the sample configuration:
+ perl radiusd -config goodies/yubikey.cfg
+
+radpwtst -noacct -user mikem -password vvcjnihvlfbvnnhtrhdtkktctfnicfccgfbventrlhrc
+   (succeeeds)
+  or with a static password for 2 factor:
+radpwtst -noacct -user mikem -password fred:vvcjnihvlfbvnnhtrhdtkktctfnicfccgfbventrlhrc
+   (succeeeds)
+If you attempt to auth again with the same password without resetting the database:
+
+radpwtst -noacct -user mikem -password vvcjnihvlfbvnnhtrhdtkktctfnicfccgfbventrlhrc
+   (fails due to replay detection)
+

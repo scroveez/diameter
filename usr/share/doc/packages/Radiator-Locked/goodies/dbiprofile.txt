@@ -1,0 +1,32 @@
+This document is a brief description of an easy way to obtain
+performance data about SQL queries run by your Radiator.
+
+The Perl DBI module includes built-in performance measurement. You can
+set certain environment variables and run your program. When the
+program exits, it will print out details about the time each of your
+SQL queries took to run.
+
+For example, on Unix, you can enable data to be grouped by SQL
+statement with a command like:
+
+DBI_PROFILE=2 ./radiusd -config goodies/radmin.cfg
+...... program runs
+terminate the program with SIG term (use something like 
+kill -TERM nnnn 
+where nnnn is the Radiator process ID), and the performance data
+will be printed on STDOUT, something like this:
+
+
+DBI::Profile: 14.151900 seconds 23.90% (8466 method calls) radiusd
+'' =>
+    12.222472s / 6726 = 0.001817s avg (first 0.000012s, min 0.000008s, max 0.121580s)
+'select ATTR_ID, VENDOR_ID, IVALUE, SVALUE, ITEM_TYPE from RADCONFIG where NAME='mikem' order by ITEM_TYPE' =>
+    0.681599s / 612 = 0.001114s avg (first 0.000171s, min 0.000005s, max 0.031941s)
+'select NASIDENTIFIER, NASPORT, ACCTSESSIONID, FRAMEDIPADDRESS from RADONLINE where USERNAME='mikem'' =>
+    0.634436s / 510 = 0.001244s avg (first 0.000329s, min 0.000005s, max 0.030651s)
+'select PASS_WORD, STATICADDRESS, TIMELEFT, MAXLOGINS, SERVICENAME, BADLOGINS, VALIDFROM, VALIDTO from RADUSERS where USERNAME='mikem'' =>
+    0.612525s / 612 = 0.001001s avg (first 0.000175s, min 0.000005s, max 0.056257s)
+
+
+Other values of DBI_PROFILE are possible. More details with 
+man DBI::Profile

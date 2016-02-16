@@ -1,0 +1,66 @@
+address-allocator-sql.txt
+
+When IP addresses are allocated from a shared database by multiple
+Radiator instances, care needs to be taken to make sure the same
+address is not allocated simultaneously by different instances.
+
+Below are examples for different databases on how to configure queries
+for <AddressAllocator SQL> when FarmSize (server farm) is enabled or
+there are otherwise multiple Radiator instances running on one or more
+servers accessing the same SQL database to allocate addresses.
+
+See also goodies/address-allocator-sp.* for an Oracle stored procedure
+example.
+
+PostgreSQL
+++++++++++
+FindQuery does all the work and no AllocateQuery is needed. FindQuery
+allocates the address and updates its status. AllocateQuery is
+configured with an empty value to keep it from called.
+
+FindQuery with findQuery as (\
+  select TIME_STAMP, YIADDR,SUBNETMASK from RADPOOL where STATE=0 and POOL=? order by \
+  TIME_STAMP limit 1 for update) update RADPOOL as AllocateAddress set STATE=1, \
+  TIME_STAMP=?, USERNAME=?, EXPIRY=? from findQuery where \
+  AllocateAddress.yiaddr = findQuery.yiaddr \
+  returning AllocateAddress.TIME_STAMP, AllocateAddress.YIADDR, \
+  AllocateAddress.SUBNETMASK, AllocateAddress.dnsserver
+FindQueryBindVar %0
+FindQueryBindVar %t
+FindQueryBindVar %1
+FindQueryBindVar %2
+
+AllocateQuery 
+
+
+MySQL
++++++
+FindQuery does all the work and no AllocateQuery is needed. FindQuery
+calls the stored procedure which allocates the address and updates its
+status. AllocateQuery is configured with an empty value to keep it
+from called.
+
+FindQuery call GetIP(?,?,?,?)
+FindQueryBindVar %0
+FindQueryBindVar %t
+FindQueryBindVar %1
+FindQueryBindVar %2
+
+AllocateQuery
+
+The GetIP stored procedure is defined as follow.
+
+DROP PROCEDURE IF EXISTS radius.GetIP;
+
+DELIMITER //
+CREATE PROCEDURE radius.GetIP(pool_in char(50), timestamp_in int, username_in char(50), expiry_in int)
+BEGIN
+DECLARE yiaddr_i varchar(50);
+DECLARE timestamp_i int;
+START TRANSACTION;
+select TIME_STAMP, YIADDR into timestamp_i, yiaddr_i from RADPOOL where STATE=0 and POOL=pool_in order by TIME_STAMP limit 1 for update;
+update RADPOOL set STATE=1, TIME_STAMP=timestamp_in, USERNAME=username_in, EXPIRY=expiry_in where YIADDR=yiaddr_i;
+select TIME_STAMP, YIADDR, SUBNETMASK,DNSSERVER from RADPOOL where YIADDR=yiaddr_i;
+commit;
+END//
+DELIMITER ;

@@ -1,0 +1,266 @@
+#
+# This file (dictionary.ascend) contains the Ascend attributes
+# that were used by Ascend prior to the adoption of vendor specifics.
+# This file can be used if the original encoding of attribute names
+# is required by doing something like this in the Radiator configuration file:
+#
+# DictionaryFile %D/dictionary, %D/dictionary.ascend
+#
+
+
+#	Frame Relay Link Status DLCI value
+
+ATTRIBUTE	Ascend-FR-Link-Status-Dlci	106	integer
+
+# Caller Subaddress (in connection profile)
+
+ATTRIBUTE       Ascend-Calling-Subadddress      107     string
+
+# 	Ascend Callback Delay, seconds to delay before initiating dialback
+
+ATTRIBUTE	Ascend-Callback-Delay		108	integer
+
+#	Ascend Alias for LCP Endpoint Discriminator
+
+ATTRIBUTE	Ascend-Endpoint-Disc		109	string
+
+#	Ascend Firewall Control Manager (FCM) Remote FireWall (FW) name
+
+ATTRIBUTE	Ascend-Remote-FW		110	string
+
+#		Multicast Group Leave Delay time in seconds
+
+ATTRIBUTE	Ascend-Multicast-GLeave-Delay	111	integer
+
+#	Ascend Microsoft Callback Control Protocol Parameters
+
+ATTRIBUTE	Ascend-CBCP-Enable		112	integer
+ATTRIBUTE	Ascend-CBCP-Mode		113	integer
+ATTRIBUTE	Ascend-CBCP-Delay		114	integer
+ATTRIBUTE	Ascend-CBCP-Trunk-Group		115	integer
+
+#	Ascend Appletalk PPP Parameters
+
+ATTRIBUTE	Ascend-Appletalk-Route		116	string
+ATTRIBUTE	Ascend-Appletalk-Peer-Mode	117	integer
+ATTRIBUTE	Ascend-Route-Appletalk		118	integer
+
+#	Ascend Firewall Control Protocol (FCP) Parameter
+
+ATTRIBUTE	Ascend-FCP-Parameter		119	string
+
+#	Ascend Modem Port, Slot and Shelf numbers (on MAX and
+#	pipeline the Shelf number equals 0) 
+
+ATTRIBUTE	Ascend-Modem-PortNo		120	integer
+ATTRIBUTE	Ascend-Modem-SlotNo		121	integer
+ATTRIBUTE	Ascend-Modem-ShelfNo		122	integer
+
+# 	Call Block Limit & Duration Parameters
+
+ATTRIBUTE	Ascend-Call-Attempt-Limit	123	integer
+ATTRIBUTE	Ascend-Call-Block-Duration	124	integer
+
+# 	Maximum call duration in minutes
+
+ATTRIBUTE	Ascend-Maximum-Call-Duration	125	integer
+
+#	Ascend route-preference specifier for connection profiles
+
+ATTRIBUTE	Ascend-Route-Preference		126	integer
+
+#	Ascend defined attribute used for MAX configuration to use different
+#	Tunneling protocol.
+
+ATTRIBUTE       Tunneling-Protocol              127     integer
+
+#		Connection Profile items
+#
+#       Ascend defined attribute used for enable Shared Profile per
+#       Connection Profile. This attribute has no effect if Shared Profile
+#       set to Yes in the Ethernet -> Mod Config
+
+ATTRIBUTE       Ascend-Shared-Profile-Enable    128     integer
+ATTRIBUTE	Ascend-Primary-Home-Agent	129	string
+ATTRIBUTE	Ascend-Secondary-Home-Agent	130	string
+
+# Dialout allowed (in connection profile)
+
+ATTRIBUTE	Ascend-Dialout-Allowed		131	integer
+ATTRIBUTE       Ascend-Client-Gateway           132     ipaddr
+
+#	Enables support for the IETF Bandwidth Allocation Control Protocol
+
+ATTRIBUTE	Ascend-BACP-Enable		133	integer
+
+# 	Maximum number of leases per session for NAT_LAN
+
+ATTRIBUTE	Ascend-DHCP-Maximum-Leases	134	integer
+
+#	Support DNS server addresses per user 
+
+ATTRIBUTE	Ascend-Client-Primary-DNS	135	ipaddr
+ATTRIBUTE	Ascend-Client-Secondary-DNS	136	ipaddr
+ATTRIBUTE	Ascend-Client-Assign-DNS	137	integer
+
+#		Per user RADIUS Accounting Server
+
+ATTRIBUTE	Ascend-User-Acct-Type		138	integer
+ATTRIBUTE	Ascend-User-Acct-Host		139	ipaddr
+ATTRIBUTE	Ascend-User-Acct-Port		140	integer
+ATTRIBUTE	Ascend-User-Acct-Key		141	string
+ATTRIBUTE	Ascend-User-Acct-Base		142	integer
+ATTRIBUTE	Ascend-User-Acct-Time		143	integer
+
+#	Support ip address allocation from global pools
+
+ATTRIBUTE	Ascend-Assign-IP-Client		144	ipaddr
+
+ATTRIBUTE       Ascend-Session-Svr-Key          151     string
+
+#	Frame Datalink profiles
+
+ATTRIBUTE	Ascend-FR-Circuit-Name		156	string
+ATTRIBUTE	Ascend-FR-LinkUp		157	integer
+ATTRIBUTE	Ascend-FR-Nailed-Grp		158	integer
+ATTRIBUTE	Ascend-FR-Type			159	integer
+ATTRIBUTE	Ascend-FR-Link-Mgt		160	integer
+ATTRIBUTE	Ascend-FR-N391			161	integer
+ATTRIBUTE	Ascend-FR-DCE-N392		162	integer
+ATTRIBUTE	Ascend-FR-DTE-N392		163	integer
+ATTRIBUTE	Ascend-FR-DCE-N393		164	integer
+ATTRIBUTE	Ascend-FR-DTE-N393		165	integer
+ATTRIBUTE	Ascend-FR-T391			166	integer
+ATTRIBUTE	Ascend-FR-T392			167	integer
+ATTRIBUTE	Ascend-Bridge-Address  	 	168	string
+ATTRIBUTE       Ascend-TS-Idle-Limit            169     integer
+ATTRIBUTE       Ascend-TS-Idle-Mode             170     integer
+ATTRIBUTE	Ascend-DBA-Monitor	 	171	integer
+ATTRIBUTE	Ascend-Base-Channel-Count 	172	integer
+ATTRIBUTE	Ascend-Minimum-Channels		173	integer
+
+#		IPX Static Routes
+
+ATTRIBUTE	Ascend-IPX-Route		174	string
+ATTRIBUTE	Ascend-FT1-Caller		175	integer
+ATTRIBUTE	Ascend-Backup			176	string
+ATTRIBUTE	Ascend-Call-Type		177	integer
+ATTRIBUTE	Ascend-Group			178	string
+ATTRIBUTE	Ascend-FR-DLCI			179	integer
+ATTRIBUTE	Ascend-FR-Profile-Name		180	string
+
+#
+
+ATTRIBUTE	Ascend-Ara-PW			181	string
+ATTRIBUTE	Ascend-IPX-Node-Addr		182	string
+ATTRIBUTE	Ascend-Home-Agent-IP-Addr	183	ipaddr
+ATTRIBUTE	Ascend-Home-Agent-Password	184	string
+ATTRIBUTE	Ascend-Home-Network-Name	185	string
+ATTRIBUTE	Ascend-Home-Agent-UDP-Port	186	integer
+
+#
+
+ATTRIBUTE	Ascend-Multilink-ID		187	integer
+ATTRIBUTE	Ascend-Num-In-Multilink		188	integer
+ATTRIBUTE	Ascend-First-Dest		189	ipaddr
+ATTRIBUTE	Ascend-Pre-Input-Octets		190	integer
+ATTRIBUTE	Ascend-Pre-Output-Octets	191	integer
+ATTRIBUTE	Ascend-Pre-Input-Packets	192	integer
+ATTRIBUTE	Ascend-Pre-Output-Packets	193	integer
+ATTRIBUTE	Ascend-Maximum-Time		194	integer
+ATTRIBUTE	Ascend-Disconnect-Cause		195	integer
+ATTRIBUTE	Ascend-Connect-Progress		196	integer
+ATTRIBUTE	Ascend-Data-Rate		197	integer
+ATTRIBUTE	Ascend-PreSession-Time		198	integer
+ATTRIBUTE	Ascend-Token-Idle		199	integer
+ATTRIBUTE       IETF-Token-Immediate            200     integer
+ATTRIBUTE	Ascend-Token-Immediate		200	integer
+ATTRIBUTE	Ascend-Require-Auth		201	integer
+ATTRIBUTE	Ascend-Number-Sessions		202	string
+ATTRIBUTE	Ascend-Authen-Alias		203	string
+ATTRIBUTE	Ascend-Token-Expiry		204	integer
+ATTRIBUTE	Ascend-Menu-Selector		205	string
+ATTRIBUTE	Ascend-Menu-Item		206	string
+
+#		Radius Password Expiration Options
+
+ATTRIBUTE	Ascend-PW-Warntime		207	integer
+ATTRIBUTE	Ascend-PW-Lifetime		208	integer
+ATTRIBUTE	Ascend-PPP-VJ-Slot-Comp		210	integer
+ATTRIBUTE	Ascend-PPP-VJ-1172		211	integer
+ATTRIBUTE	Ascend-PPP-Async-Map		212	integer
+ATTRIBUTE	Ascend-Third-Prompt		213	string
+ATTRIBUTE	Ascend-Send-Secret		214	string encrypt=3
+ATTRIBUTE	Ascend-Receive-Secret		215	string encrypt=3
+ATTRIBUTE	Ascend-IPX-Peer-Mode		216	integer
+ATTRIBUTE	Ascend-IP-Pool-Definition	217	string
+ATTRIBUTE	Ascend-Assign-IP-Pool		218	integer
+ATTRIBUTE	Ascend-FR-Direct		219	integer
+ATTRIBUTE	Ascend-FR-Direct-Profile	220	string
+ATTRIBUTE	Ascend-FR-Direct-DLCI		221	integer
+ATTRIBUTE	Ascend-Handle-IPX		222	integer
+ATTRIBUTE	Ascend-Netware-timeout		223	integer
+ATTRIBUTE	Ascend-IPX-Alias		224	integer
+ATTRIBUTE	Ascend-Metric			225	integer
+ATTRIBUTE	Ascend-PRI-Number-Type		226	integer
+ATTRIBUTE	Ascend-Dial-Number		227	string
+
+#		Connection Profile/PPP options
+
+ATTRIBUTE	Ascend-Route-IP			228	integer
+ATTRIBUTE	Ascend-Route-IPX		229	integer
+ATTRIBUTE	Ascend-Bridge			230	integer
+ATTRIBUTE	Ascend-Send-Auth		231	integer
+ATTRIBUTE	Ascend-Send-Passwd		232	string
+#ATTRIBUTE	Ascend-MRU			see	Framed-MTU
+ATTRIBUTE	Ascend-Link-Compression		233	integer
+#ATTRIBUTE	Ascend-VJ-Compression		see	Framed-Compression
+ATTRIBUTE	Ascend-Target-Util		234	integer
+ATTRIBUTE	Ascend-Maximum-Channels		235	integer
+ATTRIBUTE	Ascend-Inc-Channel-Count	236	integer
+ATTRIBUTE	Ascend-Dec-Channel-Count	237	integer
+ATTRIBUTE	Ascend-Seconds-Of-History	238	integer
+ATTRIBUTE	Ascend-History-Weigh-Type	239	integer
+ATTRIBUTE	Ascend-Add-Seconds		240	integer
+ATTRIBUTE	Ascend-Remove-Seconds		241	integer
+
+#		Connection Profile/Session options
+
+#ATTRIBUTE	Ascend-RIP			see Framed-Routing
+
+# Radiator understands abinary, but if you are just use string instead
+# forwarding abinary attributes, use string instead
+
+ATTRIBUTE	Ascend-Data-Filter		242	abinary
+ATTRIBUTE	Ascend-Call-Filter		243	abinary
+#ATTRIBUTE	Ascend-Data-Filter		242	string
+#ATTRIBUTE	Ascend-Call-Filter		243	string
+ATTRIBUTE	Ascend-Idle-Limit		244	integer
+ATTRIBUTE	Ascend-Preempt-Limit		245	integer
+
+#		Connection Profile/Telco options
+
+ATTRIBUTE	Ascend-Callback			246	integer
+ATTRIBUTE	Ascend-Data-Svc			247	integer
+ATTRIBUTE	Ascend-Force-56			248	integer
+ATTRIBUTE	Ascend-Billing-Number		249	string
+ATTRIBUTE	Ascend-Call-By-Call		250	integer
+ATTRIBUTE	Ascend-Transit-Number		251	string
+
+#		Terminal Server Attributes
+
+#ATTRIBUTE	Ascend-Terminal-Banner		see	Reply-Message
+ATTRIBUTE	Ascend-Host-Info		252	string
+
+#		PPP local address Attribute
+
+ATTRIBUTE	Ascend-PPP-Address		253	ipaddr
+
+#		MPP percent idle Attribute
+
+ATTRIBUTE	Ascend-MPP-Idle-Percent		254	integer
+
+#		The transmit rate to compliment the receive rate called Data
+
+ATTRIBUTE	Ascend-Xmit-Rate		255	integer
+

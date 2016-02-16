@@ -1,0 +1,59 @@
+This document describes how to configure a Lancom L-54g wireless Access Point
+to use RadSec to connect to an external RadSec server for authentication.
+
+Use the L-54g web interface to log in and perform the following tasks
+
+1. Update the firmware of the L-54g to version 7.56.0046 / 20.08.2008 or
+   later.
+
+2. Enable 802.1X wireless attributes as reqiured. Do not enable any RADIUS
+   servers yet.
+
+3. Install the Root Certificate of the CA that issued the RadSec servers
+   certificate. 
+   Go to Upload Certificate or File. 
+   Select File Type RADSEC - Root CA Certificate
+   Enter the name of the CA file
+   Start Upload
+
+4. Using a procedure similar to 3, upload the client certificate. If the
+   client certificate is encrypted you can enter the passphrase required to
+   decrypt the certificate. Select RADSEC -Device Certificate as the file
+   type.
+
+5. Using a procedure similar to 3, upload the private key of the client
+   certificate. You can extract the private key from a PEM certificate with
+   these commands:
+   openssl pkcs12 -export -in cert-clt.pem -nodes -out my.pfx
+   openssl pkcs12 -in my.pfx -out my-nodes.key -nodes -nocerts  
+   When uploading, choose FIle Type: RADSEC - Device Private Key
+
+6. The 3 uploaded certificate files should now appear in the 
+   Expert Configuration -> Status -> File-System -> Contents page as
+   radsec_rootcert, radsec_devcert and radsec_privkey.
+
+7. Go to Expert Configuration -> Setup -> IEEE802.1x -> RADIUS-Server
+   Add
+   Enter the Name, address and port number of the external RadSec server. 
+   In Secret, enter the same
+   shared secret as is configured into the RadSec server. Select RADSEC for
+   the protocol.
+
+8. Now when an 802.1X client attempts to connect to the AP, a RadSec
+   connection wil be established to the remote RadSec server, and the client
+   will be authenticated using RADIUS requests passed over the RadSec
+   connection. 
+
+
+Hints:
+
+1. You can enable Radius tracing on the L-54g by:
+   log in via telnet or ssh to the L-54g, and run this command:
+   trace + RADIUS
+
+2. The default mode for the Physical wireless lan is "Managed (Access
+   Point)". This will only work if you have a separate wireless lan manager. If
+   you have a simple stand-alone wireless AP configuration, you probably want
+   to choose WLAN OperationMode of "Access Point" in 
+   Configuration->Wireless Lan -> Physical WLAN settings - Operation
+

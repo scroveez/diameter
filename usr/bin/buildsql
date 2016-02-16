@@ -1,0 +1,389 @@
+#!/usr/bin/perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+# buildsql
+# Build and SQL database from a password or flat file database
+# Works with any SQL database supported by DBD/DBI.
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 1997 Open System Consultants
+# $Id: buildsql,v 1.10 2011/11/07 22:01:39 mikem Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+}
+
+use Getopt::Long;
+use DBI;
+use Radius::User;
+
+# This will cause perl to choose the 'best' DBM format available to
+# you. You can force it to use another format with something like
+# -t GDBM_File; 
+$dbtype = 'AnyDBM_File';
+$dbtype = $opt_t if defined $opt_t;
+require "$dbtype.pm";
+
+my @options = (
+	       'h',	   # help, show usage
+	       'dbsource=s',
+	       'dbusername=s',
+	       'dbauth=s',
+	       'password', # Input files are unix password format
+	       'dbm',
+	       'flat',     # Input files are flat Radius users file
+	       "z",        # Zero (ie empty) the database
+	       "u",        # Update the DB
+	       "f",        # Force DB update for non defined fields
+	       "d=s",	   # Delete the record with key
+	       "l=s",	   # Lookup the record with the key
+	       "tablename=s",
+	       "username_column=s",
+	       "password_column=s",
+	       "encryptedpassword",
+	       "checkattr_column=s",
+	       "replyattr_column=s",
+	       "v",        # Print out the queries being issued
+	       "t=s",   # Force a database type, DB_File, GDBM_File etc
+	       
+	);
+
+&GetOptions(@options) || &usage;
+&usage if $opt_h;
+
+$DBSource                  = undef;
+$DBUsername                = '';
+$DBAuth                    = '';
+# The following varaibles specify the structure of the user table
+# Alter them if you need to
+$DBTablename               = 'SUBSCRIBERS';
+$DBUsernameColumn          = 'USERNAME';
+$DBPasswordColumn          = 'PASSWORD';
+$DBCheckAttrColumn         = 'CHECKATTR';
+$DBReplyAttrColumn         = 'REPLYATTR';
+
+# Use command line args if present
+$DBSource = $opt_dbsource if defined $opt_dbsource;
+$DBUsername = $opt_dbusername if defined $opt_dbusername;
+$DBAuth = $opt_dbauth if defined $opt_dbauth;
+$DBTablename = $opt_tablename if defined $opt_tablename;
+$DBUsernameColumn = $opt_username_column 
+    if defined $opt_username_column;
+$DBCheckAttrColumn = $opt_checkattr_column 
+    if defined $opt_checkattr_column;
+$DBReplyAttrColumn = $opt_replyattr_column 
+    if defined $opt_replyattr_column;
+$DBPasswordColumn = $opt_password_column
+    if defined $opt_password_column;
+
+&usage
+    if !defined $DBSource;
+
+# Open the database
+$dbh = DBI->connect($DBSource,
+		    $DBUsername,
+		    $DBAuth);
+die "Could not DBI->connect to $DBSource: $DBI::errstr"
+    if !$dbh;
+
+if ($opt_z)
+{
+    my $q = "delete from $DBTablename";
+    print "$q\n" if $opt_v;
+    $dbh->do($q)
+	|| print STDERR "Clearing of database failed: $DBI::errstr\n";
+#    $dbh->commit
+#	|| print STDERR "Commit failed: $DBI::errstr\n";
+}
+
+if ($opt_l)
+{
+    # Print out info about a single user
+    my $q = "select $DBPasswordColumn,
+$DBCheckAttrColumn, $DBReplyAttrColumn from $DBTablename
+where $DBUsernameColumn = '$opt_l'";
+    print "$q\n" if $opt_v;
+    my $sth = $dbh->prepare($q);
+    if (!$sth)
+    {
+	print STDERR "Prepare failed for '$q': $DBI::errstr";
+	exit 1;
+    }
+    else
+    {
+	my $rc = $sth->execute;
+	if (!$rc)
+	{
+	    print STDERR "Execute failed for '$q': $DBI::errstr";
+	}
+	else
+	{
+	    if (($password, $checkattr, $replyattr) 
+		= $sth->fetchrow)
+	    {
+		if ($opt_encryptedpassword)
+		{
+		    print "$opt_l\tEncrypted-Password=$password";
+		}
+		else
+		{
+		    print "$opt_l\tUser-Password=$password";
+		}
+		print ", $checkattr" if $checkattr;
+		print "\n";
+		print "\t$replyattr\n" if $replyattr;
+		print "\n";
+	    }
+	    else
+	    {
+		print STDERR "User $opt_l not found\n";
+	    }
+	}
+    }
+}
+elsif ($opt_d)
+{
+    # Delete a single user
+    my $q = "delete from $DBTablename where $DBUsernameColumn='$opt_d'";
+    print "$q\n" if $opt_v;
+    $dbh->do($q)
+	|| print STDERR "Delete user $opt_d failed: $DBI::errstr\n";
+#    $dbh->commit
+#	|| print STDERR "Commit of delete user $opt_d failed: $DBI::errstr\n";
+    
+}
+else
+{
+    # No special options, insert or update
+    # Now process each file found on the command line
+    foreach $file (@ARGV)
+    {
+	if ($opt_password)
+	{
+	    # Its a unix password file
+	    &do_unix_password($file);
+	}
+	elsif ($opt_dbm)
+	{
+	    &do_dbm_file($file);
+	}
+	else
+	{
+	    # Default is a flat file
+	    &do_flat_file($file);
+	}    
+    }
+}
+
+#####################################################################
+sub insertUser
+{
+    my ($username, $password, $check_items, $reply_items) = @_;
+
+    my ($extracols, $extravals, $extraclauses);
+    if (defined $check_items)
+    {
+	$extracols .= ",$DBCheckAttrColumn";
+	$extravals .= ", '$check_items'";
+	$extraclauses .= ", $DBCheckAttrColumn = '$check_items'";
+    }
+    elsif ($opt_f)
+    {
+	$extracols .= ",$DBCheckAttrColumn";
+	$extravals .= ", ''";
+	$extraclauses .= ", $DBCheckAttrColumn = NULL";
+    }    
+    if (defined $reply_items)
+    {
+	$extracols .= ",$DBReplyAttrColumn";
+	$extravals .= ", '$reply_items'";
+	$extraclauses .= ", $DBReplyAttrColumn = '$reply_items'";
+    }
+    elsif ($opt_f)
+    {
+	$extracols .= ",$DBReplyAttrColumn";
+	$extravals .= ", ''";
+	$extraclauses .= ", $DBReplyAttrColumn = 'NULL'";
+    }
+
+    my $q = "insert into $DBTablename 
+($DBUsernameColumn,
+$DBPasswordColumn $extracols) 
+values 
+('$username', '$password' $extravals)";
+
+    print "$q\n" if $opt_v;
+
+    if (!$dbh->do($q))
+    {
+	if ($opt_u)
+	{
+	    # The insert failed, try an update
+	    $q = "update $DBTablename set
+$DBPasswordColumn = '$password' $extraclauses
+where $DBUsernameColumn = '$username'";
+	    print "$q\n" if $opt_v;
+	    $dbh->do($q)
+		|| print STDERR "Update user $username failed: $DBI::errstr\n";
+	}
+	else
+	{
+	    print STDERR "Insert user $username failed: $DBI::errstr\n";
+	}
+    }
+#    $dbh->commit
+#	|| print STDERR "Commit failed: $DBI::errstr\n";
+}
+
+#####################################################################
+sub do_unix_password
+{
+    my ($file) = @_;
+    open(FILE, $file)
+	|| die "Could not open password file '$file': $!";
+    while (<FILE>)
+    {
+	chomp;
+	my ($user, $password) = split(/:/);
+	&insertUser($user, $password);
+    }
+    close(FILE);
+}
+
+#####################################################################
+sub do_dbm_file
+{
+    my ($filename) = @_;
+
+    my %users;
+    tie (%users, $dbtype, $filename, O_RDONLY, 0)
+	|| die "Could not open DBM user database file '$filename': $!";
+
+    # Iterate through the entire set of users, order unimportant
+    my ($name, $value);
+    while (($name, $value) = each %users)
+    {
+	my $user = new Radius::User $name;
+	foreach (split(/\n/, $value))
+	{
+	    $user->parse($_);
+	}
+	&insertUserObject($name, $user);
+    }
+    untie %users;
+}
+
+#####################################################################
+sub do_flat_file
+{
+    my ($file) = @_;
+    open(FILE, $file)
+	|| die "Could not open users file '$file': $!";
+    my ($user, $username);
+    while (<FILE>)
+    {
+	chomp;
+
+	# Skip comment lines and blank lines
+	next if /^#/ || /^\s*$/;
+	    
+	if (/^(\S+)\s*(.*)/)
+	{
+	    # Start of a new record, create a $user. The user name
+	    # is the first field
+	    &insertUserObject($username, $user)
+		if defined $user;
+	    
+	    my $rest;
+	    ($username, $rest) = ($1, $2);
+	    
+	    # Make a unique name for each 'DEFAULT' entry
+	    # The first one is just DEFAULT, the following ones
+	    # are DEFAULT1, DEFAULT2 etc.
+	    if ($username eq 'DEFAULT')
+	    {
+		$username = "DEFAULT$default_number";
+		$default_number++;
+	    }
+	    $user = new Radius::User $username;
+	    
+	    $user->parse($rest);
+	}
+	else
+	{
+	    $user && $user->parse($_);
+	}
+    }
+    # Insert the last one
+    &insertUserObject($username, $user)
+	if defined $user;
+    close(FILE);
+}
+
+#####################################################################
+sub insertUserObject
+{
+    my ($username, $user) = @_;
+
+    my ($password, $check, $reply, $attrname, $attrvalue);
+    # Iterate through the check items, assembling a check attribute
+    # string
+    my $i = 0;
+    while (($attrname, $attrvalue) = 
+	   $user->get_check->get_attr_val_n($i++))
+    {
+	if ($attrname eq 'Password'
+	    || $attrname eq 'User-Password'
+	    || ($opt_encryptedpassword
+		&& ($attrname eq 'Encrypted-Password'
+		    || $attrname eq 'Crypt-Password')))
+	{
+	    $password = $attrvalue;
+	}
+	else
+	{
+	    $attrvalue =~ s/"/\\"/g;
+	    $check .= "$attrname = \"$attrvalue\",";
+	}
+    }
+    $i = 0;
+    while (($attrname, $attrvalue) = 
+	   $user->get_reply->get_attr_val_n($i++))
+    {
+	$attrvalue =~ s/"/\\"/g;
+	$reply .= "$attrname = \"$attrvalue\",";
+    }
+
+    # Strip trailing commas from check and reply
+    $check =~ s/,$//;
+    $reply =~ s/,$//;
+    
+    &insertUser($username, $password, $check, $reply)
+}
+
+#####################################################################
+sub log
+{
+    my ($p, $s) = @_;
+
+    die $s;
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h] -dbsource dbi:drivername:option
+    [-dbusername dbusername] [-dbauth auth] [-password | -dbm | -flat]
+    [-z] [-u] [-f] [-d username] [-l username] [-t dbmtype]
+    [-tablename name] [-v]
+    [-username_column columnname]
+    [-password_column columnname]
+    [-encryptedpassword]
+    [-checkattr_column columnname]
+    [-replyattr_column columnname] filename ...\n";
+    exit 0;
+}
+

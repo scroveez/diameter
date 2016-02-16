@@ -1,0 +1,67 @@
+This document provides a brief explanation about how to configure Radiator
+to use a DBD::CSV database.
+
+DBD::CSV is a perl DBD module that permits SQL-like access to 
+flat file databases. DBD::CSV is available from CPAN.
+You can use Radiator AuthBy SQL with DBD::CSV to get an SQL-like system without
+a real SQL server, or perhaps to authenticate from flat files
+with unusual formats.
+
+DBD::CSV can be configured to work with a variety of file formats on
+Unix and Windows, including Unix style password files and Excel style
+CSV files. It supports a subset of SQL, but dies not support joins
+or other advanced SQL features. NEvertheless there is enough SQL to
+permit most Radiator features to work with it.
+
+
+DBD::CSV files are usually formatted one record per line. The first
+line contains the names of each colmn in the database.
+
+For example, you might set up a SUBSCRIBERS file something like this:
+
+USERNAME,PASSWORD
+mikem,fred
+youruser,yourpassword
+
+and an ACCOUNTING file somethig like this (all on one line):
+USERNAME,TIME_STAMP,ACCTSTATUSTYPE,ACCTDELAYTIME,ACCTINPUTOCTETS,ACCTOUTPUTOCTETS,ACCTSESSIONID,ACCTSESSIONTIME,ACCTTERMINATECAUSE,NASIDENTIFIER,NASPORT,FRAMEDIPADDRESS
+
+Then you could use a Radiator AuthBy SQL something like this:
+....
+
+<Realm DEFAULT>
+    <AuthBy SQL>
+	# Adjust DBSource, DBUsername, DBAuth to suit your DB
+	DBSource	dbi:CSV:f_dir=/your/data/dir;csv_eol=\012
+
+	# You may want to tailor these for your ACCOUNTING table
+	# You can add your own columns to store whatever you like
+	AccountingTable	ACCOUNTING
+	AcctColumnDef	USERNAME,User-Name
+	AcctColumnDef	TIME_STAMP,Timestamp,integer
+	AcctColumnDef	ACCTSTATUSTYPE,Acct-Status-Type
+	AcctColumnDef	ACCTDELAYTIME,Acct-Delay-Time,integer
+	AcctColumnDef	ACCTINPUTOCTETS,Acct-Input-Octets,integer
+	AcctColumnDef	ACCTOUTPUTOCTETS,Acct-Output-Octets,integer
+	AcctColumnDef	ACCTSESSIONID,Acct-Session-Id
+	AcctColumnDef	ACCTSESSIONTIME,Acct-Session-Time,integer
+	AcctColumnDef	ACCTTERMINATECAUSE,Acct-Terminate-Cause
+	AcctColumnDef	NASIDENTIFIER,NAS-Identifier
+	AcctColumnDef	NASPORT,NAS-Port,integer
+	AcctColumnDef	FRAMEDIPADDRESS,Framed-IP-Address
+    </AuthBy>
+</Realm>
+
+
+On the DBSource line, replace /your/data/dir with the directory
+where your DBD::CSV files (SUBSCRIBERS and ACCOUNTING) are. csv_eol
+specifies that the line separaters are Unix newlines. You must have this for
+a Unix style text file. You can leave it off to get Windows standard 
+text files.
+
+There are many other things like csv_eol you can use to control the format 
+of the database files, such as csv_sep_char, csv_quote_char, csv_escape_char,
+csv_class and csv_csv. 
+
+
+

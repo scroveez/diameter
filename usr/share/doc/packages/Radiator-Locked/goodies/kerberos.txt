@@ -1,0 +1,127 @@
+---------------------------------------------------------------------
+E x t e n d i n g   R a d i t o r   w i t h   A F S   K e r b e r o s
+
+
+P r e f i x
+
+Our extension is based on the existence of two executables in an AFS client 
+environment:
+
+   /usr/afsws/bin/klog   and 
+   /usr/afsws/bin/unlog  
+
+and on the fact, that every user has to be in the local /etc/passwd of the 
+radiusserver with a shell name which ends with sh. 
+
+The return code of the command  
+
+   klog <username> <password> -lifetime 00:00:01 
+
+is only zero, when the password is correct for that user.
+In this case also a 'token' is given to the calling process and to the 
+'process authentication group' it belongs to. This token gives all the AFS-
+rights of that user and is unnecessary for our purpose. Therefore we limit the 
+lifetime of the token to its minimum of one minute and additionlly destroy the 
+token as fast as possible with the unlog command.
+
+Because AFS uses (old) Kerberos 4 for Authentication we chose the term
+'AFS-Kerberos-Password'. 
+
+
+F i r s t   s t e p :  Changes in AuthGeneric.pm
+
+To enable this new authentication method, we first had to add
+it as to the large list of if ... elseif ... elseif ... alternatives
+within the while-loop in the subroutine checkAttributes as shown below: 
+
+
+if ( ... )
+{
+    ...
+}
+elsif (   $check_name eq 'AFS-Kerberos-Password')
+{
+    my $password = $p->decodedPassword();
+    my @sysargs = ("/usr/afsws/bin/klog", $username, $password, 
+                        "-lifetime", "00:00:01", "-silent");
+    if ($value eq '' || system(@sysargs) != 0)
+    {
+        $p->{Handler}->logPassword($username, $password, 'ENCRYPTED', 0);
+        return ($main::REJECT, "Bad AFS-Kerberos-Password");
+    }
+    else
+    {
+        my @sysargs = ("/usr/afsws/bin/unlog");
+        system(@sysargs);
+        $p->{Handler}->logPassword($username, $password, 'ENCRYPTED', 1);
+    }
+}
+elseif (...)
+....
+
+
+S e c o n d   s t e p :  New AuthAFS.pm
+
+We made a file AuthAFS.pm, which is an only slightly modified
+version from AuthSYSTEM.pm. 
+
+Of course in AuthAFS.pm the line
+
+   package Radius::AuthAFS;
+
+replaces the following line
+
+   package Radius::AuthSYSTEM;
+
+Additionally the following subroutine was modified slightly - see comments
+
+#####################################################################
+# Finds the named user by use getpwnam
+sub findUser
+{
+    my ($self, $look_for) = @_;
+
+    my $type = ref($self);
+
+    my $user;
+
+    my ($name, $passwd, $uid, $gid, $quota, $comment, $gcos, $dir, $shell);
+    if (($name, $passwd, $uid, $gid, $quota, $comment, $gcos, $dir, $shell)
+        = getpwnam($look_for))
+    {
+#This if-clause is made additionally! Every user in our institution 
+#which is not "disabled", has a shell in /etc/passwd which ends with sh 
+        if ( $shell =~ /.*sh$/)
+        {
+        $user = new Radius::User $name;
+        $user->get_check->add_attr('AFS-Kerberos-Password', $passwd);
+
+#Replaces the following line in AuthSYSTEM.pm
+#       $user->get_check->add_attr('Encrypted-Password', $passwd);
+        }
+    }
+    return $user
+}
+
+
+F u t u r e :
+
+1) We are looking forward to make a second solution based on AFS library calls 
+instead of shell commands which will only work with the commercial version of 
+the AFS client, but will have better performance and security. Both options 
+(using external klog / library calls) will be configurable in radius.cfg 
+
+ or / and
+
+2) We will make a migration from AFS to DCE/DFS. So another Module (AuthDCE) 
+is nesessary for us - will take a while but maybe in next spring...
+
+
+-- 
+ Roland Hofmann           Tel.:   +49(0)711/459-4227             
+ Computing Center (620)   Fax:    +49(0)711/459-3449             
+ - Networking -
+ Hohenheim University     E-mail: hofmann@uni-hohenheim.de       
+ D-70593 Stuttgart        WWW:    http://www.uni-hohenheim.de/~hofmann/
+-- 
+Out-of-tea-error at 2 am. System halted.

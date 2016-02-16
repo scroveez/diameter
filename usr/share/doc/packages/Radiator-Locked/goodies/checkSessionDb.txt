@@ -1,0 +1,261 @@
+#!/usr/bin/perl
+
+# -- Wim Bonis  (bonis@kiss.de)
+# Checks if the SessionDb is up to data
+# It works here with Livingston Portmasters and SessSQL (There is some      
+# specific code for my Sesseion Tables in it, but someone can maybe make
+# them more general (But then we must have a new "DeleteQuery"))
+# 
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+}
+
+require 5.003;
+use Getopt::Long;
+use Radius::ServerConfig;
+use Radius::Client;
+use Radius::Log;
+use Radius::SessINTERNAL;
+use Sys::Hostname;
+
+$VERSION = '1.00';
+
+# These options override any configuration file options
+my @options = (
+	       "h",           # Help, show usage
+	       "v",    	# Verbose
+	       "db_dir=s",    # Directory for config and database files
+	       "log_dir=s",   # Directory for log files
+	       "log_file=s",  # Log file name
+	       "config_file=s", # Alternate config file
+	       "dictionary_file=s", # Radius dictionary to use
+	       "foreground",  # run in the foreground, not as a daemon
+               "log_stdout",  # Log to stdout as well (-foreground required)
+	       "trace=n",
+	       );
+
+# These are the conversion functions for format_special
+# The following conversions are supported:
+# %%        The percent character
+# %D        DbDir
+# %L        LogDir
+# %y        Last 2 digits of the current year (2 digits)
+# %Y        Current year (4 digits)
+# %m        Current month number (2 digits)
+# %d        Current day of the month (2 digits)
+# %c        IP address of the client who sent the current packet (if any)
+# %C        Client name of the client who sent the current packet (if any)
+# %R        The realm of the username named in the current packet (if any)
+# %N        The Nas-IP-Address in the current packet (if any)
+# %n        The username currently being authenticated
+# %h        The hostname this server is running on
+# %t        The current time in seconds since Jan 1 1970
+# %T        The request type of the current packet (if any)
+# %a        The Framed-IP-Address of the current packet
+# %{attr}   The value of the named attribute in the current packet
+%conversions =
+    (
+     '%', sub { '%' },
+     'a', sub { $packet->getAttrByNum($Radius::Radius::FRAMED_IP_ADDRESS) },
+     
+     'c', sub { my @l = Socket::unpack_sockaddr_in($packet->{RecvFrom}); Socket::inet_ntoa($l[1]) },
+     'C', sub { my @l = Socket::unpack_sockaddr_in($packet->{RecvFrom}); scalar gethostbyaddr($l[1], Socket::AF_INET) },
+     'd', sub { sprintf("%02d", $mday) },
+     'D', sub { $config->{DbDir} },
+     'h', sub { $hostname },
+     'H', sub { $hour },
+     'L', sub { $config->{LogDir} },
+     'm', sub { sprintf("%02d", $mon+1); },
+     'M', sub { $min },
+     'N', sub { $packet->getNasId() },
+     'n', sub { $packet->getAttrByNum($Radius::Radius::USER_NAME) },
+     'R', sub { my @n = split(/@/, $packet->getAttrByNum($Radius::Radius::USER_NAME)); $n[1] },
+     
+     't', sub { $time },
+     'T', sub { $packet->code },
+     'y', sub { $year%100 },
+     'Y', sub { $year%100 + ( $year%100<70 ? 2000 : 1900) },
+     );
+
+&GetOptions(@options) || &usage;
+&usage if $opt_h;
+
+$hostname = hostname();
+$started = time;
+
+undef $config;
+
+# Get the option for the config file now, since we have to get it before 
+# reading the config file!
+# REVISIT: pick a better default config file path
+#$config_file = "/usr/local/etc/radius.cfg";
+$config_file = "./radius.cfg";
+$config_file = $opt_config_file if defined $opt_config_file;
+
+
+# Initialize options from command line
+&processOptions;
+
+# First get config from the config file
+&readConfig;
+
+# Now override with any command line args
+&processOptions;
+
+#####################################################################
+
+
+$sess = $Session::db;
+
+die "Could not connect to db"
+        if !$sess->reconnect;
+
+my $q = "select NASIDENTIFIER, NASPORT, ACCTSESSIONID, USERNAME from RADONLINE";
+my $sth = $sess->prepareAndExecute($q);
+my (@sessions, $session, $nas_id, $nas_port, $session_id);
+
+while (($nas_id, $nas_port, $session_id, $name) = $sth->fetchrow())
+{
+	print "Checking $nas_id, $nas_port, $session_id , $name\n" if $opt_v;
+	my $client; 
+	if ($client = Radius::Client->find(Socket::inet_aton($nas_id)))
+            {
+                if (!$client->isOnline("$name", $nas_id, $nas_port, $session_id))
+                {
+                    # Hmmm they are not online anymore, remove this session
+		    print "Session for $name at $nas_id:$nas_port has gone away (checkonline)\n" if $opt_v;
+                    &main::log($main::LOG_NOTICE,
+                               "Session for $name at $nas_id:$nas_port has gone away (checkonline)");
+		    my $q1 = "delete from RADONLINE where NASIDENTIFIER='$nas_id'  AND  ACCTSESSIONID = '$session_id' AND USERNAME = '$name' AND (NASPORT='$nas_port' OR isnull(NASPORT))";
+		    my $rc = $sess->{dbh}->do($q1) || &main::log($main::LOG_WARNING,
+                     "SessSQL do failed for '$q1': $DBI::errstr");
+
+                }
+            }
+            else
+            {
+                &main::log($main::LOG_WARNING,
+                           "Could not find a Client for NAS $nas_id to check Online");
+            }
+}
+
+# Check in the accounting table for missing stop records 
+# You can leave this out if you dont have a accounting table
+
+my $q = "SELECT int_to_ip(server),port,id,name FROM usertime WHERE ISNULL(time_on) AND usertime.stop_time=0";
+
+my $sth = $sess->prepareAndExecute($q);
+my (@sessions, $session, $nas_id, $nas_port, $session_id);
+
+while (($nas_id, $nas_port, $session_id, $name) = $sth->fetchrow())
+{
+	print "Checking $nas_id, $nas_port, $session_id , $name\n" if $opt_v;
+	my $client; 
+	if ($client = Radius::Client->find(Socket::inet_aton($nas_id)))
+            {
+                if (!$client->isOnline("P$name", $nas_id, $nas_port, $session_id))
+                {
+                    # Hmmm they are not online anymore, remove this session
+		    print "Session for $name at $nas_id:$nas_port has gone away (checkonline)\n" if $opt_v;
+                    &main::log($main::LOG_NOTICE,
+                               "Session for $name at $nas_id:$nas_port has gone away (checkonline)");
+		    my $q1 = "update usertime set time_on=5*60,term_cause=99,stop_time=start_time WHERE server=ip_to_int('$nas_id') AND id='$session_id' AND name='$name' AND (port='$nas_port' OR isnull(port)) AND stop_time=0";
+		    print "SQL: $q1\n" if $opt_v;
+		    my $rc = $sess->{dbh}->do($q1) || &main::log($main::LOG_WARNING,
+                     "SessSQL do failed for '$q1': $DBI::errstr");
+
+                }
+            }
+            else
+            {
+                &main::log($main::LOG_WARNING,
+                           "Could not find a Client for NAS $nas_id to check Online");
+            }
+}
+
+exit 0;
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h]
+    [-auth_port port] [-acct_port port] [-db_dir dirname] [-log_dir dirname]
+    [-bind_address dotted-ip-address]
+    [-log_file filename] [-config_file filename] [-dictionary_file filename]
+    [-foreground] [-daemon] [-trace n] 
+    [-pid_file filename]
+    [-syslog facility]\n";
+    exit;
+}
+
+#####################################################################
+# Read the configuration file
+# and store the configuration in $config
+sub readConfig
+{
+    open(CONFIG, $config_file)
+	or die "Could not open config file '$main::config_file': $!";
+    $config = Radius::ServerConfig->new;
+    # We defer parsing the config file to here, so that $config is 
+    # properly defaulted so we can do logging etc from
+    # within the config file.
+    $config->parse(*CONFIG);
+
+    close(CONFIG)
+	or die "Could not close config file '$main::config_file': $!";
+}
+
+#####################################################################
+# Process command line options
+sub processOptions
+{
+    $config->{DbDir} = $opt_db_dir 
+	if defined $opt_db_dir;
+    $config->{LogDir} = $opt_log_dir 
+	if defined $opt_log_dir;
+    $config->{DictionaryFile} = $opt_dictionary_file 
+	if defined $opt_dictionary_file;
+    $config->{PidFile} = $opt_pid_file 
+	if defined $opt_pid_file;
+    &Radius::Log::filename($opt_log_dir)
+	if defined $opt_log_dir;
+    &Radius::Log::trace($config->{Trace} = $opt_trace)
+	if defined $opt_trace;
+    $config->{Foreground} = 1
+        if defined $opt_foreground;
+    $config->{Foreground} = 0
+        if defined $opt_daemon;
+    &Radius::Log::filename($opt_log_dir)
+        if defined $opt_log_dir;
+    &Radius::Log::stdout(1)
+        if defined $opt_log_stdout;
+
+}
+
+#####################################################################
+# Format a string with a number of special replacements, useful for
+# creating filenames at runtime.
+# inspired by CTime.pm by David Muir Sharnoff <muir@idiom.com>.
+sub format_special
+{
+    my ($s, $current_packet) = @_;
+
+    # Local so the conversion function will see them
+    local $time = time;
+    local ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) 
+	= localtime($time);
+    local $packet = $current_packet;
+
+    $s =~ s/%([%acCdDhHLmMNnRtTyY])/&{$main::conversions{$1}}()/egs;
+    $s =~ s/%\{([^{]+),integerNULL\}/{my($v) = $packet->{Dict}->valNameToNum($1,$packet->get_attr($1)) ; defined $v ? $v : 'NULL' }/egs;
+    $s =~ s/%\{([^{]+),integer\}/{$packet->{Dict}->valNameToNum($1,$packet->get_attr($1))}/egs;
+    $s =~ s/%\{([^{]+),integer-date\}/{&Radius::SqlDb::formatSQLDate($packet->get_attr($1))}/egs;
+    $s =~ s/%\{([^{]+),NULL\}/{my($v) = $packet->get_attr($1) ; defined $v ? $v : 'NULL'}/egs;
+    $s =~ s/%\{([^{]+)\}/{$packet->get_attr($1)}/egs;
+
+    return $s;
+}
+

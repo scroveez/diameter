@@ -1,0 +1,165 @@
+This document contains some simple instructions to configure a 3Com
+SuperStack 3 4400 Switch (or similar in the same family) and Windows
+XP to demonstrate Radiator Radius authentication for 802.1x wired LAN
+access control and accounting.
+
+Last updated 2003-02-26
+
+The 4400 Switch family supports 802.1x EAP authentication for LAN
+access. This means that any device that connects to the switch must
+successfully authenticate with 802.1x before it can access the LAN.
+
+A number of client computers support this ability, using a range of
+authentication methods.  Windows XP (Home and Pro) comes with support
+of 802.1x LAN authentication (it also supports 802.1x authentication
+of wireless LAN access).  802.1x LAN authentication is available in a
+free patch from Microsoft for Windows 2000 and other platforms: See
+http://www.microsoft.com/windows2000/server/evaluation/news/bulletins/8021xclient.asp
+
+These instructions will show you how to configure Radiator, a 4400
+switch and a windows XP PC to do a demo or proof-of-concept for 802.1x
+authenticaiotn of wireless access using MD5-Challenge. Other
+authentication methods are supported by Radiator, including TTLS, TLS,
+PEAP, etc, but MD5-Challenge is the simplest to get going, so you
+should try that first.
+
+You will need to do something 3 devices:
+The radius server computer running Radiator (Windows or Unix),
+The 4400 switch, and
+A Windows XP comnputer that is to connect to the network after authenticating.
+
+We will address these in order:
+
+INSTALL AND CONFIGURE RADIATOR ON UNIX
+--------------------------------------
+
+These instructions will work with almost any flavour of Linux or
+Unix. You will not need to be root to do this.
+
+1. Ensure you have a recent version of Perl installed. 5.6.0 or later
+   is preferred. Most Linux and Unix computers come with a suitable
+   version of Perl installed.
+
+2. Download Radiator version 3.5 or later.
+
+3. Unpack it into a working directory (from where we will also run
+   it):
+
+$ tar zxvf Radiator-3.5.tgz
+$ cd Radiator-3.5
+
+4. Run radiator listening on ports 1645 and 1646, ready for MD5
+   challenge requests that will be checked against the 'users' file:
+
+$ perl radiusd -config goodies/eap_md5.cfg -trace 4
+
+5. Radiator will produce some diagnostic output and sit there waiting
+   for requests from the switch. Leave it running there.
+
+
+INSTALL AND CONFIGURE RADIATOR ON WINDOWS
+-----------------------------------------
+
+These instructions will work with almost any version of Windows
+
+1. Ensure you have a recent version of ActivePerl from ActiveState
+   (www.activestate.com) installed. Version 5.6.1 is currently
+
+2. Download Radiator version 3.5 or later.
+
+3. Unpack it into a working directory (from where we will also run
+   it) using WinZip. Unpack it into, say C:\Radiator-3.5
+
+4. Start a Command Prompt window, change to the directory where you
+   unpacked Radiator:
+
+C:\ >cd \Radiator-3.5
+
+
+5. Run radiator listening on ports 1645 and 1646, ready for MD5
+   challenge requests that will be checked against the 'users' file:
+
+C:\Radiator-3.5 > perl radiusd -config goodies/eap_md5.cfg -trace 4
+
+6. Radiator will produce some diagnostic output and sit there waiting
+   for requests from the switch. Leave it running there.
+
+CONFIGURE THE 4400 SWITCH
+-------------------------
+
+You can perform these commands using the web interface, telnet or the
+serial port connection. See the 440 manual for details on how to get
+connected.
+
+1. In security-radius-authentication-modify:
+- Enter the IP address of the radius server in "Primary RADIUS
+  Authentication Server IP address:"
+- Enter 1645 in "Primary RADIUS Authentication Server UDP port
+  number:"
+2. In security-radius-authentication-sharedSecret:
+- Enter mysecret in "Enter Shared Secret:"
+3. In security-radius-accounting-modify:
+- Enter the IP address of the radius server in "Primary RADIUS
+  Accounting Server IP address:"
+- Enter 1646 in "Primary RADIUS Accounting Server UDP port
+  number:"
+4. In security-network-access-systemMode:
+- Set "System Mode" to Enabled.
+5. In security-network-access-portSecurity:
+- Use the wizard to enable 'Standard Network Login' on the switch port
+  where the PC is connected (you can shoose a single port by number,
+  or a range of ports. Dont select your uplink port). Choose 'Edge' as
+  the port type. Select Port Security Enabled.
+
+CONFIGURE WINDOWS XP
+--------------------
+
+This will work with Windows XP Home, Pro and others. XP comes standard
+with support for 802.1x authentication of Local Networks.
+
+1. On the 'Network Connections' window, right-click the LAN connection
+   to be used to connect to the switch. Select Properties.
+
+2. On the "Local Area Connection Properties" dialog, select 'Show icon
+   in notification area when connected'.
+
+3. Ensure the "Internet Protocol (TCP/IP) setting are suitable for
+   your network.
+
+4. Select the Authentication tab. Select "Enable IEEE 802.1x
+   authentication for this network". Select "MD5-Challenge" in "EAP
+   Type" Select "Authenticate as computer when information is
+   available". Deselect "Authenticate as guest when computer
+   information is unavailable". Click OK.
+
+5. Connect the computer one of the switch ports you enabled for 802.1x
+   authentication before. After a short time, you should get a balloon
+   saying: "Local Area Connection: Click here to enter your username
+   and password for the network". Click on it.
+
+6. A "Local Area Connection" dialog will appear. Enter 'User' as the
+   User name, and clientPass as the password (bother are case
+   sensitive: make sure you get the case right). Leave "Logon domain"
+   blank. Click OK.
+
+7. You will see a lot of output from Radiator on the radius server,
+   including dumps of the Radius authentication and accounting
+   messages. The Local Area Connection icon on the PC will change to
+   "Authentication succeeded". Your PC is now connected to the
+   network.
+
+8. You can force reauthentication by disconnecting and reconnecting
+   the PC network cable from the switch.
+
+
+OTHER NOTES
+-----------
+Radiator comes with example configuration files for a wide range of
+802.1x authenticaiton types. See goodies/README in your Radaitor
+distribution.
+
+If you wish to run Radiator automatically at boot time on your radius
+server, refer to the Radiator Reference Manual in your distribution at
+doc\ref.html.
+
+

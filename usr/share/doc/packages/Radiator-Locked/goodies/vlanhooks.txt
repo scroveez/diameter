@@ -1,0 +1,118 @@
+The two hooks below will take the VLAN ID formatted
+as a string and rewrite them as an integer for products that demand an
+integer.  They're triggered by adding an Identifier of "IntegerVLANTag"
+in the client definition in radius.cfg.
+
+------------------begin postauth hook------------------
+# -*- mode: Perl -*-
+# vlan-ascii-to-binary-postauth
+#
+# PostAuthHook to rewrite RFC 3580-compliant VLAN ID
+# in Tunnel-Private-Group ID to integer for non-compliant 
+# 802.1X authenticators
+#
+# Author: Matthew Gast (msg@trpz.com)
+# Interop Labs Las Vegas 2004
+#
+
+sub
+{
+    my $p = ${$_[0]};
+    my $rp = ${$_[1]};
+    my $result = ${$_[2]};
+
+    my $ASCIIvlan;
+    my $binaryvlan;
+
+    my $identifier;
+    my $tag;
+
+    $identifier = $p->{Client}->{Identifier};
+    if (($result == $main::ACCEPT) && ($identifier == "IntegerVLANTag"))
+    {
+        &main::log($main::LOG_DEBUG, "ASCII-to-Integer VLAN ID PostAuthHook called");
+        $ASCIIvlan = $rp->get_attr('Tunnel-Private-Group-ID');
+        # check for attribute tag
+        if ($ASCIIvlan =~ /^(\d+):(.*)/)
+        {
+                # tagged attribute
+                &main::log($main::LOG_DEBUG, "Found tagged ASCII VLAN attribute of $ASCIIvlan");
+                $binaryvlan = pack 'N', $ASCIIvlan | $1 << 24;
+        }
+        else
+        {
+                # untagged attribute
+                &main::log($main::LOG_DEBUG, "Found untagged ASCII VLAN attribute of $ASCIIvlan");
+                $binaryvlan = pack ('N',unpack('a*',$ASCIIvlan));
+        }
+
+        # Replace attribute
+        &main::log($main::LOG_DEBUG, "Replacing ASCII vlan tag with $binaryvlan");
+        $rp->change_attr('Tunnel-Private-Group-ID', $binaryvlan);
+    }
+    return;
+}
+------------------end postauth hook------------------
+
+------------------begin reply hook------------------
+# -*- mode: Perl -*-
+# vlan-ascii-to-binary-reply
+#
+# ReplyHook to rewrite RFC 3580-compliant VLAN ID
+# in Tunnel-Private-Group ID to integer for non-compliant 
+# 802.1X authenticators
+#
+# Author: Matthew Gast (msg@trpz.com)
+# Interop Labs Las Vegas 2004
+#
+
+sub
+{
+    my $rp = ${$_[1]};
+    my $p = ${$_[2]};
+
+    #my $rp = ${$_[1]};
+    #my $result = ${$_[2]};
+
+    my $ASCIIvlan;
+    my $binaryvlan;
+
+    my $identifier;
+    my $tag;
+
+    $identifier = $p->{Client}->{Identifier};
+    if ($identifier == "IntegerVLANTag")
+    {
+        &main::log($main::LOG_DEBUG, "ASCII-to-integer VLAN tag ReplyHook called");
+        $ASCIIvlan = $rp->get_attr('Tunnel-Private-Group-ID');
+        # check for attribute tag
+        if ($ASCIIvlan =~ /^(\d+):(.*)/)
+        {
+                # tagged attribute
+                &main::log($main::LOG_DEBUG, "Found tagged ASCII VLAN attribute of $ASCIIvlan");
+                $binaryvlan = pack 'N', $2 | $1 << 24;
+        }
+        else
+        {
+                # untagged attribute
+                &main::log($main::LOG_DEBUG, "Found untagged ASCII VLAN attribute of $ASCIIvlan");
+                $binaryvlan = pack ('N',unpack('a*',$ASCIIvlan));
+        }
+
+        # Replace attribute
+        &main::log($main::LOG_DEBUG, "Replacing ASCII vlan tag with $binaryvlan");
+        $rp->change_attr('Tunnel-Private-Group-ID', $binaryvlan);
+    }
+    return;
+}
+------------------end reply hook------------------
+
+------------------begin Client entry to trigger hooks ------------------
+
+# HP420 AP for proxy demo
+<Client 45.200.1.39>
+        Secret borkbork
+        Identifier IntegerVLANTag
+</Client>
+------------------end Client entry to trigger hooks ------------------
+

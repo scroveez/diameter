@@ -1,0 +1,37 @@
+Cisco VPN 3000 Concentrator Groups
+
+This is a brief article about how Cisco VPN group selection can be forced by a
+RADIUS server such as Radiator on Cisco VPN 3000 concentrators
+
+Some Cisco VPN concentrators can suport multiple VPN groups. When a user
+wishes to connect to a VPN, the VPN concentrator sends a RADIUS Access-Request
+to the RADIUS server.
+
+If there are multiple VPN groups configured on the concentrator, there is _no_
+indication of which VPN group the user desires to use in the RADIUS Access-Request.
+
+However the RADIUS server can indicate which group a user should be placed in
+by setting the Class attribute (25) in the Access-Accept.
+
+The format of the Attribute should be:
+
+Class="OU=vpnname;"
+
+where vpnname is the name of the desired VPN group.
+
+If the Access-Accept Class does not contain a valid VPN name, the user will be
+placed in the default VPN group.
+
+A logical consequence of the Cisco behaviour is that it is not possible for a
+given user to have access to multiple VPN groups at their discretion, since at
+the time of connection, there is no indication of whaich of possibly several
+VPN groups the user desires.
+
+The RADIUS server has no alternative except to request the group configured
+for that user. This means that a given user can only have authenticated access
+to at most on VPN group at a time. This is not a RADIUS server limitation, but
+a Cisco limitaiton.
+
+More information at:
+http://www.cisco.com/en/US/tech/tk59/technologies_configuration_example09186a00800946a2.shtml
+Locking Users into a VPN 3000 Concentrator Group Using a RADIUS Server

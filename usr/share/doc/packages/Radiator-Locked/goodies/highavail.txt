@@ -1,0 +1,118 @@
+Contributed by "Mariano Absatz" <radiator@lists.com.ar>
+
+
+Hi,
+
+I'd like to share a "high availability" configuration I've been using whith
+Radiator for a couple of months. It uses a freely available software called
+"daemontools" (http://cr.yp.to/daemontools.html).
+
+These are a set of tools that make the life of a server programmer easier.
+They are tiny pieces of software very simple and each one does JUST ONE THING
+(in the old Unix fashion).
+
+They were developed by Dan J. Bernstein (http://cr.yp.to/djb.html) who I
+don't know personally, but, as evident from his messages in different mailing
+lists, suffers of an excess in personality. Nevertheless he's an excellent
+programmer and, if you don't try to argue with him, you can very happily use
+his software. He's mostly know as the developer of qmail
+(http://cr.yp.to/qmail.html) one of the good mail servers hanging around.
+
+Enough intro... given that you have daemontools installed
+(http://cr.yp.to/daemontools/install.html), you should have a /service
+directory and a "svscan /service" process running.
+
+Now you have to prepare a Radiator service directory. I use
+/app/Radiator/service, but you can use whatever you like.
+
+This directory must have a "run" script executable by root that replaces
+itself (via exec) with Radiator running in the foreground, like the following
+one:
+
+====================================================================
+#!/bin/sh
+# script to start Radiator with daemontools
+#
+
+exec 2>&1
+
+exec /usr/bin/radiusd -config_file /etc/raddb/radius.cfg -foreground
+====================================================================
+
+
+Now, if you link -s this service directory to /service, svscan automatically
+starts "supervise" on this directory. eg:
+ln -s /app/Radiator/service /service/Radiator
+
+supervise, executes the run script and, if the server stops, waits a few
+seconds, and starts it again.... forever and ever.
+
+You also have a utility called svc to send signals to Radiator. If you say:
+svc -h /service/Radiator (-h = hangup)
+it would send a HUP signal.
+
+If you say:
+svc -t /service/Radiator (-t = terminate)
+it would send a TERM signal and, if the server stops (which Radiator would),
+it'll start it again (effectively equivalent to a stop/start cycle).
+
+If you say:
+svc -d /service/Radiator (-d = down)
+it would send a TERM signal but won't try to start it again.
+
+svc -u /service/Radiator (-u = up)
+will start Radiator again.
+
+You also have
+svstat /service/Radiator
+which will tell you if Radiator is up or down, how it should normally be and,
+if it's up, for how long it's been up.
+
+svok /service/Radiator
+exists silently, but gives you a return value indicating if Radiator is
+running or not, which you can use from inside a shell script.
+
+There are more options which I don't use, but you can check all of it in the
+daemontools on-line documentation.
+
+In fact, I personally have more than one instance of Radiator on the same
+machine (I have up to 4 in one), I created one service directory for each
+instance and link the all of them to /service.
+
+
+If you want, you can capture the standard output and standard error from
+Radiator (e.g. DBD usually sends error messages to stderr).
+
+You must create a subdirectory of your service directory named "log", and put
+there an executable script named "run" which would run a logger.
+
+daemontools include such a logger which is called multilog.
+
+My "run" script looks like these 2 lines:
+#!/bin/sh
+exec multilog t ./main
+
+this creates an auto-rotated log in /service/Radiator/log/main which includes
+every line sent by Radiator (or any included module) to standard output or
+standard error, preceded by a timestamp in tai format (see
+http://cr.yp.to/daemontools/tai64n.html).
+
+If I want to check this log I do the following
+tai64nlocal </service/Radiator/log/main/current | more
+
+If I want to follow this output:
+tail -f /service/Radiator/log/main/current | tai64nlocal
+
+(tai64nlocal is used to translate the tai timestamps into humanly readable
+local times)
+
+
+Hugh, Mike, if you want to add this explanation (however adapted) in the docs
+I don't have any problems (and I don't think Dan Bernstein would care either,
+see http://cr.yp.to/rights.html for his opinion on these kind of things).
+
+http://www.open.com.au/radiator/ref.html#pgfId=361565
+
+--
+Mariano Absatz
+El Baby

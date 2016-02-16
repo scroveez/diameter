@@ -1,0 +1,97 @@
+I like this approach.  Just tried it with my Cisco access point and it
+works fine.
+
+The benefit of this over eap_anon_hook.pl is
+
+     (a) simplicity,
+
+     (b) that the NAS gets to know the identity of the user.  This means
+         that any functionality within the NAS to display a list of
+        active users (eg show aaa users all) is likely to give more
+        useful results, and
+
+     (c) With eap_user_acct.pl, the accounting is correct for resumed
+         sessions, automatically, because RADIATOR saves the reply
+        attributes and reuses them when the session is resumed.
+        Making resumed sessions work with eap_anon_hook.pl in my
+        situation is much harder... [1]
+
+
+[1] I'm using a hacked EAP.pm which doesn't include the NAS Port in
+the context key (this is necessary in order to allow session
+resumption when a client strays out of coverage for a short time; the
+association ID and hence NAS port will change).  Unfortunately if the
+NAS port changes, eap_anon_hook.pl has no way to identify the session.
+
+
+     -roy
+
+
+--------------------
+
+From: Rok Papez <rok.papez@arnes.si>
+Sender: owner-radiator@open.com.au
+To: radiator@open.com.au
+Subject: (RADIATOR) Accounting with Anonymous EAP / RFC 2865
+Date: Thu, 18 Nov 2004 11:00:02 +0100
+
+Hello!
+
+We are using EAP-TTLS with anonymous@realm.tld for
+the outer identity. However we want accounting to be
+sent for the inner identity.
+
+Radiator ships a script for de-anonymising the accounting
+requests with the use of MySQL database which is for our
+use a bit unpracticle.
+
+We use NAS-es that implement RFC2865 recommendation to send
+accounting with the User-Name as set in Access-Accept.
+Radiator sends the inner identity in outer reply with
+this script:
+
+=================================================================
+radiusd.conf:
+<Handler Realm=realm.tld>
+         RewriteUsername s/^([^@]+).*/$1/
+  [...]
+         PostProcessingHook file:"/etc/eap_acct_username.pl"
+</Handler>
+
+
+=================================================================
+eap_acct_username.pl:
+#
+# This hook fixes the problem with some implementations of TTLS, where the
+# accounting requests have the User-Name of anonymous, instead of the real
+# users name.
+
+sub
+{
+         my ($req, $rep, $handled, $reason) = @_;
+         if (${$rep}->code() eq 'Access-Accept' )
+         {
+                 my $req_username = ${$req}->{EAPIdentity};
+                 $req_username = ${$req}->getUserName() unless defined $req_username;
+                 if($req_username =~ m/^anonymous@(.*)$|^anonymous$/i) {
+                         # This is outer replay.
+                         # If we did have a realm, append it now.
+                         if(!defined($1)) {
+                                 return;
+                         }
+                         ${$rep}->changeUserName(${$rep}->getUserName() . "\@" . $1);
+                 } else {
+                         # Inner reply, copy the username to outer request (without realm).
+                         ${$rep}->changeUserName($req_username) if defined $req_username;
+                 }
+         }
+}
+=================================================================
+
+This script comes without any warrenty and is put into "public domain".
+You can use it anyway you want to in hope it will be usefull to
+somebody else.
+
+-- 
+best regards,
+Rok Pape?.

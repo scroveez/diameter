@@ -1,0 +1,127 @@
+#!/usr/bin/perl
+#
+# -*- mode: Perl -*-
+#
+# raduseradd
+# Simple program for adding users to an SQL database
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2002 Open System Consultants
+# $Id: raduseradd,v 1.2 2012/06/27 23:27:18 mikem Exp $
+
+use Getopt::Long;
+use DBI;
+
+my @options = 
+    (
+     'v',        # Print usage
+     'f=s',      # comment (full name)
+     'p=s',      # Password
+     's=s',      # Shell
+     'u=i',      # UID
+     'g=i',      # GID
+     'h=s',      # Home dir
+     'c=s',      # Other check items
+     'r=s',      # Other reply items
+     't=s',      # Table name to insert
+     'hg=s',     # huntgroup
+     'i=s',      # static IP address
+     'st=s',     # Status
+     'dbsource=s',
+     'dbusername=s',
+     'dbauth=s',
+     );
+
+&GetOptions(@options) || &usage;
+&usage if $opt_v;
+
+# The name of trhe table to insert into and other
+# configuranble SQL parameters
+# You may want to edit these to suit your site
+my $table      = $opt_t          || 'SUBSCRIBERS';
+my $dbsource   = $opt_dbsource   || 'dbi:mysql:radius';
+my $dbusername = $opt_dbusername || 'mikem';
+my $dbauth     = $opt_dbauth     || 'fred';
+
+# This table describes the data items to collect and where to put them.
+# Each entry is 3 items:
+#  PRompt name
+#  Database column name
+#  default value (will not be prompted if this is defined)
+my @items = 
+    (
+     ['Username',         'USERNAME',  $ARGV[0]],
+     ['Real Name',        'REALNAME',  $opt_f],
+     ['Password',         'PASSWD',    $opt_p],
+     ['Shell',            'SHELL',     $opt_s],
+     ['UID',              'UID',       $opt_u],
+     ['GID',              'GID',       $opt_g],
+     ['Homedir',          'HOMEDIR',   $opt_h],
+     ['Check attributes', 'CHECKATTR', $opt_c],
+     ['Reply attributes', 'REPLYATTR', $opt_r],
+     ['Huntgroup',        'HUNTGROUP', $opt_hg],
+     ['Static IP',        'STATICIP',  $opt_i],
+     ['Status',           'STATUS',    $opt_st],
+     );
+
+# mikems test config, works with standard Radiator goodies/*.sql
+#my @items = 
+#    (
+#     ['Username',         'USERNAME',  $ARGV[0]],
+#     ['Password',         'PASSWORD',  $opt_p],
+#     ['Check attributes', 'CHECKATTR', $opt_c],
+#     ['Reply attributes', 'REPLYATTR', $opt_r],
+#     );
+
+# This hash will hold the resulting data to be inserted
+# The key is the column name and the value is the data to be inserted
+my %data;
+
+# First make sure we can connect to the database
+# Open the database
+$dbh = DBI->connect($dbsource, $dbusername,$dbauth) 
+    || die "Could not connect to $dbsource: $DBI::errstr";
+
+# Now collect and/or prompt for the required input data and save it
+# in the %data hash
+my $item;
+foreach $item (@items)
+{
+    my $value = $item->[2];
+    if (!defined $value)
+    {
+	# Prompt for the data
+	print "$item->[0]: ";
+	$value = <STDIN>;
+	chomp $value;
+    }
+    $data{$item->[1]} = $value;
+}
+
+# Now build an SQL query to do the insert, by using all the data in %data
+my (@cols, @vals);
+while (($col, $value) = each %data)
+{
+    push(@cols, $col);
+    push(@vals, $dbh->quote($value));
+}
+
+# Make the query
+my $cols = join(',', @cols);
+my $vals = join(',', @vals);
+my $q = "insert into $table ($cols) values ($vals)";
+
+# Now do the database insertion
+# DBI will complain for us if the insert fails
+$dbh->do($q);
+
+sub usage
+{
+    print "usage: $0 [-v] [-f fullname] [-p password] [-s shell]
+  [-u uid] [-g gid] [-h homedir] [-hg huntgroup] [-i staticipaddress]
+  [-st status]
+  [-c checkattr=value,...] [-r replyattr=value,...] [-t tablename] 
+  [-dbsource dbi:db:etc] [-dbusername username] [-dbauth password]
+  [username]\n";
+    exit;
+}l

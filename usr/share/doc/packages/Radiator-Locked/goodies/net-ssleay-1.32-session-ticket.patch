@@ -1,0 +1,398 @@
+diff -upr Net-SSLeay-1.32.orig/Changes Net-SSLeay-1.32/Changes
+--- Net-SSLeay-1.32.orig/Changes	2007-09-04 07:11:56.000000000 +1000
++++ Net-SSLeay-1.32/Changes	2007-09-05 09:08:01.000000000 +1000
+@@ -227,9 +227,16 @@ Revision history for Perl extension Net:
+ 	README.Win32
+ 	- Testing with Perl CamelPack 5.8.7 on Windows XP SP2,added doc to
+ 	README.Win32
+-
+-1.32 03.08.2007
+-	- Don't let the tests die when something unexpected happens. Just BAIL_OUT.
+-	- Some Win32 improvements.
+-
++	- Added optional support for SSL_set_hello_extension,
++	SSL_set_session_secret_cb to support various extension patches from 
++	a patch to openssl-0.9.9-dev contributed by Jouni Malinen. 
++	See wpa_supplicant/patches/openssl-0.9.9-session-ticket.patch in the
++	latest (git) version 0.6 and later of wpa_suplicant at 
++	http://hostap.epitest.fi/. These additions are ifdefed to 
++	SSL_F_SSL_SET_HELLO_EXTENSION which is added by the patch
++	Tested with openssl-SNAP-20070816.
++	- Added SSL_SESSION_set_master_key and SSL_get_keyblock_size.
++	- Added all SSL_OP_* options flags present in 0.9.9
++	- Fixed a bug in SSL_set_tmp_dh
++	- Doc improvements in README.Win32
+ #EOF
+diff -upr Net-SSLeay-1.32.orig/constants.c Net-SSLeay-1.32/constants.c
+--- Net-SSLeay-1.32.orig/constants.c	2007-07-03 23:53:47.000000000 +1000
++++ Net-SSLeay-1.32/constants.c	2007-09-05 09:08:01.000000000 +1000
+@@ -676,12 +676,80 @@ constant(char* name)
+ #else
+ 	    goto not_there;
+ #endif
++	if (strEQ(name, "OP_NO_TICKET"))
++#ifdef SSL_OP_NO_TICKET
++	    return SSL_OP_NO_TICKET;
++#else
++	    goto not_there;
++#endif
+ 	if (strEQ(name, "OP_NO_TLSv1"))
+ #ifdef SSL_OP_NO_TLSv1
+ 	    return SSL_OP_NO_TLSv1;
+ #else
+ 	    goto not_there;
+ #endif
++
++
++	if (strEQ(name, "OP_NO_QUERY_MTU"))
++#ifdef SSL_OP_NO_QUERY_MTU
++	    return SSL_OP_NO_QUERY_MTU;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_COOKIE_EXCHANGE"))
++#ifdef SSL_OP_COOKIE_EXCHANGE
++	    return SSL_OP_COOKIE_EXCHANGE;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION"))
++#ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
++	    return SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_NO_COMPRESSION"))
++#ifdef SSL_OP_NO_COMPRESSION
++	    return SSL_OP_NO_COMPRESSION;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_CIPHER_SERVER_PREFERENCE"))
++#ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
++	    return SSL_OP_CIPHER_SERVER_PREFERENCE;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_TLS_ROLLBACK_BUG"))
++#ifdef SSL_OP_TLS_ROLLBACK_BUG
++	    return SSL_OP_TLS_ROLLBACK_BUG;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_PKCS1_CHECK_1"))
++#ifdef SSL_OP_PKCS1_CHECK_1
++	    return SSL_OP_PKCS1_CHECK_1;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_PKCS1_CHECK_2"))
++#ifdef SSL_OP_PKCS1_CHECK_2
++	    return SSL_OP_PKCS1_CHECK_2;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_NETSCAPE_CA_DN_BUG"))
++#ifdef SSL_OP_NETSCAPE_CA_DN_BUG
++	    return SSL_OP_NETSCAPE_CA_DN_BUG;
++#else
++	    goto not_there;
++#endif
++	if (strEQ(name, "OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG"))
++#ifdef SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG
++	    return SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG;
++#else
++	    goto not_there;
++#endif
+ 	if (strEQ(name, "OP_DONT_INSERT_EMPTY_FRAGMENTS"))
+ #ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
+ 	    return SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS;
+diff -upr Net-SSLeay-1.32.orig/README.Win32 Net-SSLeay-1.32/README.Win32
+--- Net-SSLeay-1.32.orig/README.Win32	2007-09-04 07:07:26.000000000 +1000
++++ Net-SSLeay-1.32/README.Win32	2007-09-05 09:08:01.000000000 +1000
+@@ -51,6 +51,7 @@ Unpack and install the Net-SSLeay packag
+  cd Net-SSLeay-xxxx
+  perl Makefile.PL
+  nmake
++ copy c:\OpenSSL\bin\*.dll blib\arch\auto\Net\SSLeay\
+  nmake test
+  nmake install
+ 
+@@ -122,4 +123,4 @@ Unpack and install the Net-SSLeay packag
+  nmake
+  nmake install
+ 
+-(Note that 'nmake test' does not seem to work with CamelPack)
++(Note that 'nmake test' does not seem to work with CamelPack 5.8.7)
+diff -upr Net-SSLeay-1.32.orig/SSLeay.xs Net-SSLeay-1.32/SSLeay.xs
+--- Net-SSLeay-1.32.orig/SSLeay.xs	2007-07-16 21:28:59.000000000 +1000
++++ Net-SSLeay-1.32/SSLeay.xs	2007-09-05 09:08:01.000000000 +1000
+@@ -63,7 +63,7 @@
+  *            These changes to deal with thread safety issues.
+  * 01.08.2006 set_*fd nw woork with filehandles as well as filenos on Windows
+  *
+- * $Id: net-ssleay-1.32-session-ticket.patch,v 1.2 2007/09/04 23:10:04 mikem Exp $
++ * $Id: net-ssleay-1.32-session-ticket.patch,v 1.2 2007/09/04 23:10:04 mikem Exp $
+  * 
+  * The distribution and use of this module are subject to the conditions
+  * listed in LICENSE file at the root of OpenSSL-0.9.6b
+@@ -199,6 +199,7 @@ struct _ssleay_cb_t {
+ };
+ typedef struct _ssleay_cb_t ssleay_ctx_passwd_cb_t;
+ typedef struct _ssleay_cb_t ssleay_ctx_cert_verify_cb_t;
++typedef struct _ssleay_cb_t ssleay_session_secret_cb_t;
+ typedef struct _ssleay_cb_t ssleay_RSA_generate_key_cb_t;
+ 
+ ssleay_ctx_passwd_cb_t*
+@@ -468,6 +469,150 @@ ssleay_ctx_cert_verify_cb_invoke(X509_ST
+ 	return res;
+ }
+ 
++#ifdef SSL_F_SSL_SET_HELLO_EXTENSION
++static HV* ssleay_session_secret_cbs = (HV*)NULL;
++
++ssleay_session_secret_cb_t*
++ssleay_session_secret_cb_new(SSL* s, SV* func, SV* data) {
++	ssleay_session_secret_cb_t* cb;
++	SV* hash_value;
++	SV* key;
++	char* key_str;
++	STRLEN key_len;
++
++	cb = New(0, cb, 1, ssleay_session_secret_cb_t);
++
++	SvREFCNT_inc(func);
++	SvREFCNT_inc(data);
++	cb->func = func;
++	cb->data = data;
++
++	if (s == NULL) {
++		croak( "Net::SSLeay: s == NULL in ssleay_session_secret_cb_new" );
++	}
++
++	hash_value = sv_2mortal(newSViv( (IV)cb ));
++
++	key = sv_2mortal(newSViv( (IV)s ));
++	key_str = SvPV(key, key_len);
++
++	if (ssleay_session_secret_cbs == (HV*)NULL)
++		ssleay_session_secret_cbs = newHV();
++
++	SvREFCNT_inc(hash_value);
++	hv_store( ssleay_session_secret_cbs, key_str, key_len, hash_value, 0 );
++
++	return cb;
++}
++
++ssleay_session_secret_cb_t*
++ssleay_session_secret_cb_get(SSL* s) {
++	SV* key;
++	char* key_str;
++	STRLEN key_len;
++	SV** hash_value;
++	ssleay_session_secret_cb_t* cb;
++
++	key = sv_2mortal(newSViv( (IV)s ));
++	key_str = SvPV(key, key_len);
++
++	hash_value = hv_fetch( ssleay_session_secret_cbs, key_str, key_len, 0 );
++
++	if (hash_value == NULL || *hash_value == NULL) {
++		cb = NULL;
++	} else {
++		cb = (ssleay_session_secret_cb_t*)SvIV( *hash_value );
++	}
++
++	return cb;
++}
++
++void
++ssleay_session_secret_cb_free(SSL* s) {
++	ssleay_session_secret_cb_t* cb;
++
++	cb = ssleay_session_secret_cb_get(s);
++
++	if (cb) {
++		if (cb->func) {
++			SvREFCNT_dec(cb->func);
++			cb->func = NULL;
++		}
++
++		if (cb->data) {
++			SvREFCNT_dec(cb->data);
++			cb->data = NULL;
++		}
++	}
++
++	Safefree(cb);
++}
++
++int
++ssleay_session_secret_cb_invoke(SSL* s, void* secret, int *secret_len,
++			   STACK_OF(SSL_CIPHER) *peer_ciphers,
++			   SSL_CIPHER **cipher, void *arg) 
++{
++	dSP;
++
++	int count;
++	int res;
++	int i;
++	AV *ciphers = newAV();
++	SV *pref_cipher = sv_newmortal();
++	ssleay_session_secret_cb_t* cb = (ssleay_session_secret_cb_t*)arg;
++
++	ENTER;
++	SAVETMPS;
++
++	PUSHMARK(SP);
++	XPUSHs( sv_2mortal( newSVpv(secret, *secret_len)) );
++	for (i=0; i<sk_SSL_CIPHER_num(peer_ciphers); i++)
++	{
++	    SSL_CIPHER *c = sk_SSL_CIPHER_value(peer_ciphers,i);
++	    av_store(ciphers, i, sv_2mortal(newSVpv(SSL_CIPHER_get_name(c), 0)));
++	}
++	XPUSHs(sv_2mortal(newRV((SV*)ciphers)));
++	XPUSHs(sv_2mortal(newRV(pref_cipher)));
++	if (cb->data) {
++		XPUSHs( cb->data );
++	}
++	PUTBACK;
++
++	if (cb->func == NULL) {
++		croak ("Net::SSLeay: ssleay_session_secret_cb_invoke called, but not "
++				"set to point to any perl function.\n");
++	}
++
++	count = call_sv( cb->func, G_SCALAR );
++
++	SPAGAIN;
++
++	if (count != 1) {
++		croak ("Net::SSLeay: ssleay_session_secret_cb_invoke "
++				"perl function did not return a scalar.\n");
++	}
++
++	res = POPi;
++	if (res)
++	{
++	    /* See if there is a preferred cipher selected, if so
++	       it is an index into the stack */
++	    if (SvIOK(pref_cipher))
++	    {
++		*cipher = sk_SSL_CIPHER_value(peer_ciphers, SvIV(pref_cipher));
++	    }
++	}
++
++	PUTBACK;
++	FREETMPS;
++	LEAVE;
++
++	return res;
++}
++
++#endif
++
+ ssleay_RSA_generate_key_cb_t*
+ ssleay_RSA_generate_key_cb_new(SV* func, SV* data) {
+ 	ssleay_RSA_generate_key_cb_t* cb;
+@@ -2318,11 +2463,7 @@ SSL_set_pref_cipher(s,n)
+ long	
+ SSL_set_tmp_dh(ssl,dh)
+      SSL *	ssl
+-     char *	dh
+-  CODE:
+-  RETVAL = SSL_ctrl(ssl,SSL_CTRL_SET_TMP_DH,0,(char *)dh);
+-  OUTPUT:
+-  RETVAL
++     DH *	dh
+ 
+ long	
+ SSL_set_tmp_rsa(ssl,rsa)
+@@ -2390,6 +2531,17 @@ SSL_SESSION_get_master_key(s)
+      sv_setpvn(ST(0), (const char*)s->master_key, s->master_key_length);
+ 
+ void
++SSL_SESSION_set_master_key(s,key)
++     SSL_SESSION *   s
++     PREINIT:
++     STRLEN len;
++     INPUT:
++     char * key = SvPV(ST(1), len);
++     CODE:
++     memcpy(s->master_key, key, len);
++     s->master_key_length = len;
++
++void
+ SSL_get_client_random(s)
+      SSL *   s
+      CODE:
+@@ -2403,5 +2555,69 @@ SSL_get_server_random(s)
+      ST(0) = sv_newmortal();   /* Undefined to start with */
+      sv_setpvn(ST(0), (const char*)s->s3->server_random, SSL3_RANDOM_SIZE);
+ 
++int
++SSL_get_keyblock_size(s)
++     SSL *   s	
++     CODE:
++     if (s == NULL ||
++	 s->enc_read_ctx == NULL ||
++	 s->enc_read_ctx->cipher == NULL ||
++	 s->read_hash == NULL)
++     {
++	RETVAL = -1;
++     }
++     else
++     {
++	const EVP_CIPHER *c;
++	const EVP_MD *h;
++	c = s->enc_read_ctx->cipher;
++#if OPENSSL_VERSION_NUMBER >= 0x00909000L
++	h = EVP_MD_CTX_md(s->read_hash);
++#else
++	h = s->read_hash;
++#endif
++
++	RETVAL = 2 * (EVP_CIPHER_key_length(c) +
++		    EVP_MD_size(h) +
++		    EVP_CIPHER_iv_length(c));
++     }
++     OUTPUT:
++     RETVAL
++
++
++
++#ifdef SSL_F_SSL_SET_HELLO_EXTENSION
++int
++SSL_set_hello_extension(s, type, data)
++     SSL *   s
++     int     type
++     PREINIT:
++     STRLEN len;
++     INPUT:
++     char *  data = SvPV( ST(2), len);
++     CODE:
++     RETVAL = SSL_set_hello_extension(s, type, data, len);
++     OUTPUT:
++     RETVAL
++
++void 
++SSL_set_session_secret_cb(s,func,data=NULL)
++	SSL * s
++	SV* func
++	SV*	data
++	PREINIT:
++	ssleay_session_secret_cb_t* cb;
++	CODE:
++	if (func == NULL || func == &PL_sv_undef) {
++		ssleay_session_secret_cb_free(s);
++		SSL_set_session_secret_cb(s, NULL, NULL);
++	} else {
++		cb = ssleay_session_secret_cb_new(s, func, data);
++		SSL_set_session_secret_cb(s, (int (*)(SSL *s, void *secret, int *secret_len,
++			   STACK_OF(SSL_CIPHER) *peer_ciphers,
++			   SSL_CIPHER **cipher, void *arg))&ssleay_session_secret_cb_invoke, cb);
++	}
++
++#endif
+ 
+ #define REM_EOF "/* EOF - SSLeay.xs */"

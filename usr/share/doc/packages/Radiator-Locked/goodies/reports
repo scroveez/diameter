@@ -1,0 +1,743 @@
+From livingston.com!owner-portmaster-radius Thu Mar  5 04:10 EST 1998
+Received: (from uucp@localhost) by oscar.open.com.au (8.6.12/8.6.12) id EAA09217 for mikem@open.com.au; Thu, 5 Mar 1998 04:10:22 +1100
+  (8.8.5/IDA-1.6 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:05:11 +1100 (EST)
+Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id EAA19020
+  (8.8.5/IDA-1.6 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:05:11 +1100 (EST)
+Received: from bast.livingston.com (bast.livingston.com [149.198.247.2]) by yarrina.connect.com.au with ESMTP id EAA00820
+  (8.8.6/IDA-1.7 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:05:10 +1100 (EST)
+Received: from server.livingston.com (server.livingston.com [149.198.1.70]) by bast.livingston.com (8.8.5/8.6.9) with ESMTP id IAA16294; Wed, 4 Mar 1998 08:54:24 -0800 (PST)
+Received: (from majordom@localhost) by server.livingston.com (8.8.5/8.6.9) id IAA18038 for portmaster-radius-outgoing; Wed, 4 Mar 1998 08:57:30 -0800 (PST)
+>Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id EAA19020
+  (8.8.5/IDA-1.6 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:05:11 +1100 (EST)
+Message-Id: <3.0.3.32.19980304105055.00a6f9a0@springpatch.com>
+X-Sender: morgan@springpatch.com
+X-Mailer: QUALCOMM Windows Eudora Pro Version 3.0.3 (32)
+Date: Wed, 04 Mar 1998 10:50:55 +0000
+To: "L'Equipe du Royaume" <gestion@royaume.com>,
+        portmaster-radius@livingston.com
+From: Robert hiltibidal <morgan@springpatch.com>
+Subject: Re: (RADIUS) Daily and monthly online time report report on NT
+  and IIS
+In-Reply-To: <34FD64FE.3109@royaume.com>
+Mime-Version: 1.0
+Sender: owner-portmaster-radius@livingston.com
+Precedence: bulk
+Reply-To: Robert hiltibidal <morgan@springpatch.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Length: 5457
+Status: OR
+
+
+Howdy,
+
+Here's yet another modification I had to do when we got visited by the
+state police... =)
+
+I figured the info they wanted could be useful for other stuff...
+
+This one was a 45 minute hack job... it won't look pretty. Much cudos to
+Carl for the original raquick script.
+
+This program generates a report on 
+Date	IP Assigned	Session Time	 Terminate Cause
+
+The StopRecords filehandle was for debugging. I had a problem with the
+$time pattern matching in that my original statement would only pull
+multiple digits. Some may find the StopRecords useful for debugging
+alterations. Uncomment it out if you need it.
+
+ttyl,
+
+-Rob 
+
+This program ghenerates shell output only, no email no web interface. Just
+a quick n dirty solution...
+
+
+
+#######################################
+
+#! /usr/bin/perl
+#
+# PROGRAM: userstats            DATE:26-FEB-98
+# CREATOR: ROBERT HILTIBIDAL
+#
+# PURPOSE: Calculates individual user stats
+
+# Get the date
+$date=`date +%d%b`;
+$date =~ s/\n//g;
+
+# Set the file
+$file = "/radius/masterdetail";
+
+# Grab username from command prompt
+$username = $ARGV[0];
+
+
+
+&doit;
+#######################################
+#            Data Engine              #
+#######################################
+
+sub doit {
+open(logged,"$file");
+#open(tmp,"+>StopRecords");
+
+
+$/ = '';                # read paragraph at a time
+
+# Read through accounting detail file
+while (<logged>) {
+#       skip messages about PortMaster going down/up
+        next if /Acct-Session-Id = "00000000"/;
+
+#       only process stop messages, since they have all the info we need
+        if (/Acct-Status-Type = Stop/) {
+#       All valid user session accounting records have an Acct-Session-Id.
+#       Get the ID and address of the PortMaster and combine them to create
+#       a unique identifier for this session, in order to check forduplicates
+                if (/Acct-Session-Id = "([^"]+)"/) {
+                        $id = $1;
+                        if (/NAS-IP-Address = (\S+)/ ||
+                            /Client-Id = (\S+)/) {
+                                $nas = $1;
+                                $id .= '@'.$nas;
+                                if ($seen{$id}++) {
+                                        $dup++;
+                                        next;
+                                }
+                        }
+                } else {
+                        $err{'No ID'}++;
+                        next;
+                }
+#       Get the Username and elapsed time (in seconds)
+#       Increase the number of logins and total time used, for this user
+                if (/Telebit-Login-Command = "$username"/) {
+                        $user = $1;
+                        $user =~ s/\s.*//;      # truncate name on space
+                        if (/Acct-Session-Time = (\d+)/) {
+                                $elapsed = $1;
+                                if ($elapsed > 0) {
+                                        $uses{$user}++;
+                                        $used{$user} += $elapsed;
+                                }
+                        }
+#      Record the ip address into assoc array frame
+
+                        if (/Framed-IP-Address = (\d+.\d+.\d+.\d+)/) {
+                           $addip = $1;
+                        }
+
+#      Check the time
+                       if (/(^\w+ \w+ .*)/) {
+                          $time = $1;
+                       }
+                       if (/(^ \w+ \w+ \d+ .*)/) {
+                          $time = $1;
+                       }
+                       if (/Acct-Terminate-Cause = (\w+.*)/) {
+                          $cause = $1;
+                       }
+                       printf "%-16s\t%-10s\t%-10s\t%-10s
+\n",$time,$addip,&hms($elapsed),$cause;
+                       $time = "";
+                       $addip = "";
+                       $elapsed = "";
+                       $cause = "";
+ #                      print tmp $_; 
+                }
+                else {
+                      next;
+                }
+
+                
+        }
+
+}
+
+close(logged);
+#close(tmp);
+
+}
+
+####################################
+#    Figures Hourly usage          #
+####################################
+
+# hms($seconds) returns time in hh:mm:ss format
+sub hms {
+        local($h,$m);
+        local ($s) = shift(@_);
+        $m = int($s / 60);
+        $s = $s % 60;
+        $h = int($m / 60);
+        $m = $m % 60;
+        sprintf("%4d:%02d:%02d",$h,$m,$s);
+
+}
+
+#######################################
+
+
+At 09:28 AM 3/4/98 -0500, L'Equipe du Royaume wrote:
+>Hi
+>
+>We are looking for a software to analyze the radius detail file and
+>output daily reports and monthly reports.
+>
+>The reports MUST be available throught the web server using the
+>login/password of the user.
+>
+>I have seen this on other ISP so it must be out there.
+>
+>Thanks
+>
+>Patrick
+>gestion@royaume.com
+>-
+>To unsubscribe, email 'majordomo@livingston.com' with
+>'unsubscribe portmaster-radius' in the body of the message.
+>Searchable list archive: <URL:http://www.livingston.com/Tech/archive/>
+>
+>
+
+##########################################################
+Robert Hiltibidal                     Office  217-544-2775
+Systems Programmer                    Fax     217-527-3550
+FGInet, Inc
+rob@fgi.net
+morgan@springpatch.com
+ 
+-
+To unsubscribe, email 'majordomo@livingston.com' with
+'unsubscribe portmaster-radius' in the body of the message.
+Searchable list archive: <URL:http://www.livingston.com/Tech/archive/>
+
+
+From livingston.com!owner-portmaster-radius Thu Mar  5 04:40 EST 1998
+Received: (from uucp@localhost) by oscar.open.com.au (8.6.12/8.6.12) id EAA09249 for mikem@open.com.au; Thu, 5 Mar 1998 04:40:20 +1100
+  (8.8.5/IDA-1.6 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:33:16 +1100 (EST)
+Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id EAA21311
+  (8.8.5/IDA-1.6 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:33:16 +1100 (EST)
+Received: from bast.livingston.com (bast.livingston.com [149.198.247.2]) by yarrina.connect.com.au with ESMTP id EAA02348
+  (8.8.6/IDA-1.7 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:33:13 +1100 (EST)
+Received: from server.livingston.com (server.livingston.com [149.198.1.70]) by bast.livingston.com (8.8.5/8.6.9) with ESMTP id JAA17065; Wed, 4 Mar 1998 09:12:04 -0800 (PST)
+Received: (from majordom@localhost) by server.livingston.com (8.8.5/8.6.9) id JAA19734 for portmaster-radius-outgoing; Wed, 4 Mar 1998 09:17:33 -0800 (PST)
+>Received: from yarrina.connect.com.au (yarrina.connect.com.au [192.189.54.17]) by perki.connect.com.au with ESMTP id EAA21311
+  (8.8.5/IDA-1.6 for <mikem@open.com.au>); Thu, 5 Mar 1998 04:33:16 +1100 (EST)
+Message-Id: <3.0.3.32.19980304111058.00abb310@springpatch.com>
+X-Sender: morgan@springpatch.com
+X-Mailer: QUALCOMM Windows Eudora Pro Version 3.0.3 (32)
+Date: Wed, 04 Mar 1998 11:10:58 +0000
+To: portmaster-radius@livingston.com
+From: Robert hiltibidal <morgan@springpatch.com>
+Subject: Re: (RADIUS) Daily and monthly online time report report on NT
+  and IIS
+Mime-Version: 1.0
+Sender: owner-portmaster-radius@livingston.com
+Precedence: bulk
+Reply-To: Robert hiltibidal <morgan@springpatch.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Length: 14965
+Status: OR
+
+
+Hmmmm.....
+
+Apparently this got chopped somehow... here's the repeat. If it gets
+chooped again and anyone else wats it please drop me a note. I'll send it
+as an attachment privately.
+
+-Rob
+
+
+>Date: Wed, 04 Mar 1998 10:21:17 +0000
+>To: "L'Equipe du Royaume" <gestion@royaume.com>,
+portmaster-radius@livingston.com
+>From: Robert hiltibidal <morgan@springpatch.com>
+>Subject: Re: (RADIUS) Daily and monthly online time report report on NT
+and IIS
+>In-Reply-To: <34FD64FE.3109@royaume.com>
+>
+>
+>Howdy,
+>
+>The enclosed perl script was based on the Carl's raquick script.. This
+project was a three hour hack job when the president of the FGInet said "I
+want this and I want it NOW!"... I get adrenalin rushes from coding under
+the gun now.. =)
+>
+>Anyway I tried to be semi professional and leave remarks. There are a
+couple of small bugs I never took the time to fix.. For instance radstat -h
+produces the help message, radstat by itself does not. Its just a simple
+thing to fix but in truth I never worried about it.
+>
+>I never did set up the checks for the email flag. The idea was a person
+could email a request and their usage stats would be sent back to them. Two
+reasons why this never was implemented:
+>1> I don't like clear text passwords in email
+>2> The radius logging server is isolated from the rest of       the
+system. Doesn't have the same password file.
+>
+>Originally the concept was to allow Remote Site Providers under our RSP
+program, http://www.fgi.net/business.html, access to their individual user
+logs. I was going to use the same group file structure we use for the admin
+page. Never got around to it. Too much other stuff to do. Besides it was
+easier just to set radstat up as a cronjob and email the stats to the
+individual RSP Admins.
+>
+>Finally I never finished the per minute charge. We toyed with the idea of
+doing a per minute charge after 300 hours but that idea died an ugly death. 
+>
+>As for the web interface. As it stands now radstat was designed for admin,
+not individual use. It wouldn't take much, say bout 20 minutes to adapt it
+to check for individual usage, say by $customer=$ENV{REMOTE_USER}; Many
+different options here feel free to hack and thrack. Please give original
+source credit tho. 
+>
+>
+>Thanks,
+>
+>-Rob
+>
+>####################################################
+>
+>#! /usr/bin/perl
+># This program uses code from raquick as listed below. 
+># Additions added by Robert Hiltibidal 13-MAY-97 for FGI Net
+>#
+># Additions are:
+># Output generated based on choice, email, shell or web
+># User specific output...inshort, if ya aint in the group you only get
+># your specific info
+># -r
+>
+># Thanks to Brian Sullivan of Sullivan & Associates for their input on 
+># the web interface.
+># -r
+>
+># 
+># Brian Sullivan & Associates
+># 1209 S 4th Street
+># Springfield, Il 62703
+># brian@sullivan1.com
+># http://www.sullivan1.com
+># Office: 217-585-1901
+># Fax:217-529-9482
+>
+>
+># raquick - create a quick summary of RADIUS Accounting detail file,
+>#
+># 94/11/28      Author: Carl Rigney; cdr@livingston.com
+># 95/01/22      modified
+># 96/09/27      Updated to work with RADIUS 2.0
+># 97/01/12      Comments added
+># 97/03/18      truncates usernames after space, same as authentication does
+>#
+># input files = /usr/adm/radacct/*/detail
+>#
+># output format is username followed by hours:minutes:seconds, number of
+uses,
+># calculated charge, first login seen
+># dave          1:36:48 2       0       Wed Jun  7 10:54:54 1995
+>
+># calculate charge based on minutes of usage (round down)
+># charging $firstrate per minute until $breakpoint, then $secondrate
+>
+>$firstrate = 0;         # charge per minute until breakpoint minutes
+>$secondrate = 0;        # charge per minute after breakpoint minutes
+>$breakpoint = 600;      # breakpoint in minutes to change charging rates
+>
+># Variables added in rewrite
+>$printto="def";    # Where do we send this output?
+>$logdir ="/usr/local/log/radius/";   # current detail file lives here
+>$logfile="ddetail";                  # Detail file produced by radius
+>
+>
+># Format record
+>
+>format STDOUT_TOP=
+>                        Radius Log Stats
+>Customer               Times User Called                  Total hours
+>________               _________________                  ___________
+>
+>
+>
+>.
+>
+>format STDOUT =
+>@<<<<<<<<<<<<<<<<<<<<< @>>>>>>>>>>>>>>>>                  @>>>>>>>>>>
+>$user,                 $uses{$user},                      &hms($used{$user}) 
+>.
+>
+>
+>######################################
+>#              HTML Header           #
+>######################################
+>sub html_header {
+>  $documnet_title="User Radstats";
+>  print "Content-type: text/html\n\n";
+>  print "<HTML>\n";
+>  print "<HEAD>\n";
+>  print "<TITLE>$document_title</TITLE>\n";
+>  print "</HEAD>\n";
+>  print "<BODY bgcolor=000000 text=ff0000 >\n";
+>  print "<center>";
+>  print "<H1>$documnet_title</H1>\n";
+>  print "</center>";
+>  print "<P>\n";
+>}
+>
+>######################################
+>#         HTML Trailer               #
+>###################################### 
+>
+>sub html_trailer {
+>
+>  print "</BODY>\n"; 
+>  print "</HTML>\n";
+>
+>}
+>
+>
+>
+>#######################################
+>#    Find which output to print to    #
+>#######################################
+>sub findit {
+>if ($ARGV[0] =~ /w|W/) {
+>   $printto="web";
+>}
+>if ($ARGV[0] =~ /e|E/) {
+>   $printto="mail";
+> }
+>if ($ARGV[0] =~ /h|H/) {
+>   &usage;
+>   exit(0);
+>}
+>if ($ARGV[0] =~ /f|F/) {
+>   $newfile = $ARGV[$#ARGV];
+>}
+>if ($ARGV[0] =~ /m|M/) {
+>   $monthfilter=$ARGV[1];
+>}
+>
+>
+>}
+>
+>#######################################
+>#                Usage                #
+>#######################################
+>sub usage {
+>print 'Usage--  radstat [fewhm] [month] [email@address] [file]',"\n";
+>print '-e email@address [file]  <-for privledged users only',"\n";
+>print "-w  <-htlmifies the output for www \n";
+>print "-h  <-prints this help screen \n";
+>print "-f /complete/path/of/your/database/including/your/file \n";
+>print "-m [month] Specify month to cover data \n";
+>print "\n";
+>print 'Ex. radstat -emf May rob@fgi.net'," /old/log/file/path/and/name \n"
+>}
+>
+>#######################################
+>#       Print the output              #
+>#######################################
+>
+>sub printit {
+>if ($printto eq "def") {
+>   &printdef;
+>}
+>if ($printto eq "web") {
+>   &printweb;
+>}
+>if ($printto eq "mail") {
+>   &printem;
+>}
+>
+>}
+>#######################################
+>#            Data Engine              #
+>#######################################
+>
+>sub doit {
+>$file=$logdir.$logfile; 
+>if ($newfile ne "") {
+>   $file=$newfile;
+>}
+>open(logged,"$file");
+>
+>
+>$/ = '';                # read paragraph at a time
+>
+># Read through accounting detail file
+>while (<logged>) {
+>#       skip messages about PortMaster going down/up
+>        next if /Acct-Session-Id = "00000000"/;
+>
+># Filter out only desired months
+>
+>        if ($monthfilter ne "") {
+>           @lines=split(/"\n"/,$_);
+>           @entry=split(' ',$lines[0]);
+>           if ($entry[1] ne $monthfilter) {
+>              next;
+>           }
+>        }
+>
+>#       only process stop messages, since they have all the info we need
+>        if (/Acct-Status-Type = Stop/) {
+>#       All valid user session accounting records have an Acct-Session-Id.
+>#       Get the ID and address of the PortMaster and combine them to create
+>#       a unique identifier for this session, in order to check for
+duplicates
+>                if (/Acct-Session-Id = "([^"]+)"/) {
+>                        $id = $1;
+>                        if (/NAS-IP-Address = (\S+)/ ||
+>                            /Client-Id = (\S+)/) {
+>                                $nas = $1;
+>                                $id .= '@'.$nas;
+>                                if ($seen{$id}++) {
+>                                        $dup++;
+>                                        next;
+>                                }
+>                        }
+>                } else {
+>                        $err{'No ID'}++;
+>                        next;
+>                }
+>#       Get the Username and elapsed time (in seconds)
+>#       Increase the number of logins and total time used, for this user
+>                if (/Telebit-Login-Command = "([^"]+)"/) {
+>                        $user = $1;
+>                        $user =~ s/\s.*//;      # truncate name on space
+>                        if (/Acct-Session-Time = (\d+)/) {
+>                                $elapsed = $1;
+>                                if ($elapsed > 0) {
+>                                        $uses{$user}++;
+>                                        $used{$user} += $elapsed;
+>                                }
+>                        }
+>#                       if ($first{$user} eq '' && 
+>#                           /^([^\n]+)\n/) {
+>#                               $first{$user} = $1;
+>#                       }
+>                }
+>#       Record the number of uses and time used for the port, too.
+>#       Currently this doesn't get printed, but could be
+>                if (/NAS-IP-Address = (\S+)/ ||
+>                    /Client-Id = (\S+)/) {
+>                        $nas = $1;
+>                        if (/NAS-Port = (\d+)/ ||
+>                            /Client-Port-Id = (\d+)/) {
+>                                $port = $1;
+>                                $nasport = sprintf("%s\t%2d",$nas,$port);
+>                                if (/Acct-Session-Time = (\d+)/) {
+>                                        $elapsed = $1;
+>                                        if ($elapsed > 0) {
+>                                                $npuses{$nasport}++;
+>                                                $npused{$nasport} +=
+$elapsed;
+>                                        }
+>                                }
+>                        }
+>                }
+>
+>        }
+>}
+>
+>close(logged);
+>}
+>
+>
+>
+>####################################
+>#      Prints the default Output   #
+>####################################
+>
+>
+>
+>sub printdef {
+># print usage by user
+>#print "# $dup duplicates\n" if $dup;
+>#print "# $err{'No ID'} stop records without Acct-Session-ID\n" if
+$err{'No Id'};
+>
+>
+>for $user (sort keys %used) {
+>        # calculate charge based on minutes of usage (round down)
+>        # charging $firstrate per minute until $breakpoint, then $secondrate
+>        $m = int($used{$user}/60);
+>        if ($m <= $breakpoint) {
+>                $charge = $m * $firstrate;
+>        } else {
+>                $charge = $breakpoint * $firstrate + ($m-$breakpoint) *
+$secondrate;
+>        }
+>        write;
+>#       printf "%-16s\t%s  %4d \n",$user,&hms($used{$user}),$uses{$user};
+>
+>}
+>
+>#       printf "%-16s\t%s  %4d  %6d  %s\n",$user,&hms($used{$user}),
+>#               $uses{$user},$charge,$first{$user};
+>
+>}
+>
+>####################################
+>#      Prints the Web Output       #
+>####################################
+>
+>sub printweb {
+>
+>
+>&html_header;
+>
+># NOTE: Since perl doesnt seem to support the format for printing in html
+># well have to do it the oldfasioned way
+>
+>
+>
+>print "<table WIDTH=100%> \n";
+>print "<th width=30%>User Name</th> \n";
+>print "<th width=75%>Logons </th> \n";
+>print "<th width=100%>Hours </th> \n";
+>print "<p> \n";
+>print "<p> \n";
+>for $user (sort keys %used) {
+>        # calculate charge based on minutes of usage (round down)
+>        # charging $firstrate per minute until $breakpoint, then $secondrate
+>        $m = int($used{$user}/60);
+>        if ($m <= $breakpoint) {
+>                $charge = $m * $firstrate;
+>        } else {
+>                $charge = $breakpoint * $firstrate + ($m-$breakpoint) *
+$secondrate;
+>        }
+>        $dum=&hms($used{$user});
+>        print "<tr> \n";
+>        print "<td width=30% align=center>",$user,"</td> \n";
+>        print "<td width=75% align=center>",$uses{$user},"</td> \n";
+>        print "<td width=100%>",$dum,"</td> \n";
+>        print "</tr> \n";
+>        print "<p> \n";
+>
+>}
+>
+>print "</table> \n";
+>
+>
+>
+>&html_trailer;
+>#       printf "%-16s\t%s  %4d  %6d  %s\n",$user,&hms($used{$user}),
+>#               $uses{$user},$charge,$first{$user};
+>
+>}
+>
+>####################################
+>#      Prints the email Output     #
+>####################################
+>sub printem {
+>
+>
+>if ($monthfilter eq "") {
+>   $request=$ARGV[1];
+>}
+>else {
+>   $request=$ARGV[2];
+>}
+>
+>open (MESSAGE, "| mail $request");
+>print MESSAGE "Subject: Email Stats $monthfilter\n";
+>print MESSAGE "\n";
+>print MESSAGE "\n";
+>printf MESSAGE "%-16s\t\t%-10s\t%-10s \n","User","Hours Online","Uses";
+># print usage by user
+>print "# $dup duplicates\n" if $dup;
+>print "# $err{'No ID'} stop records without Acct-Session-ID\n" if $err{'No
+Id'};
+>
+>for $user (sort keys %used) {
+>        # calculate charge based on minutes of usage (round down)
+>        # charging $firstrate per minute until $breakpoint, then $secondrate
+>        $m = int($used{$user}/60);
+>        if ($m <= $breakpoint) {
+>                $charge = $m * $firstrate;
+>        } else {
+>                $charge = $breakpoint * $firstrate + ($m-$breakpoint) *
+$secondrate;
+>        }
+>        printf MESSAGE "%-16s\t\t%-10s\t%-10d
+\n",$user,&hms($used{$user}),$uses{$user};
+>
+>}
+>
+>close MESSAGE;
+>
+>#       printf "%-16s\t%s  %4d  %6d  %s\n",$user,&hms($used{$user}),
+>#               $uses{$user},$charge,$first{$user};
+>
+>}
+>
+>####################################
+>#    Figures Hourly usage          #
+>####################################
+>
+># hms($seconds) returns time in hh:mm:ss format
+>sub hms {
+>        local($h,$m);
+>        local ($s) = shift(@_);
+>        $m = int($s / 60);
+>        $s = $s % 60; 
+>        $h = int($m / 60);
+>        $m = $m % 60;
+>        sprintf("%4d:%02d:%02d",$h,$m,$s);
+>}
+>
+>#####################################
+>#            Main Program           #
+>#####################################
+>&findit;
+>&doit;
+>&printit; 
+>
+>
+>####################################################
+>
+>At 09:28 AM 3/4/98 -0500, L'Equipe du Royaume wrote:
+>>Hi
+>>
+>>We are looking for a software to analyze the radius detail file and
+>>output daily reports and monthly reports.
+>>
+>>The reports MUST be available throught the web server using the
+>>login/password of the user.
+>>
+>>I have seen this on other ISP so it must be out there.
+>>
+>>Thanks
+>>
+>>Patrick
+>>gestion@royaume.com
+>>-
+>>To unsubscribe, email 'majordomo@livingston.com' with
+>>'unsubscribe portmaster-radius' in the body of the message.
+>>Searchable list archive: <URL:http://www.livingston.com/Tech/archive/>
+>>
+>>
+
+##########################################################
+Robert Hiltibidal                     Office  217-544-2775
+Systems Programmer                    Fax     217-527-3550
+FGInet, Inc
+rob@fgi.net
+morgan@springpatch.com
+ 
+-
+To unsubscribe, email 'majordomo@livingston.com' with
+'unsubscribe portmaster-radius' in the body of the message.
+Searchable list archive: <URL:http://www.livingston.com/Tech/archive/>
+
+

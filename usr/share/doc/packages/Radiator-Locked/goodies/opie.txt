@@ -1,0 +1,88 @@
+Using Radius with S/Key authentication for FW-1
+
+Prepare the gateway:
+
+1.Installation of RedHat 7.3 (workstation)
+2.Install sshd rpm for remote access
+3.No hardening was performed
+4.New kernel was installed (kernel-2.4.18-5.i586.rpm)
+5.Grub loader altered to make the new kernel the default
+6.Reboot to load new kernel
+
+Install Environment for OPIE 
+
+1.Install binutils-2.11.93.0.2-11.i386.rpm
+2.Install cpp-2.96-110.i386.rpm
+3.Install glibc-kernheaders-2.4-7.14.i386.rpm
+4.Install glibc-devel-2.2.5-34.i386.rpm
+5.Install gcc-2.96-110.i386.rpm
+6.Install byacc-1.9-19.i386.rpm
+
+Install OPIE
+
+1.gunzip opie-2.4.tar.gz
+2.tar -xvf opie-2.4.tar
+3.configure
+4.make 
+5.make install
+
+Install PERL OPIE module
+
+1.gunzip OPIE-0.75.tar-gz
+2.tar -xvf OPIE-0.75.tar
+3.mkdir /usr/local/opie
+4.ln -s /home/opie-2.4/libopie /usr/local/opie/lib
+5.ln -s /home/opie-2.4 /usr/local/opie/include
+6.perl Makefile.PL
+7.make test
+8.make install
+
+Install and configure Radiator
+
+1.rpm -i Radiator-Demo-3.5-1.noarch.rpm
+2.Edit the radius.cfg file from 
+<Client DEFAULT>
+        Secret  mysecret
+        DupInterval 0
+</Client>
+
+<Realm DEFAULT>
+        <AuthBy FILE>
+                Filename %D/users
+        </AuthBy>
+        # Log accounting to a detail file
+        AcctLogFileName %L/detail
+</Realm>
+
+to
+
+<Client DEFAULT>
+        Secret  radiussecret
+        DupInterval 0
+</Client>
+
+<Realm >
+        <AuthBy OPIE>
+	# This makes sure the user gets to see the challenge
+	AddToReplyIfNotExist State=0
+        </AuthBy>
+</Realm>
+
+
+Install and configure FW-1
+
+1.Mount the Check Point CD
+2.Install from CD using UnixInstallScript
+3.Create initial policy to allow SSH
+4.Create External User Profile for generic* with authentication method Radius
+5.Add client authentication rule for all users, using manual client authentication.
+6.Create radius server, using same "secret" as radius.cfg and it is V2 compatible.
+
+Setting OPIE for users
+
+1.Login as root
+2.su to the user, e.g. mark
+3.opiepasswd 
+4.I used winkey on the client, a free windows s/key client
+5.Supply the OTP strings and you're done
+6.You can use opiekey to generate a list of the next 'n' phrases.

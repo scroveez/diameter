@@ -1,0 +1,1467 @@
+This directory contains some useful files and scripts
+for use with Radiator. All are offered as-is and unsupported
+
+README
+	This file
+
+simple.cfg
+	A very simple radius configuration file that you can use to
+	get started with. It listens to a all clients (with the secret
+	"mysecret", the same one radpwtst uses by default), and
+	handles all relams with a flat file user database. This is 
+	the most conventional way to set up a Radiator configuration.
+
+radius.cfg
+	A slightly more advanced config file that shows how to set up
+	a Client clause for each client.
+
+handlers.cfg
+	Example showing how you can use Handler instead of Realm
+	to solve difficult authentication problems: requests can
+	be grouped by _any_ attribute(s) in the request, not just the realm.
+	
+
+AuthCOMPAT.pm
+	An add-on module contributed by 
+	Aaron Nabil (nabil@spiritone.com), which provides "exact"
+	Livingston user file conpatibility, especially in the area
+	of Password="UNIX".
+
+AuthDBUNIX.pm
+	An add-on module contributed by 
+	Aaron Nabil (nabil@spiritone.com).
+	Authenticates from the system maintained DBM password
+	file on Digital UNIX on an Alpha.
+
+AuthSQLExt.pm
+	An add-on module contributed by
+	Lars Marowsky-BrÅÈe <lmb@pointer.teuto.de>
+	that provides an extended syntax for SQL select statements.
+	Note: this is now obsolete, as the additional syntax for
+	AuthColumnDef has been added to AutSQL.pm as part of the 
+	core distribution.
+	
+ansiCreate.sql 
+	Simple SQL script for creating tables for a very simple
+	SQL database for use with Radiator. Can be used with Oracle
+	and other similar ANSI SQL compatible databases. The tables it
+	creates are about the simplest ones you can possibly have, and
+	much more complicated ones are possible, depending on your
+	requirements. You should take it a starting point only. On
+	Oracle, you can use this with something like: % sqlplus
+	username/password@sid @ansiCreate.
+
+livingCompat.cfg
+	This is a simple Radiator config file that allows you
+	to continue using a bog standard Livingston or
+	similar users file with Radiator, It implements the
+	Auth-Type="System" check item by using AuthBy UNIX
+	
+msqlCreate.sql
+	Similar to ansiCreate.sql, but for use with mSQL or mysql.
+	Use it like this:
+	% msqladmin create radius
+	% msql radius <msqlCreate.sql
+
+reports
+	A collection of some scripts for generating reports that were
+	distributed on the radius-users mailing list. They are
+	supplied as-is, and have not been tested or converted to use
+	with Radiator. They may or may not do anything useful.
+
+sybaseCreate.sql
+	Similar to ansiCreate.sql, but for Sybase. Use it something
+	like this:
+	% isql -Uusername -Ppassword -Sserver -i sybaseCreate.sql
+
+checkrad.pl
+	Simple script that can interrogate various types of NAS
+	to determine whether a user is really still logged in
+	to a port. This was freely distributed and is not subject to 
+	Copyright by Open System Consultants
+
+restartWrapper
+	Script you can use on Unix to restart your radiusd (or
+	any other program) if it stops unexpectedly. Can optionally
+	email you when it restarts. Try restartWrapper -h for help
+	on how to run it.
+
+emerald.cfg
+	Example Radiator configuration file to work with the Emerald
+	billing system from IEA (see http://www.emerald.iea.com).
+	If you have Emerald 4 or later, see emerald4.cfg instead.
+
+platypus.cfg
+	OBSOLETE: see platypus7.cfg.
+	Example Radiator configuration file to work with the Platypus
+	billing system from Boardtown (see http://www.boardtown.com)
+
+platypus7.cfg
+	Example Radiator configuration file to work with the Platypus 7
+	billing system from Boardtown (see http://www.boardtown.com)
+
+common-sql.cfg
+	Example Radiator configuration file that allows you to
+ 	authenticate from an SQL database, and to apply the same 
+	check and reply items for all users without having the 
+	items in the database
+
+warehouse
+	Contributed script (with explanation and mail headers) for a program
+	that takes data out of the
+	accounting table and fetches them into a data warehouse, processing them
+	on the way.
+	Contributed by Stephan Forseilles <sf@staff.skynet.be>
+
+extendedMacros.patch
+	Contributed patch from "Bonis, Wim" <bonis@kiss.de>.
+	The patch allows you to have special replacements like:
+	%{attr,integer}      The value of the named attribute as 
+		Integer (as in the dictionary)
+	%{attr,NULL}         The value of the named attribute as
+		String (But NULL if it is empty/missing)
+	%{attr,integerNULL}  The value of the named attribute as 
+	Integer (as in the dictionary, But null if it is missing)
+	%{attr,integer-date} The value of the named attribute as 
+		Integer-Date
+
+AddToReplyIfNotExist.patch
+	Patch to version 2.12 that adds AddToReplyIfNotExist,
+	which allows you add attributes to a reply if they dont
+	already exist (a kind of combination of AddToReply and 
+	DefaultReply) 
+	Contributed by Vincent Gillet <vgi@oleane.net>.
+
+checkSessionDb.txt
+	Script that asynchronously checks that the Session Database is up to 
+	date by checking it against the NAS. 
+	Contributed by Wim Bonis <bonis@argus.kiss.de>. Wim says:
+	I have here a perl-script which does that here. It is Run at our location
+	every 10 minutes.
+	It works here with Livingston Portmasters and SessSQL (There is some
+	specific code for my Sesseion Tables in it, but someone can maybe make
+	them more general (But then we must have a new "DeleteQuery"))
+
+
+wimsComplexConfig.txt
+	A complex configuration setup that exercises many Radiator
+	features. As used in a real ISP, It shows:
+	- How to seperate Auth,Roam and Accounting- Request  by using 
+	different Handlers
+	- How to use the Call-Check feature of Portmasters3
+	- How to make a guest logon on only some ports. (In combination with
+	callcheck, make only one or two modems available for guest access)
+	- Use the hints from the NAS to send different replys, depending 
+	if the users want a PPP-Session or a terminal.
+	- Use a Accounting table where start and stops for the same 
+	session are in just one row, and store many interesting values.
+	- Use of crypted or not crypted password in the same Table
+	- Dynamic reply by the use of SQL Statements
+	- Included is also the definition of the tables.
+	Contributed by Wim Bonis <bonis@argus.kiss.de>. 
+
+interbiller.cfg
+	Example configuration file that works with Interbiller
+	(www.interbiller.com), an inexpensive ISP billing package, which
+	runs on Win95 and NT, and uses Microsoft Access.
+
+ciscoConfig.txt
+	Cisco document that describes how Cisco support the 
+	Ascend RADIUS Extensions at IOS 11.3
+
+proxy.cfg
+	An example of a simple configuration that will proxy
+	one realm to another radius server, and handle all
+	other realms locally.
+
+freeside.cfg sqlradacct.pl
+	Example of how to configure Radiator to work with Freeside
+	a free unix based ISP billing package. CAUTION: freeside.cfg is now
+	deprecated: recent versions of Freeside come with a hook that maintains the 
+	Radiator standard RADUSERS table. You should use that instead. You
+	should now only need to use sqlradacct.pl.
+
+nasclear.cgi
+	CGI script that shows all the unique NASs in your SQL session
+	database, and allows you to clear all session for a NAS.
+	Contributed by Aaron Holtz <aholtz@bright.net>
+	Thanks Aaron.
+
+rodopi.cfg
+	Example config for connecting to a Rodopi ISP
+	billing package (www.rodopi.com)
+
+annex.cfg
+	Example config file for doing Tunnelling with Bay Annex Server
+
+nt.cfg	
+	Simple example showing how to authenticate from NT
+
+bsdi-memory.txt
+	Detailed instructions on how to increase the default data size
+	on BSDI, contributed by Paul Thornton <paul@dove.mtx.net.au>.
+	Thanks Paul.
+
+interbaseCreate.sql
+	SQL script to create typical database for Interbase.
+	Note that unlike other example database schemas, in 
+	Interbase PASSWORD is called PASS_WORD, and
+	MESSAGE is called MESSAGE_TEXT.
+	You will have to change your AuthSelect as required.
+	If you are using Log SQL with Interbase, you
+	will have to alter LogSQL.pm, and change MESSAGE to 
+	MESSAGE_TEXT near the end
+
+SqlDbINTERBASE.pm  ****OBSOLETE*****
+	Trial replacement for SqlDb.pm that works with Interbase
+	instead of DBI. Use this if you want to use Interbase.
+	Requires the ibperl module tpo bne compiled and installed
+	DBSource should be set like this
+	DBSource hostname:databasepath
+	NOTE: this is nom obsolete, now that there is a DBD-Interbase
+	available from CPAN. More details in the Radiator reference manual.
+
+sql.cfg
+	Sample Radiator configuration file that allows you to
+	authenticate from an SQL database.
+
+external.cfg
+	Sample Radiator configuration file that allows you to
+	authenticate from an external program (testcommand.pl
+	which is also supplied)
+
+ldap.cfg
+	Sample Radiator config file for authenticating from
+	a local LDAP database
+
+ldap-sasl.cfg
+	Sample Radiator config file for authenticating from
+	a local LDAP database, using SASL to authenticate the
+	connection to the LDAP server.
+
+radmin.cfg
+	Sample Radiator config file for authenticating from
+	RAdmin, the Radius User Admin tool from Open System
+	Consultants (http://www.open.com.au/radmin).
+
+bayPortLimit.txt
+	Description of how to set up AuthBy PORTLIMITCHECK
+	with Bay 5399/8000 for pre-authorizing users. ie
+	you can make your Bay only answer a call 
+	if the ports are not oversubscribed. Contributed
+	by Andrew Foster <anfoster@nortelnetworks.com>
+
+usradius.cfg
+	Example configuration file to do authentication and
+	accounting with a USR Total Control MS-Access database
+
+radius.mdb
+	Example Microsoft Access database. Works with the example
+	sql.cfg in this directory. Also includes some example
+	queries and charts, that you could extend to suit your own 
+	needs.
+	Caution: MS-Access is not a high
+	performance database and should not be used with Radiator in
+	performance critical applications.
+
+kerberos.txt
+	Description from Roland Hofmann (hofmann@uni-hohenheim.de  )
+	about how to add AFS Kerberos authentication to Radiator.
+	Thanks to Roland for his contribution.
+
+radacctSorted.cgi
+	An alternative version of radacct.cgi that supports
+	some sorting of users by time, logins, total octets in or out.
+	Contributed by Andrew Aken. Thanks Andrew.
+
+radiatorctl
+	Small Radiator management tool contributed by 
+	Ragnar Kurm <ragnar@uninet.ee>. Implements start, stop
+	restart, reload, inc, dec operations. Thanks Ragnar.
+
+msisdn.hook	
+	An example PreAuthHook that allows you to authenticate
+	using Calling-Station-Id instead of User-Name. In fact
+	it converts the Calling-Station-Id into User-Name, so
+	your user database entries can be against the users MSISDN
+	Contributed by 
+	Aurelien Requiem <ext-aurelien.requiem@nokia.com>
+	Thanks Aurelien.
+
+users.ldif
+	Example LDIF file for Open LDAP that we use for testing LDAP.
+	UMich. Use it with 
+	You can use it with something like
+	ldapadd -x -D "cn=Manager, dc=my-domain, dc=com" -w secret -f goodies/users.ldif
+	On linux, you may need to make some adjustments to your LDAP slapd 
+	configuration before the ldapadd will work:
+	you will need to set the manager secret in /etc/openldap/slapd.conf
+	you may also need to change the ownership of 
+	/var/lib/ldap to the user 'ldap'
+	before starting slapd. Make sure the organisation name
+	and country agree with the prefix configured into your
+	slapd.conf
+
+opendirectory.cfg
+	Example config file for authenticating from the
+	Open Directory LDAP server from Platinum. www.platinum.com
+
+cisco5300.txt
+	Sample PreClientHook that translates Cisco-NAS-Port attributes
+	into more sensible NAS-Port numbers. 
+	Contributed by "Raju M. Daryanani" <raju@asiainter.net>
+
+profiles.txt
+	Example of how you can implement user profiles using
+	chained AuthBy modules and the new (at 2.16) check
+	items that refer to the current reply
+
+hooks.txt 
+	Discussion and examples of how to use hooks to provide:
+	- User profiles stored in a text file
+	- Translating Cisco-NAS-Port into NAS-Port for
+	interoperation with Cisco 5800
+	- Remove selected attributues from a request before logging
+	- Extract special Cisco format NAS-Port information
+	- parse multiple Digest-Attributes into individual attributes
+	which are added to the incoming request. 
+	- discover the socket that received a request on a multihomed host
+	- change the Trace level dynamically based on current request
+        - many other examples
+
+addressallocator.txt
+	Sample config file showing how to use the new IP address
+	allocation modules to allocate addresses from an SQL database
+
+addressallocatordhcp.cfg
+	Sample configuration file showing how to allocate adddreses for
+	incoming request from an external DHCP server.
+
+reliableaccounting.cfg
+	Example configuration file shows how you can proxy
+	requests to remote radius server, and if the remote radius server
+	does not reply (say, its offline, or the network is down)
+	save the accounting data in an SQL database, for later
+	delivery or retransmission
+
+csid.cfg CalledStationId.pm
+	Example of how to use superclassing and registering the find function
+	in order to add new types of Handlers. The example implments a new
+	<CalledStationId 11111> clause that finds an exact match for a
+	Called-Station-Id faster that the linear search that a
+	<Handler Called-Station-Id=11111> would take.
+
+loststophook.cfg
+	Extract from a sample config file contributed by 
+	Fabrizio Cuseo <f.cuseo@panservice.it>:
+
+I'm using a national roaming service with a proxy radius that forwards
+me all @domain.it requests.  Sometimes their access-servers or radius,
+don't send me the STOP accounting record, so i often have dead
+sessions on my radonline db.  When the user tries to authenticate
+again, it reaches his MaxSession of 1, and i've no snmp access on the
+access-servers, so i've modified my radonline db adding a
+"calling_station_id", and I also have this PreAuthHook that deletes
+this kind of dead sessions only if calling_station_id on the radonline
+db is the same of the radius auth request.  I'm using a mysql
+db... 
+
+AuthPLSQL.pm plsql.cfg
+	Contributed authentication module and sample config file
+	that can use Oracle PL/SQL stored procedures to do 
+	authentication. Contributed by Pavel A. Crasotin <pavel@ctk.ru>
+	Thanks Pavel.
+
+millisecondlog.txt
+	Simple changs to Log.pm so that messages are logged with 
+	a millisecond resolution. Contributed by 
+	Anton Sparrius <asparrius@vivanet.com.au>
+
+hydrarad
+	Script for generating HydraWeb usability figures
+	by sending Status-Server request to Radiator. Produces
+	a Usability figure (0 to 100) as an exponential function
+	of current requests per second.
+	See www.hydraweb.com
+	Stop Press: hydraweb have since failed and HydraRADIUS
+	is no longer available. This information will be removed
+	in a future version.
+
+authlog.cfg
+	Simple configuration file showing how to use AuthLog
+	to log authentication success and failure to a file
+	using <AuthLog FILE>
+
+blocktime.txt
+	Discussion about how to implement block times (prepaid
+	time)
+
+ibm-snmp.txt
+	Some hints about using SNMP on IBM without access to 
+	snmpwalk.
+
+tnt-pap.txt
+	Discussion about how to configure PAP on a TNT by Radius.
+	Contributed by Aaron Bailey <abailey@comtech.com.au>
+
+platradacct.cgi
+	Version of radacct.cgi that works with Platypus Calls table.
+	Contributed by "Leigh Spiegel" <leigh@winshop.com.au>
+
+cleanup.txt
+	"Steve Roderick" <steve@uspops.com> has contributed this script
+	to sync the session database to what is actually on the NAS(s).
+	 The code is set up for CVXen, but is easily modified.
+
+AuthSQLRadius.pm
+	"Steve Roderick" <steve@uspops.com> contributed this module 
+	which loads proxy Radius server details from an SQL database.
+
+proxyalgorithm.cfg
+	Example Radiator config file that shows various ways
+	of configuring proxying to multiple remote servers
+	using AuthBy RADIUS,
+	AuthBy ROUNDROBIN, AuthBy VOLUMEBALANCE and
+	AuthBy LOADBALANCE.
+
+optigold.cfg
+	Sample config file and instructions to allow Radiator to 
+	work with Optigold ISP (www.digitalpoint.com)
+
+opie.cfg
+	Sample config file and instructions to allow Radiator to
+	authenticate from OPIE (one-time passwords in everything)
+
+opie.txt
+	Detailed instructions for installing and configuring OPIE
+	on RedHat 7.3 for use with FW-1. Contributed by 
+	"Mark Wellins" (markw@checkpoint.com)
+
+ad-ldap.cfg 
+	Sample config file and instructions to allow Radiator to
+	authenticate from a Windows 2000 Active Directory server
+	through LDAP either from Windows or Unix.
+
+securid.cfg
+	Sample config file and instructions to allow Radiator to
+	authenticate by proxying to an RSASecurity ACE/Server 
+	radius server.
+
+linux-*, users Sample config file, users file and startup file for Linux
+	See radiusd.conf for alrternate startup script for Debian/Ubuntu
+
+system.cfg
+	Sample config file and instructions to allow Radiator to
+	authenticate with AuthBy SYSTEM.
+
+teleid, teleid.cfg
+	Sample config file and instructions to allow Radiator to
+	authenticate from Encotone TeleID token cards
+	with AuthBy PAM.
+
+asplog.txt
+	How to display Radiator SQL accounting logs with an ASP/VB
+	script. Contributed by "Michael Audet" <audet@vectorcore.com>
+	Thanks Michael!
+
+prepaid.cfg
+	Example Radiator configuration file showing how to
+	implement a simple prepaid card system with an SQL database
+
+ace.txt ace.cfg
+	Example Radiator configuration file and instructions
+	showing how to authenticate directly to an RSA SecurID ACE Server.
+
+pam-kerberos.cfg
+	Example Radiator configuration file showing how to authenticate
+	from Kerberos via PAM on Unix
+
+billmax.txt billmax.cfg
+	Example Radiator configuration file and instructions
+	showing how to authenticate directly to BillMax Unix ISP
+	billing software.
+
+sqlradius.cfg
+	Example config file showing how you can use AuthBy SQLRADIUS
+	to look up proxy hosts in an SQL database. Great for
+	managing large numbers of downstream ISPs. Uses the user realm
+	to make a lookup in an SQL table and find out the target host
+	to proxy to. Obsoletes goodies/AuthSQLRadius.pm.
+
+internal.cfg
+	Example config file showing how you can use AuthBy INTERNAL
+	to handle different types of requests in fixed, parameterised ways.
+	See also internalhook.cfg.
+
+highavail.txt
+	Discussion of how to use "daemontools" 
+	(http://cr.yp.to/daemontools.html) as a way to provide high availablity
+	for Radiator.
+
+dbd-csv.txt
+	Discussion of how to configure Radiator	
+	to use a DBD::CSV database.
+	DBD::CSV is a perl DBD module that permits SQL-like access to 
+	flat file databases.
+
+internalhook.cfg
+	Example config file showing how you can use hooks AuthBy INTERNAL
+	to figure out how to reply to each tpe of request based on 
+	perl hooks.
+
+ddprof.pm
+	Radiator profiling code contributed by Damir Dzeko <ddzeko@iskon.hr>
+
+safeword.txt SafewordPostAuth.pl SafewordPreAuth.pl
+	Description and hooks for operating with Safeword
+	token-based authentication through a firewall.
+	Contributed by Stephen Frede (Stephen.Frede@optus.com.au)
+
+voip.txt
+	Long discussion about how Cisco VOIP and accounting works
+	with examples, contributed by Simon Hackett <simon@internode.com.au>.
+
+statslog.cfg
+	Example Radiator configuration file showing how to get
+	started with statistics logging with StatsLog FILE
+	and StatsLog SQL
+
+pop3.cfg
+	Example Radiator configuration file showing how to get
+	started with POP3 authentication
+
+monitor.cfg 
+	Example Radiator configuration file showing how to configure
+	Radiator for use with Radar and other external monitors.
+
+Apache-AuthenRadius-0.3-digest.patch
+	This patch file adds support for Digest authentication over Radius
+	to Apache. It is a patch to Apache-AuthenRadius-0.3. Requires
+	Apache 1.3 or later, mod_perl and Authen::Radius from RadiusPerl-0.06
+	or later. With the patch installed, you can configure an Apache
+	.htaccess file like this:
+
+	# authenticate Digest via Radius
+	AuthName "Radius Test"
+	AuthType Digest
+	require valid-user
+	PerlAuthenHandler Apache::AuthenRadius
+	PerlSetVar Auth_Radius_host localhost
+	PerlSetVar Auth_Radius_port 1645
+	PerlSetVar Auth_Radius_secret mysecret
+	PerlSetVar Auth_Radius_timeout 5
+
+RadiusPerl-0.05-0.06.patch
+	This patch to RadiusPerl-0.05 adds correct support for long (> 16)
+	passwords, plus uses Digest::MD5, instead of the old MD5.
+
+AdvancedISPBilling.cfg
+	Example configuration file for working with 
+	"Advanced ISP Billing", see http://www.advancedispbilling.com
+
+emerald4.cfg
+	Example configuration file for working with Emerald version 4
+	from IEA (see http://www.emerald.iea.com).
+	Dont use this one for Platypus or Emerald versions earlier
+	then 4.
+
+radimportacct
+	Script to import accounting data from a radius accounting detail file
+	into an SQL database. Easily configurable to add/change
+	the mapping between detail file fields and SQL table columns.
+
+raduseradd
+	Script to add users to an SQL database. This is a command line
+	utility. You can specify the user parameters on the command line
+	else they will be prompted for. Easily configurable to add/change
+	the mapping between prompt fields and SQL table columns
+
+eap_tls.cfg
+	Example configuration file for doing EAP-TLS authentication.
+
+eap_md5.cfg
+	Example configuration file for doing EAP MD5-Challenge authentication.
+
+mobileip.cfg
+	Example configuration file for doing 3GPP2 Mobile IP authentication.
+	Handles HA Key distribution requests and FA user authentication.
+
+mkcertificate.sh xpextensions
+	Script and file for making test certificates for Windows
+	XP and EAP-TLS as described in http://www.denobula.com/EAPTLS.pdf
+
+pam.cfg
+	Example configuration file for doing PAM authentication on Unix. This example
+	authenticates from the PAM 'passwd' service, using your normal Unix
+	password. Works on RH 7.n and others. Requires Authen-PAM to be installed.
+
+eap_ttls.cfg
+	Example configuration file for doing TTLS authentication. This
+	example authenticates the inner authentication request
+	locally. Works with TTLS-PAP, TTLS-CHAP, TTLS-MSCHAP,
+	TTLS-MSCHAP and TTLS-EAP-MSCHAPv2
+
+eap_ttls_proxy.cfg
+	Example configuration file for doing TTLS authentication. This
+	example authenticates the inner authentication request by
+	proxying to another (non TTLS enabled) Radius server.  Works
+	with TTLS-PAP, TTLS-CHAP and TTLS-MSCHAP, TTLS-MSCHAPv2 and
+	TTLS-EAP-MSCHAPv2.
+
+eap_peap.cfg
+	Example configuration file for doing PEAP authentication.
+	This example authenticates an inner MSCHAP-V2 authentication
+	request from a users file.
+
+eap_peap_tls.cfg
+	Example configuration file for doing PEAP authentication as used by
+	Windows XP starting with SP1. 
+	This example authenticates EAP-TLS ('Smart card or other Certificate')
+	as an inner authentication request.
+
+eap_multi.cfg
+	Example configuration file doing multiple types of EAP authentication
+	at the same time. Supports PAP, CHAP, MSCHAP, MSCHAPV2, EAP-MD5, TTLS-EAP-MD5,
+	TTLS-PAP, TTLS-CHAP, TTLS-MSCHAP, TTLS-MSCHAPV2, TTLS-TLS, TLS, PEAP-MD5
+	
+url.cfg test_url.cgi test_url_crypt.cgi test_url_md5.cgi test_url_mschapv2.cgi
+	Example configuration file and sample CGI scripts for using AuthBy URL.
+	This module was contributed by Mauro Crovato <mauro@crovato.com.ar>.
+
+web_monitor.doc web_monitor.tar.gz
+	CGI script and documentation for web interface to Radiator Monitor. Allows
+	you to inspect configuration and statistics for each Handler in your 
+	Radiator servers. Contributed by Mauro Crovato <mauro@crovato.com.ar>.
+
+radwho.cgi
+	CGI script for examining who is onine according to an SQL or DBM session database.
+	See the Radiator reference manual for details on installation and use.
+
+radacct.cgi
+	CGI script for viewing accounting details SQL database or detail file.
+	See the Radiator reference manual for details on installation and use.
+
+radconfig
+	CGI script for viewing and altering a Radiator configuration file.
+
+rcradiator
+	Linux LSB compliant startup script, contributed by Carlos RaÅ˙l Perasso 
+	<carlosrp@idea.com.py>. Thanks Carlos.
+
+radwho.pl
+	Radiator command line script to summarize "who is online" from 
+	 DBM or SQL SessionDatabase. Based on radwho.cgi
+
+dialconnect.cfg
+	Example configuration file for Telstra (Australia) Dial
+	Connect Virtual ISP (since renamed to IP Remote).
+
+INSTALL.MacOSX RadiatorMacOSX.tar.gz
+	Instructions and helpful scripts for installing on MAC OSX, and configuring
+	to startup automatically. Contributed by "neil d. quiogue" <neil@quiogue.com>.
+	Thanks Neil!
+	Caution: these are no obsolete. See macports.txt and Portfile below
+
+xinetd.conf
+	Example xinetd configuration file for Linux and similar.
+
+jet.cfg
+	Example configuration file for Jet.
+	Jet is a user management and billing system, specifically designed and
+	created for ISPs.  Written in python and Zope, it is highly flexible,
+	and has a modular construction allowing for additional modules to
+	support a customers specific needs.  It comes with full source code, and
+	Obsidian's development team is available to produce extensions as
+	required.
+
+rcrypt
+	Simple command line utility to do Rcrypt encryption and decryption of
+	passwords.
+
+CiscoDialupIPPools.doc
+	document describing how to do basic ip address
+	assignment for Cisco dialup using radiator. Contributed by "Kent, Ashley" 
+	<akent@ue.com.au>.
+
+imap.cfg
+	Example Radiator configuration file for use with AuthBy
+	IMAP. Shows how to support SSSl and non-SSL connections to the
+	IMAP server, and also to support TTLS-PAP.
+
+htgroup.cfg
+	Example Radiator configuration file for use with AuthBy HTGROUP.
+	Contributed by Rodger Allen <rodger@infrasecure.com>
+
+AlterNASPort.pl
+	Example hook to convert  Cisco-NAS-Port to NAS-port so you can
+	use the standard session database and NasType Cisco.
+	Contributed by Paul Pilsbury <ppilsbur@connect.com.au>.
+
+dictionary.cisco dictionary.ascend2 dictionary.livingston dictionary.usr
+dictionary.usr.merit dictionary.acc dictionary.redback dictionary.hiper
+	These dictionaries from various sources used to be shipped as part of the main distribution.
+	Now they are not required any more, as all the attributes have been included in the 
+	dictionary file in the main distribution. We are keeping these here just for
+	reference. They should not be required in any installations.
+
+sqlclienthook.pl
+	sample code showing a way to have a ClientListSQL-like database of clients, but still
+	use the file:'filename' style of hooks. Runs a pipe that inserts the <Client> clauses
+	into the config file at startup-time. Written by  German Gatica.
+	Thanks German.
+
+3com4400.txt
+	This document contains some simple instructions to configure a 3Com
+	SuperStack 3 4400 Switch (or similar in the same family) and Windows
+	XP to demonstrate Radius authentication for 802.1x wired LAN access
+	control and accounting.
+
+osx.txt
+	Detailed instructions for installing and testing on Mac OS X
+
+eap_anon_hook.pl
+	Hook that can be use in EAP-TTLS and EAP-PEAP installations to
+	fix accounting requests so that they contain the _real_ user
+	name instead of anonymous. See example usage in
+	goodies/eap_ttls.cfg, and sample SQL table RADLASTAUTH in
+	goodies/mysqlCreate.sql See also eap_acct_username.txt for a
+	technique that does not require an SQL database.
+
+windows.cfg
+	Sample config file for a standard Windows installation. Designed
+	to be installed as c:\Program Files\Radiator\radius.cfg
+	
+oscaironetconfig.txt
+	Sample configuration file for a Cisco Aironet 340 Wireless Acccess Point. This configuration
+	file is the one used at OSC for testing EAP wireless-Radius authentication. It works
+	with a wide range of client wireless cards and wireless clients. You will
+	need to adjust the IP addresses of the radius server, gateway etc to suit your site.
+
+lsa.cfg lsa_eap_peap.cfg lsa_eap_multi.cfg
+	Examples showing how to use AuthBy LSA to authenticate PAP, CHAP, MSCHAP, MSCHAPV2,
+	PEAP, LEAP etc against Windows user passwords. Can be run on
+	Windows 2000, 2003 and XP (not Home edition). 
+	Requires the Win32-Lsa perl module from Open System Consultants (download details
+	included)
+
+ic-isp.cfg
+	Example configuration file showing how to authenticate from an IC-ISP mySQL database.
+	IC-ISP is a full source ISP billing package for Unix.
+	See www.ic-isp.com for details about IC-ISP. Accounting is not supported.
+	Works with IC-ISP 2.0.24 and later.
+
+logisense.txt
+	Example configuration, SQL tables and requirements for interoperation between
+	Radiator and ENGAGE*IP. Contributed by STOWE TELECOM, LLC.
+
+tacacsplusserver.cfg
+	Example configuration file showing how to use the <ServerTACACSPLUS>
+	clause to receive and handle TACACS+ requests.
+
+soapradius.cgi soap.cfg soaprequest.wsdl
+	Support files for AuthBy SOAP and SOAPRequest.pm
+	soapradius.cgi is a web server CGI script that receives SOAP requests and
+	dispatches them to SOAPRequest.pm where it is converted to a Radius packet 
+	and sent to the Radius server of your choice. Soap.cfg is an example
+	configuration file for <AuthBy SOAP>. soaprequest.wsdl is a SOAP web service
+	description language description of the SOAP interface.
+
+eap_otp_opie.cfg
+	Example configuration file showing how to authenticate EAP One Time Password
+	using AuthBy OPIE and the OPIE one-time-password system. Notes for testing
+	with radpwtst.
+
+eap_gtc_opie.cfg
+	Example configuration file showing how to authenticate EAP Generic Token Card
+	using AuthBy OPIE and the OPIE one-time-password system. Tested with
+	Funk Odyssey client. Notes for testing
+	with radpwtst.
+
+eap_peap_gtc_opie.cfg
+	Example configuration file showing how to authenticate EAP PEAP Generic Token Card
+	using AuthBy OPIE and the OPIE one-time-password system. Tested with
+	Funk Odyssey client.
+
+eap_gtc_ace.cfg
+	Example configuration file showing how to authenticate EAP Generic Token Card
+	using AuthBy ACE and the SecurID ACE server token code system. AuthBy ACE will also
+	work with EAP PEAP Generic Token Card similar to eap_peap_gtc_opie.cfg.
+
+eap_gtc_rsamobile.cfg
+	Example configuration file showing how to authenticate EAP Generic Token Card
+	EAP-PEAP Generic Token Card and conventional Radius Access-Accept/Access-Challenge
+	using AuthBy RSAMOBILE and the RSA Mobile authentication system.
+	
+leap.cfg
+	Example configuration file showing how to authenticate EAP LEAP compatible
+	using plaintext passwords and AuthBy FILE.
+
+otp.cfg
+	Example configuration file showing how to authenticate EAP-OTP, EAP-GTC and 
+	standard Radius dialup with your own one-time-passwords, possibly including
+	delivery of the password via a back-channel such as SMS.
+
+multiprofile.txt
+	Contains a contribution from Matthias Wamser,
+	showing how to provide different sets of reply items for
+	different types of Dialup DSL services etc.
+
+ipv6.cfg
+	Example configuration file showing how to answer IPV6 radius requests. Also
+	shows how to proxy to a remote Radius server using IPV6. Requires IPv6
+	support in Perl core Socket module or Socket6 module.
+
+krb5.cfg
+	Example configuration file showing how to use AuthBy
+	KRB5. Requires Authen::Krb5 from CPAN.
+
+AuthKrb5Password.pm krb5-password.cfg krb5-password-users
+	Contributed authentication module for Kerberos 5 that uses the Authen-Krb5Password
+	perl module on CPAN. Includes example config file. Contributed by Shumon Huque.
+	Works with Radius-PAP and TTLS-PAP.
+
+mergedetails
+	Simple script for merging multiple accounting details files into a single
+	file in chronological order.
+
+vlanhooks.txt
+	Example hooks for handling multiple downstream authenticators, and NASs with
+	incompatible interpretations of Tunnel-Private-Group attributes.
+	Contributed by Matthew Gast.
+
+digipass.cfg digipass_eap_peap.cfg digipass_ldap.cfg
+	Example Radiator configuration files showing how to
+	authenticate using Vasco Digipass tokens from an SQL database or LDAP database.
+	Requires the
+	Authen-Digipass module (see below). Requires an SQL
+	database (see the example table in
+	goodies/*.sql). Use the digipass.pl application
+	included with the Authen-Digipass add-on module to import
+	token data, assign tokens to users etc.
+
+radminDigipass.cfg
+	Example Radiator configuration file showing how to
+	authenticate from a RAdmin database that has been configured
+	to support Digipass tokens for each user. Requires RAdmin 1.9
+	and the	Authen-Digipass module (see below). 
+
+Authen-Digipass-1.10-1.i686.rpm (for perl 5.10, x86)
+Authen-Digipass-1.9-1.i686.rpm (for perl 5.8, x86)
+Authen-Digipass-1.9-1.x86_64.rpm (for perl 5.8, x64, other platforms) 
+Authen-Digipass-1.11-1.el5.x86_64.rpm (for perl 5.8, x64 on Centos 5 and RHEL5)
+Authen-Digipass-1.11-1.el6.x86_64.rpm (for perl 5.10, x64 on Centos 6 and RHEL6)
+	32 and 64 bit linux RPMs containing the Authen-Digipass module
+	required by AuthBy DIGIPASS. Use Authen-Digipass-1.9-1.el5.x86_64.rpm
+	on RedHat EL5 64 bit, or if you get crashes with
+	Authen-Digipass-1.9-1.x86_64.rpm on other 64 bit Linux platforms.
+	Install with
+	  rpm -Uvh Authen-Digipass-1.x-1.i686.rpm
+
+OSCAuthDP-sparc.pkg
+	Solaris Sparc package file containing prebuilt binary of the
+	Authen-Digipass module required by AuthBy SQLDIGIPASS. Requires
+	Perl 5.8.5 from Sunfreeware (http://www.sunfreeware.com) and
+	Solaris 8 or later.
+
+address-allocator-sql.txt
+        Example for configuring AddressAllocator SQL queries for
+        environments where multiple Radiator instances allocate
+        from the same SQL database.
+
+address-allocator-sp.cfg address-allocator-sp.sql
+        Example Radiator configuration file and Oracle stored
+        procedure showing how to configure Radiator to rapidly allocate IP
+        addresses using an Oracle Stored Procedure.
+	Contributed by Andy M.
+	
+geektools-0_32.tar.gz
+	Tool for collection sessiondata from access points and
+	making pretty graphs. Contributed by Bret Jordan.
+
+radlog.cgi
+	CGI script to view the tail of a Radiator log file. Can be
+	helful for helpdesk troubleshooting. Contributed by Mohammad
+	Junaid, Cyberia.
+
+multicast.cfg 
+	Example configuration file showing how to use AuthBy
+	MULTICAST. AuthBy MULTICAST copies some or all requests to
+	multiple Radius servers.
+	
+apache2-radius.txt
+	Documentation on how to configure Apache 2 for Radius
+	authentication with the mod_auth_radius module. Works with any
+	Radiator authentication module including ACE and SQLDIGIPASS.
+
+pam-radius.txt
+	Documentation on how to configure PAM to use pam_radius in
+	order to authenticate access to Unix commands and services
+	through Radiator. Works with static passwords and token based
+	authentication such as SecurID and Digipass.
+
+tacacsplustest
+	Simple, all-perl TACACS+ command line test client. Does not
+	require additional perl modules. Sends authentication,
+	authorization and accounting requests. Use tacacsplustest -h
+	for help
+
+dbiprofile.txt
+	 A brief description of an easy way to obtain
+	 performance data about SQL queries run by your Radiator.
+
+rotateacct.pl
+	A script to rotate the ACCOUNTING table.  It can run monthly
+	from cron. Creates an ACCOUNTINGYYYYMM table every month from a
+	template table you have set up -- ACCOUNTING_TMPL.
+	Contributed by Ray Van Dolson <rayvd@digitalpath.net>
+
+eap_acct_username.txt
+	Sample hook and script for de-anonymizing EAP-TTLS accounting
+	requests, and which does not require an SQL database.
+	Contributed by Rok Papez, with comments by Roy Badami.
+
+gigawords-hook.pl
+	Hook for calculating correct total octets from Gigawords.
+	Contributed by Igor Briski, Iskon Internet d.d. who says:
+	This is a hook I wrote for our broadband service. It is using
+	Acct-Input-Gigawords attribute which contains the number of times the
+	Acct-Input-Octets has wrapped. I believe that the
+	Unisphere-Output-Gigawords does the same, so just replace the attribute
+	names in this hook. This has been updated to use 64 bit integers in order
+    	to be more proof against overflows with large traffic.
+
+checkOnlineSql.pl
+	Script that checks that all the users in an SQL SessionDatabase are 
+	still online, and delete the ones that arent. Uses a client
+	table to determine Nas type etc.
+
+nntp-redirect.pl 
+        A Radius-enabled Net News NNTP port authenticator and
+	accountor.  This program received NNTP connection requests,
+	authenticates each one with Radius, and then forwards the
+	connection to the real NNTP serer. It counts bytes in and out,
+	and at the end of the NNTP session sends Radius accounting
+	data counting the total news traffic in and out. This allows
+	you to integrate NNTP authentication and accounting with the
+	rest of your Radius services.  Reply attributes in the
+	Access-Accept can be used to configure the NNTP server and
+	port to redirect to, allowing per-user NNTP configuration via
+	Radius.
+
+nthash.pl
+	Simple script to generate the {nthash} version of a password.
+	Prints the resulting hash to stdout.
+	Run like: 
+	perl goodies/nthash.pl fred
+	which will output:
+	{nthash}DCB8E94AC7D0AADC8A81D9C895ACE5F4
+
+edirectory.txt
+	Documentation on how to install and configure Novell
+	eDirectory and Radiator to interoperate.
+	
+edirectory.cfg
+	Sample config file showing how to authenticate with Novell
+	eDirectory LDAP server. Uses ServerChecksPassword and
+	HoldServerConnection for best performance. 
+
+edirectory_nmas.cfg
+	Sample config file showing how to authenticate with Novell
+	eDirectory LDAP server using NMAS (Novell Modular Authentication
+	System) including Vasco Digipass NMAS. 
+	
+eap_edir_up.cfg
+	Sample config file showing how to authenticate with Novell
+	eDirectory LDAP server and Universal Password. Works with
+	PAP, CHAP, MSCAHP, MSCHAPV2, EAP_TLS, EAP-TTLS-*, PEAP,
+	EAP-MD5, LEAP etc.
+
+radiator-ldap.ldif radiator-ldap.schema
+       Sample LDAP schema and example data file for use with OpenLDAP
+       and AuthBy LDAPRADIUS and AuthBy LDAPDIGIPASS. 
+
+solaris-radiator.init
+	Startup script for Solaris 8, 9 and 10. Install as
+	/etc/init.d/radiator and check the other instructions at the
+	top of the file. Also used as the statrtup file by the solaris package
+
+solaris-radius.cfg
+	Simple config file installed by the Solaris package
+
+cacti_data_query_snmp_get_radius_information.xml radius_server.xml
+	Configuration files to enable monitoring of Radiator by Cacti
+	(http://www.cacti.net/), which is similar to MRTG, except it
+	is web driven and based upon a templating system. Contributed
+	by Chris Hills.
+
+ntlm.cfg ntlm_eap_peap.cfg ntlm_eap_multi.cfg smb.conf.winbindd
+	 Sample configuration files for using AuthBy NTLM, which
+	 allows Radiator running on Linux and Unix to authenticate to
+	 a Windows Domain Controller using the Samba ntlm_auth
+	 utility. 
+
+AuthRADIUSBYATTR.pm radiusbyattr.txt
+         New AuthBy RADIUSBYATTR that forwards to a RADIUS server based whose
+         attributes (host, secret etc) are specified in the request.
+	 Useful for various specialised testing
+         scenarios. radiusbyattr.txt is a description of how to
+         configure and use it. Contributed by Miko.
+
+au.com.open.radiator.plist
+	Daemon configuration file for OSX 10.4 (Tiger).
+	save this file in the folder "/Library/LaunchDaemons"/.  This example  
+	assumes that radius.cfg is your config file, and it's located in /etc/ 
+	radiator.  But you can change that easily.
+	Radiator will be launched automatically at boot time and whenever  
+	radiator dies or is killed.
+	To start the service, issue the following command in a terminal  
+	window (as root):
+	launchctl load /Library/LaunchDaemons/au.com.open.radiator.plist
+	Top stop the service, use this command:
+	launchctl unload /Library/LaunchDaemons/au.com.open.radiator.plist
+	Contributed by Matt Richard.
+
+radiator.ncf
+	Radiator startup script for Novell NetWare 6.5, including
+	hints and tips on how to install and configure Radiator on
+	NetWare
+
+sqliteCreate.sql
+	Script for creating basic SQL tables for use with DBD::SQLite2
+	dbish -batch dbi:SQLite2:dbname=/path/to/your/dbfile <goodies/sqliteCreate.sql
+	where dbfile is the file where the database will be stored.
+	Use with sample goodies/sql.cfg, and 
+	DBSource	dbi:SQLite2:dbname=/path/to/your/dbfile
+
+radiator.sh
+	A Radiator startup script for FreeBSD and rc-ng. Contributed
+	by Paul Dekkers.
+
+eap_leap_proxy.cfg
+	Example Radiator configuration file showing how to use EAP_LEAP_MSCHAP_Convert
+	forces all EAP-LEAP requests to be converted to conventional Radius
+	MSCHAP requests that are redespatched, perhaps to be proxied to
+	another non-LEAP capable Radius server or for local
+	authentication.
+
+calling_station_hook_requests.pl
+	PostAuthHook for PEAP requests that:
+	1) Insert the Calling-Station-ID into the inner request
+	2) Insert the Called-Station-ID into the inner request
+	3) Insert the "outer" EAP identity into the inner request as "Outer-EAP-Id"
+	Contributed by Terry Simons.
+
+sip.cfg
+	Example Radiator configuration file showing how configure 
+	SIP Express Router (SER) from www.iptel.org to do Radius 
+	authentication of SIP VOIP connections, and to authenticate them with
+	Radiator.
+
+ser.cfg
+	Example configuration file for SIP Express Router (SER) from
+	www.iptel.org to to RADIUS authentication. THIS IS NOT A RADIATOR
+	CONFIGURATION FILE: IT IS AN SER CONFIGURATION FILE.
+
+dnsroam.cfg dnsroam.txt
+	Example Radiator configuration file and documentation showing how to
+	configure Radiator and the Resolver and AuthBy DNSROAM clauses to find
+	Radius servers using DNS (the Domain Name Service). DNSROAM can find
+	Radius and RadSec servers in IPV4 and IPV6 using NAPTR, SRV, A and
+	AAAA records.
+	Radiator 
+
+safeword.cfg
+	Example Radiator configuration file and documentation showing how to
+	configure Radiator to authenticate from a SafeWord Premier Access
+	server.
+	Supports PAP, CHAP, TTLS-PAP, EAP-OTP and EAP-GTC.
+	Supports password changing.
+	Supports fixed (static) passwords and SafeWord Silver and Gold tokens.
+
+eap_ttls_tnc.cfg osc_imv_policy.cfg
+	Example Radiator configuration file.
+	This configuration file shows how to enable TNC support in Radiator.
+	TNC is the Trusted Network Connect specification from Trusted Computing
+	Group (https://www.trustedcomputinggroup.org/specs/TNC). 
+	TNC allows 802.1X clients and Radiator to exchange integrity
+	measurements so that the client only gets connected to the network if it
+	meets the network administrators requirements for specific versions of
+	software etc to be instaled on the client. Tested with xsupplicant 
+	(http://open1x.sourceforge.net), the open
+	source 802.1X supplicant, which also supports TNC. osc_imv_policy.cfg
+	illustrates a basic policy for evaluating clients equipped with the
+	OSC-IMC suplied with libtnc 1.19 and later.
+
+radmin_otp_internode.cfg
+	Example Radiator configuration file showing how to do
+	One-Time-Passwords delivered by SMS, using the Internode NodeText
+	Gateway, a commercial SMS gateway available from Internode in
+	Australia.  The NodeText Gateway is a high reliability, high
+	performance SMS Gateway for Australian SMS numbers. Works with GSM,
+	CDMA. Works with Telstra, Optus and Vodafone networks. Billing of SMS
+	delivery charges can be to the sender, or the receiver. The Internode
+	NodeText Gateway can also apply a range of special features, such as
+	name to SMS number translation etc. Multiple recipients, message
+	splitting etc are supported. They also offer an email-to-SMS gateway.
+	This fully working example allows your users to be administered with
+	Radmin, using One-Time-Passwords delivered to the user by SMS.
+
+chillispot.txt chilli.conf chillispot.iptables chilli-radmin.cfg 
+	Tutorial and config files for installing ChilliSpot, Radiator and
+	RAdmin to provide a complete, locally administered captive portal
+	wireless hotspot solution, including prepaid time for users, user
+	statistics, monitoring etc. See http://www.chillispot.org
+	CAUTION: The ChilliSpot project has been abandoned and taken over by
+        the CoovaChilli project at http://coova.org
+	This documentation is retained for historical reasons since
+	configuration of CoovaChilli is similar.  For instructions on how to
+	configure the CoovaAP hotspot see goodies/CoovaAP.txt
+
+eap_psk.cfg
+	Sample configuration file showing how to authenticate with EAP-PSK
+	(Pre-Shared-Key)
+
+eap_pax.cfg
+	Sample configuration file showing how to authenticate with EAP-PAX
+	(Password-Authenticated-Key)
+
+fidelio.cfg fideliosim.pl fidelio.txt
+	Sample configuration file showing how to authenticate from a
+	Micros-Fidelio Property Management Systems (PMS). fideliosim.pl
+	simulates a serial port Fidelio PMS with a small number of guests in
+	its database, and can be used to test AuthBy FIDELIO.
+	fidelio.txt is a general overview of the operation and capabilites of
+	the Micros-Fidelio Opera support in Radiator.
+
+diameter-server.cfg
+	Sample configuration file showing how to authenticate Diameter requests
+	received using ServerDIAMETER.
+
+dictionary.sip.pre-rfc
+	Old version of dictionary.sip that was valid before the release of RFC 4590.
+	It complies with the original draft-sterman-aaa-sip-00.txt
+
+cisco_li.txt
+	Documentation on how to configure Radiator to use Cisco 
+	RADIUS-Based Lawful Intercept as described in 
+        http://www.cisco.com/en/US/products/ps6566/products_feature_guide09186a008060de94.html
+
+ldap-aps.cfg
+	Sample configuration file showing how to authenticate users against
+	native Apple Mac OSX using Apple Directory Server LDAP and Apple
+	Password Server.
+
+hashbalance.cfg
+	Sample configuration file showing how to use AuthBy HASHBALANCE to
+	load balance requests based on information in the incoming request to
+	choose the preferred host, with the intention that all requests in a
+	single EAP conversation will all go to the same target server,
+	enabling EAP and other stateful RADIUS transactions to be loadbalanced
+	without interfering with streams of related requests.  If the
+	preferred host is not available try the following ones until all are
+	exhausted.
+	
+digipassStatic.txt digipassStatic.cfg
+        Sample config file and explanatory notes about how to use _both_ a 2
+        factor token _and_ LDAP for authentication. 
+	The users password has to consist of 6 digits of Digipass tokencode (no PIN) 
+	followed by the static password for their LDAP database.
+	
+eap_acct_username.pl
+	Some EAP protocols use outer identity only to locate a home RADIUS
+	server and thus users use anonymous outer identity
+	(anonymous@domain.tld or just @domain.tld as recommended by the RFC
+	4282) This hook copies the inner username to the Access-Accept
+	User-Name field so a NAS (Access Point) can provide accounting
+	information with correct (inner) User-Name. Contributed by Rok PapeÇæ
+
+presencesql.cfg
+	Example Radiator configuration file that allows you to
+	authenticate from an SQL database, and also get presence data
+	using special Access-Request with Service-Type=Call-Check-User
+
+eap_fast.txt 
+net-ssleay-1.32-session-ticket.patch
+openssl-0.9.8d-session-ticket-osc.patch 
+openssl-0.9.8e-session-ticket-osc.patch
+openssl-0.9.8i-tls-extensions.patch
+openssl-0.9.8i-tls-extensions-new.patch
+openssl-0.9.9-session-ticket.patch
+	Instructions and patch files requires to support EAP-FAST with
+	transition versions of OpenSSL and
+	Net-SSLeay. openssl-0.9.8i-tls-extensions.patch is required for
+	Net-SSLeay-1.35. openssl-0.9.8i-tls-extensions-new.patch is used with
+	Net-SSLeay-1.35 + latest patches from SVN or Net-SSLeay-1.36 or
+	later. These are not required for OpenSSL 1.0 and later.
+
+serverhttp.cfg
+	 Example Radiator configuration file that shows how to configure
+	 ServerHTTP, enabling a web interface for configuring, monitoring,
+	 examining and restarting Radiator.
+
+wimax.cfg wimax.sql wimaxtest
+	Support files for configuring and testing AuthBy WIMAX. 
+	wimaxtest is a simple test client,
+	wimax.sql is a sample MySQL database definition that works with
+	wimaxtest and wimax.cfg.
+
+CoovaAP.txt
+	Instructions on how to configure the CoovaAP WRT54G self-contained
+	hotspot to authenticate against Radiator.
+
+authhandler.cfg
+	Example Radiator configuration file that shows how to configure AuthBy
+	HANDLER to quickly select a new handler to redirect a request to based
+	on the Handler Identifier.
+	
+rsaam.cfg eap_peap_gtc_rsaam.cfg
+	Example Radiator configuration files that shows how to authenticate
+	against RSA Authentication Manager 7.1 and later. rsaam.cfg is a
+	simple configuration that works with PAP and EAP-GTC. 
+	eap_peap_gtc_rsaam.cfg works with PEAP-GTC.
+
+rsaam_multi.cfg rsaam_multi_hook.pl
+	Example Radiator configuration file and hook, showing how to support
+	both RSA OnDemand and SecurID authentication for the same users.
+
+macports.txt Portfile
+	Instructions and Portfile for installing Radiator on MacOSX.
+	Contributed by Mark Duling.
+
+lancom-radsec.txt
+	Instructions and hints for configuring a Lancom L-54g wireless Access
+	Point to authenticate using an external RadSec server.
+
+eap_radmin.cfg
+	Example Radiator configuration file that shows how to configure
+	Radiator to work with Radmin and honour authentication by 
+	PAP, CHAP, MSCHAP, MSCHAPV2, PEAP-MSCHAPV2, TTLS-* etc.
+	Also enables all other Radmin features, such as ClientListSQL,
+	SessionDatabase etc.
+
+ciscovpn.txt
+	Description and solution for problems with DIGIPASS tokens and some Cisco
+	VPN products. 
+
+eapbalance.cfg
+	Sample configu file that shows how to build a high performance load
+	balancing front end that handles FarmSize server farms and
+	multi-packet EAP requests. Suitable for use with EAP systems on
+	multi-core or multi-proicessor hosts.
+
+tacplus.txt
+	Some guidance on configuring Radiator for TACACS+ authentication.
+
+addnthashprefix.txt
+	Hook and some documentation for a hook to add a prefix of
+	"{nthash}" to the password string returned from an LDAP database.
+
+n7k-users n7k-radius.cfg n7k-config n7k-debug
+	Sample configuration file for Radiator, Cisco Nexus 7000 and sample
+	debug file, showing how to set up RBAC - Role-Based Access  
+	Control on the  Cisco Nexus 7000. Contributed by Matthew Nichols. 
+
+yubikey.cfg yubikey.txt db_schema.sql
+	Sample configuration file for Radiator, showing how to authenticate
+	Yubikey (yubico.com) USB one-time-password tokens with an SQL
+	database (schema included).
+	Yubikeys are USB tokens that produce a one-time-password when you press the button 
+	on the token. The token emulates a keybourd, so its very easy for users to use: 
+	just put the keyboard cursor in the field that needs the one-time-password, 
+	and press the button. Works on Windows, Unix and MAC OSX, and probably
+	others.
+	Can be expected to work with most wired and wireless EAP supplicants
+	as well as many other type of RADIUS authentication clients.
+
+yubikey-validationserver.cfg
+	Sample configuration file for Radiator, showing how to authenticate
+	against Yubikey Validation server utilising YubiHSM.
+
+hotp.cfg hotp.sql
+	 Sample configuration file for Radiator, showing how to authenticate
+	 using HOTP (RFC 4226) one-time-passwords. The sample mysql database
+	 schema hotp.sql provides 2 test users, one with a PIN and one
+	 without. Setup and test details are in hotp.cfg
+
+rejectproxycfg
+	Sample configuration file for Radiator, showing how 
+	to proxy a request to a remote server and if that is rejected
+	proxy to a different server.	 
+
+motp.cfg motp.sql
+	Sample configuration file for Radiator, showing how 
+	to authenticate using MOTP http://motp.sourceforge.net. Sample SQL schema
+
+crypto-mas.cfg
+	Sample configuration file for Radiator, showing how to proxy
+	requests to the Cryptocard MAS (Managed Authentication Service)
+	CRYPTO-MAS. See http://www.cryptocard.com/
+
+wikid.cfg
+	Sample configuration file for Radiator, showing how to proxy
+	requests to the WiKID (http://www.wikidsystems.com/)
+	Strong Authentication RADIUS Server.
+
+securemetricotpserver.cfg securemetricotpserver.txt
+        Sample configuration file for Radiator, showing how to proxy
+	requests to the SecureMetric SecureOTP RADIUS Server. Also detail
+        installation instruciotns for the SecureOTP Server and RADIUS Server.
+
+fidelio-hotspot.sql fidelio-hotspot.cfg
+	sample Radiator configuration, showing how to build a WiFi
+	hotspot with AuthBy FIDELIOHOTSPOT and, for example MikroTik
+	(www.mikrotik.com) hotspot and captive portal, which
+	authenticates against Micros-Fidelio Opera hotel management
+	system, and permits the user to purchase WiFi internet access
+	in blocks of 24 hours which are billed to the user's room
+	through Opera. Example works with MySQL as a session database
+	(schema included), but other databases can be supported.  Also
+	supports prepaid services, such as bandwidth plans that are
+	billed through Opera.
+
+mera-mvts.txt
+	Documentation briefly outlines the requirements for interfacing Radiator with
+	Mera MVTS Pro VOIP gateways, along with examples of the types of requests and
+	replies Radiator can be expected to handle when interfacing with MVTS Pro.
+
+lookupauthgroup.pl
+	Sample PostSearchHook for AuthBy LDAP2, which finds user group(s)
+	through an LDAP lookup, then finds corresponding check and reply
+	attributes in SQL, based on the user group(s) for that user and the
+	device groups of the RADIUS/TACACS+ client. This allows you to have a
+	add very fine grained authentication/authorisation in an LDAP/SQL
+	environment, based on user and device group membership.
+
+cisco-vpn.txt
+	Short description on how to configure Cisco VPN 3000 Concentrator VPN
+	groups, and the limitations thereof.
+
+createavpairs.pl
+	This hook converts all cisco-avpairs in the request
+ 	into equivalent private RADIUS attributes, that can be stored to
+ 	different SQL columns based on the private RADIUS attribute name.
+
+radminTacacs.cfg
+	Sample RAdmin configuration file that shows how to record Tacacs+ commands to the Radmin
+	RADCOMMANDAUDIT table for auditing
+
+freeswitch.txt
+	A brief discussion about how to integrate FreeSwitch with Radiator.
+	FreeSWITCH is a powerful and versatile telephony platform that can scale from
+	a softphone to a PBX and even to a carrier-class softswitch.
+
+rpt.pl 
+       radiator packet tracer - Bart Dumon - bartdu(at)bsp(dot)scarlet(dot)
+       match anything in request packet(s), shows corresponding response packet(s)
+       requires a <monitor> clause, cfr section 5.91 of the Radiator manual
+
+radiusgina.txt
+       Brief introduction to RadiusGINA, a Windows RADIUS login authenticator from LSE
+       http://lsexperts.de
+
+sha.pl ssha.pl
+       Simple perl scripts to generate SHA and SSHA hashes of the first
+       command line argument. Useful for generating SHA and SSHA hashed
+       passwords in the form Radiator honours.
+       sha.pl takes the plaintext password as the first command line argument.
+       ssha.pl takes the plaintext password as the first command line argument
+       sha.pl plaintextpassword
+       ssha.pl plaintextpassword
+
+freeswitch-fidelio.txt freeswitch-fidelio.pl freeswitch-fidelio.cfg
+       Documentation and sample scripts for how to use Radiator and the AuthBy FIDELIO module to
+       handle authentication and accounting for the Freeswitch VOIP switch
+       (http://www.freeswitch.org). It can be used authenticate and to bill VOIP
+       calls to a Micros-Fidelio Opera Hotel Property Management System
+       (http://www.micros.com).
+
+sqlauthby.cfg
+       Sample Radiator configuration file showing how to use the AuthBy
+       SQLAUTHBY clause. This example looks up how to authenticate each user
+       based on information in an SQL database. The columns retrieved from SQL
+       are used to create an AuthBy clause that will actually handle the request.
+
+pwaframedip.pl pwasessions.schema.sql
+       This hook fixes a problem with Enterasys switches where Framed-IP-Address
+       is not included in accounting packets, but the information is available via
+       SNMP when for Enterasys captive-portal (PWA) authentication.
+       Contributed by Ben Carbery.
+
+hotp.cfg hotp.sql
+	Sample configuration file for Radiator, showing how 
+	to authenticate using HOTP (RFC 4226). Sample SQL schema
+
+totp.cfg totp.sql
+	Sample configuration file for Radiator, showing how 
+	to authenticate using TOTP (RFC 6238). Sample SQL schema
+
+hextobase32.pl
+       Script to help with entering HOTP and TOTP codes to Google
+       Authenticator. Converts hex codes to base 32.
+
+generate-totp.pl
+       Simple script for generating secret values for TOTP and printing
+       them in different text formats and as QR code images.
+
+ratelimit.cfg
+       Sample Radiator configuration file showing how to use the AuthBy
+       RATELIMIT clause to limit the maximum number of requests per second.
+
+radiusd.conf
+       Upstart script for Debian/Ubuntu.
+       It should be placed into /etc/init, and named <JOBNAME>.conf.
+       I suggest "/etc/init/radiusd.conf".
+       Contributed by Adam Thompson <athompso@athompso.net>
+
+eap_pwd.cfg Crypt-OpenSSL-Bignum-0.04-mikem.patch
+       Sample Radiator configuration file showing how to configure and
+       test EAP-PWD authentication on Linux and Unix.
+       Patch file is to add necessary functions to Crypt-OpenSSL-Bignum-0.04.
+       
+sip2.cfg	
+       Sample Radiator configuration file showing how to configure and
+       test authenticating against a 3M SIP (Standard Interchange Protocol) version 2.00 
+       as used in many book libraries.
+
+sip2hook.pl
+       An example SIP2Hook showing how to authorise users based on
+       SIP2 response messages.
+
+snmp.cfg
+       Sample Radiator configuration file showing how to configure and
+       test SNMPAgent and use it to query data from Radiator by SNMP.
+
+heimdaldigest.cfg heimdal.txt
+       Sample Radiator configuration file showing how to configure and test
+       authentication against Heimdal Kerberos.
+
+duo.cfg duosim.pl
+       Sample Radiator configuration file showing how to configure and
+       test authenticating against Duo Security 2-factor
+       authentication. duosim.pl implements partially Duo Auth API for
+       the purposes of testing the AuthBy DUO module.
+
+diameter-authby.cfg
+       Sample Radiator configuration file showing how to proxy RADIUS
+       messages to DIAMETER server based on RFC 4005.
+
+dictionary.merit
+       Contains Merit attributes 145-150,155 and 209-223 that were listed
+       in the main dictionary and conflict with old Ascend codes and IANA
+       Radius Attribute Types. If you still need these attributes, see the
+       file for more information.
+
+dictionary.starent-vsa1
+       Contains Starent VSAs that use 1 byte for type and 1 byte for
+       length. The main Radiator dictionary uses 2 bytes for type and
+       length. When this dictionary is loaded after the main
+       dictionary, the Starent VSAs will be encoded and decoded using
+       1 byte for both type and length.
+
+pbkdf2.pl
+       Simple perl script to generate PBKDF2 derived keys of the first
+       command line argument. Useful for generating PBKDF2 derived
+       passwords in the form Radiator honours.
+
+radiator.service
+       Startup file for systemd.

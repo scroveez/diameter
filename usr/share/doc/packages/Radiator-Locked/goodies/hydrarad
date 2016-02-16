@@ -1,0 +1,239 @@
+#!/usr/bin/perl
+# -*- mode: Perl -*-
+# hydrarad
+# Probe Radiator radius server performance and produce performance
+# figures suitable for HydraWeb.
+# Prints results to stout, unless -o is defined, in which
+# case output is to a file.
+# The U figure is exponential functton of Radius server
+# request per second
+#
+# See HydraWeb document HW-2176 Rev 002
+# Extensible Agent Examples
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2000 Open System Consultants
+# $Id: hydrarad,v 1.5 2012/06/27 23:27:18 mikem Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+    # You will probably have to uncomment the next line if you want to 
+    # run this script SUID
+    #$ENV{PATH} = '/sbin:/bin:/usr/sbin:/usr/bin';
+}
+
+require 5.003;
+use Getopt::Long;
+use Radius::RDict;
+use Radius::Radius;
+use Socket;
+
+# These options override any configuration file options
+my @options = (
+	       "h",        # Help, show usage
+	       "trace",	   # Emit trace of events
+	       "auth_port=s", # Port to send requests to	
+	       "s=s",      # The server to send to 
+	       "secret=s", # The secret to use with the server
+	       "timeout=i",# Timeout
+	       "period=i", # Update period in secs
+	       "o=s",      # Output to file instead of stdout
+	       );
+
+&GetOptions(@options) || &usage;
+
+$replyTimeout = 5.0;
+$replyTimeout = $opt_timeout if defined $opt_timeout;
+
+$period = 5;
+$period = $opt_period if defined $opt_period;
+
+$auth_port = 1645;
+$auth_port = $opt_auth_port if defined $opt_auth_port;
+$dictionary = './dictionary';
+$dictionary = $opt_dictionary if defined $opt_dictionary;
+die "Can't open dictionary file $dictionary: $!"
+    unless -r $dictionary;
+
+# REVISIT: is this really what I want?
+$trace_level = 1;
+$trace_level = 2 if $opt_trace;
+$trace_level = 0 if $opt_notrace;
+
+$desthost = 'localhost';
+$desthost = $opt_s if defined $opt_s;
+
+$secret = 'mysecret';  # Shared secret on the term server
+$secret = $opt_secret if defined $opt_secret;
+
+$dict = new Radius::RDict $dictionary
+    or die "Couldn't create dictionary";
+
+# Set up the network socket (must have radius in /etc/services)
+$proto = getprotobyname('udp');
+socket(SOCKET, Socket::PF_INET, Socket::SOCK_DGRAM, $proto)
+    || die "socket: $!";
+
+
+# THis is the U code they have asked for
+$code = $ARGV[0] || 'U4';
+
+# Make output unbuffered in case its a pipe
+$| = 1 unless ($opt_o);
+
+# The packet we send (many times)
+$p = new Radius::Radius $dict;
+$p->set_code('Status-Server');
+$identifier = 1;
+$auth_authenticator = '1234567890123456'; # Should be random
+$p->set_authenticator($auth_authenticator);
+$destaddr = Socket::inet_aton($desthost);
+die "Could not resolve destination host name $desthost"
+    unless defined $destaddr;
+
+$n_auth_port = Radius::Radius::get_port($auth_port);
+$that_auth_paddr = Socket::sockaddr_in($n_auth_port, $destaddr);
+
+while (1)
+{
+    $p->set_identifier($identifier);
+    $identifier = ($identifier + 1) & 0xff;
+    $p->assemble_packet($secret);
+    print $p->dump if $trace_level >= 2;
+    $p->sendTo(*SOCKET, $that_auth_paddr);
+
+    my $rp;
+    if ($rp = &waitRecv(\*SOCKET, $replyTimeout, $p->identifier))
+    {
+	if ($rp->identifier == $p->identifier
+	    && $rp->check_authenticator($secret, 
+					$p->sent_authenticator))
+	{
+	    # Get the status server reply and calculate the
+	    # usability figure
+	    my @results = $rp->get_attr('Reply-Message');
+	    my $found;
+	    foreach (@results)
+	    {
+		if (/(\d+) Requests in the last second$/)
+		{
+		    result(computeUsability($1));
+		    $found++;
+		    last;
+		}
+	    }
+	    # Hmm, did not find request rate?
+	    result(-1) unless $found;
+	}
+	else
+	{
+	    # Bad identifier or authenticator
+	    result(-1);
+	}
+    }
+    else
+    {
+	# No reply
+	result(-1);
+    }
+
+    last unless $period;
+    sleep($period);
+}
+
+#####################################################################
+# Print the result code to file or stdout
+sub result
+{
+    my ($result) = @_;
+
+    if ($opt_o)
+    {
+	open(FILE, ">$opt_o") || log("Could not open file $opt_o: $!");
+	print FILE "$code $result\n";
+	close(FILE);
+    }
+    else
+    {
+	# to stdout
+	print "$code $result\n";
+    }
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h] [-v]
+    [-trace] [-auth_port port] [-s server] [-secret secret]
+    [-timeout radiustimeout] [-period updateperiod]
+    [-o outputfilename]\n";
+    exit;
+}
+
+#####################################################################
+# Wait for readable on the socekt $s for at most $timeout seconds
+sub waitForSocket
+{
+    my ($s, $timeout) = @_;
+
+    my $rin, $rout;
+    vec($rin, fileno($s), 1) = 1;
+    return select($rout = $rin, undef, undef, $timeout);
+}
+
+#####################################################################
+# Wait for a packet on the socket and return it
+# Returns undef if no packet arrives within the timeout period
+sub waitRecv
+{
+    my ($s, $timeout, $expectedid) = @_;
+
+    my $p;
+    
+    while (!$p && &waitForSocket($s, $timeout) && !$stopSending)
+    {
+	$p = Radius::Radius->newRecvFrom($s, $dict);
+	# Only return when we get the one we expected
+	# protect against failures in newRecvFrom
+	if ($p && $p->identifier != $expectedid)
+	{
+	    $p = undef;
+	}
+    }
+    return $p;
+}
+
+# These will be from errors inside the library. Always print them
+sub log
+{
+    my ($p, $s) = @_;
+
+    print STDERR $s, "\n" if $p <= $trace_level;
+}
+
+#####################################################################
+# Given the number of request per sec handled by the user,
+# return a usability figure
+# Where 0 is unloaded and 100 is overloaded
+sub computeUsability
+{
+    my ($rps) = @_;
+
+    # use a exponential function of requests per sec
+    #              -R/100
+    # U = 100(1 - e      )
+    # 0->0
+    # 10->9
+    # 20->18
+    # 50->39
+    # 70->50
+    # 100->63
+    # 150->77
+    # 200->86
+    # 300->95
+    # 400->98
+
+    return int 100 * (1 - exp(-$rps / 100));
+}

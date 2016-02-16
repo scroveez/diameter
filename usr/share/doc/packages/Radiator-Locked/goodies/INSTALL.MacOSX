@@ -1,0 +1,23 @@
+How To Install RADIATOR in Mac OS X
+Author: Neil D. Quiogue <neil@quiogue.com>
+Date: 2002/10/10
+
+1. Install Radiator as per the Installation instructions in the Radiator
+   package.
+2. It assumes the following:
+   Radiator daemon: /usr/bin/radiusd
+   Radiator configuration: /etc/radiator/radius.cfg
+3. Edit /etc/hostconfig (as root) and add the entry:
+   RADIUS=-YES-
+4. Create a directory called /Library/StartupItems if it doesn't exist.
+5. Create a subdirectory called Radiator under StartupItems.
+6. Unarchive RadiatorMacOSX.tar.gz which contains two files:
+   a. Radiator
+      This contains the rc'ish script to start, stop and restart Radiator.
+   b. StartupParameters.plist
+      This contains the properties of Radiator
+7. Modify the files according to your needs.
+8. Check that it's going to run properly with:
+   /sbin/SystemStarter -nd  
+9. If you see that it's working, you can either reboot the machine or do a
+   /Library/StartupItems/Radiator/Radiator start.

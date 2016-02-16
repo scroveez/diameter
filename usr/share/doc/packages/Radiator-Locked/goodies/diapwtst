@@ -1,0 +1,860 @@
+#!/usr/bin/perl
+#
+# diapwtst
+# Simple client for testing diameter servers
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 1997-2006 Open System Consultants
+# $Id: diapwtst,v 1.7 2012/12/13 20:19:47 mikem Exp $
+
+# Make sure we get the local libs for preference
+BEGIN
+{
+    unshift(@INC, '.');
+}
+
+require 5.6.0;
+use Getopt::Long;
+use Radius::Diameter;
+use Radius::DiaDict;
+use Radius::DiaPeer;
+use Radius::DiaClient;
+use Radius::Log;
+#use Socket;
+#use Digest::MD5;
+use strict;
+no warnings qw(redefine);
+
+my @options = 
+    (
+     'h',        # Print usage
+     'time',     # Get the total response time
+     'iterations=i',
+     'trace:i',	   # Emit trace of events
+     'notrace',  # No tracing
+     's=s',      # The server to send to 
+     'auth',     # Send authentication packet
+     'noauth',   # Dont send authentication packet
+     'acct',     # Send accounting packet
+     'noacct',   # Dont send accounting packet
+     'port=s',   # Port to use for auth requests
+     'user=s',   # Username
+     'password=s', # Users password
+     'nas_ip_address=s',
+     'nas_identifier=s',
+     'nas_port=i',
+     'nas_port_type=s',
+     'service_type=s',
+     'session_id=s',
+     'delay_time=i',
+     'session_time=i',
+     'input_octets=i',
+     'output_octets=i',
+     'timeout=i',
+     'start',      # Send a accounting starts
+     'nostart',    # Dont send a accounting starts
+     'stop',       # Send accounting stops
+     'nostop',     # Dont send accounting stops
+     'status',     # send a Server-Status request
+     'raw=s',      # Send raw data literally
+     'rawfile=s',  # Hex data from a file literallly
+     'rawfileseq=s',  # Hex data from a file literallly for a sequence of packets
+     'nostatus',   # Dont send a Server-Status request
+     'eaphex=s',       # append a EAP message in hex format 
+     'chap',       # Authenticate with CHAP
+     'mschap',     # Authenticate with MS-CHAP
+     'mschapv2',     # Authenticate with MS-CHAP V2
+     'eapmd5',     # Authenticate with EAP-MD5
+     'eapotp',     # Authenticate with EAP-OTP
+     'eapgtc',     # Authenticate with EAP-GTC
+     'sip',        # Authenticate with SIP
+     'dictionary=s', # Alternate dictionary file
+     'noreply',    # Dont wait for a reply
+     'gui',        # run with the gui
+     'accton',     # Send accounting-on
+     'acctoff',    # Send accounting-off
+     'framed_ip_address=s',
+     'state=s',    # Add this string as State
+     'useoldascendpasswords',
+     'class=s',    # Use this class
+     'incrementuser', # Increment user name each cycle
+     'code=s',     # Send a message with the given code
+     'calling_station_id=s',
+     'called_station_id=s',
+     'interactive',  # Prompt user if a Challenge is received
+     'outport=s',
+     'bind_address=s',
+     'originhost=s',
+     'originrealm=s',
+     'destrealm=s',
+     'usetls',
+     'protocol=s',
+     'cafile=s',
+     'capath=s',
+     'certificatefile=s',
+     'certificatetype=s',
+     'privatekeyfile=s',
+     'privatekeypassword=s',
+     'crlcheck',
+     'crlfile=s',
+     'sessionresumption',
+     'expectedpeername=s',
+     );
+
+&readFileOptions('/etc/radpwtstrc');
+&readFileOptions("$ENV{HOME}/.radpwtstrc");
+
+&GetOptions(@options) || &usage;
+&usage if $main::opt_h;
+
+$main::errors = 0;
+$main::reject = 0;
+$main::stopSending = 0;
+
+$main::replyTimeout = 5.0;
+$main::replyTimeout = $main::opt_timeout if defined $main::opt_timeout;
+
+# REVISIT: is this really what I want?
+$main::trace_level = (defined $main::opt_trace && $main::opt_trace eq 0) 
+    ? 4 : $main::opt_trace;
+$main::trace_level = 1 unless defined $main::trace_level;
+$main::trace_level = 0 if $main::opt_notrace;
+# This is a logger:
+$main::config = Radius::Configurable->new(undef, 'logger', Trace => $main::trace_level, LogStdout => 1);
+
+$main::iterations = 1;
+$main::iterations = $main::opt_iterations if defined $main::opt_iterations;
+
+$main::user = 'mikem';
+$main::user = $main::opt_user if defined $main::opt_user;
+
+$main::password = 'fred';
+$main::password = $main::opt_password if defined $main::opt_password ;
+
+$main::chap = 0;
+$main::chap = $main::opt_chap if defined $main::opt_chap ;
+
+$main::nas_ip_address = '203.63.154.1';
+$main::nas_ip_address = $main::opt_nas_ip_address if defined $main::opt_nas_ip_address;
+
+$main::nas_identifier = '203.63.154.1';
+$main::nas_identifier = $main::opt_nas_identifier if defined $main::opt_nas_identifier;
+
+$main::nas_port = '1234';
+$main::nas_port = $main::opt_nas_port if defined $main::opt_nas_port;
+
+$main::nas_port_type = 'Async';
+$main::nas_port_type = $main::opt_nas_port_type if defined $main::opt_nas_port_type;
+
+$main::service_type = 'Framed-User';
+$main::service_type = $main::opt_service_type if defined $main::opt_service_type;
+
+$main::delay_time = '0';
+$main::delay_time = $main::opt_delay_time if defined $main::opt_delay_time;
+
+$main::session_time = '1000';
+$main::session_time = $main::opt_session_time if defined $main::opt_session_time;
+
+$main::input_octets = '20000';
+$main::input_octets = $main::opt_input_octets if defined $main::opt_input_octets;
+
+$main::output_octets = '30000';
+$main::output_octets = $main::opt_output_octets if defined $main::opt_output_octets;
+
+$main::originhost = 'testoriginhost';
+$main::originhost = $main::opt_originhost if defined $main::opt_originhost;
+
+$main::originrealm = 'testoriginrealm';
+$main::originrealm = $main::opt_originrealm if defined $main::opt_originrealm;
+
+$main::destrealm = 'testdestrealm';
+$main::destrealm = $main::opt_destrealm if defined $main::opt_destrealm;
+
+$main::session_id = "$main::originhost;1234;1";
+$main::session_id = $main::opt_session_id if defined $main::opt_session_id;
+
+my $outport = 0;
+$outport = $main::opt_outport if defined $main::opt_outport;
+
+$main::port = 3868; # Diameter
+$main::port = $main::opt_port if defined $main::opt_port;
+
+$main::desthost = 'localhost';
+$main::desthost = $main::opt_s if defined $main::opt_s;
+
+
+my $dictionary = $main::opt_dictionary
+    if defined $main::opt_dictionary;
+$main::dict = Radius::DiaDict->new(Filename => $dictionary)
+    or die "Couldn't create Diameter dictionary from file $dictionary";
+$main::dict->activate();
+
+$main::send_auth = 1;
+$main::send_auth = 0 if defined $main::opt_noauth;
+$main::send_auth = 1 if defined $main::opt_auth;
+
+$main::send_acct_start = 1;
+$main::send_acct_start = 0 if defined $main::opt_nostart || defined $main::opt_noacct;
+$main::send_acct_start = 1 if defined $main::opt_start || defined $main::opt_acct;
+
+$main::send_acct_stop = 1;
+$main::send_acct_stop = 0 if defined $main::opt_nostop || defined $main::opt_noacct;
+$main::send_acct_stop = 1 if defined $main::opt_stop || defined $main::opt_acct;
+
+$main::send_acct_on = 0;
+$main::send_acct_on = 1 if defined $main::opt_accton;
+
+$main::send_acct_off = 0;
+$main::send_acct_off = 1 if defined $main::opt_acctoff;
+
+$main::send_server_status = 0;
+$main::send_server_status = 0 if defined $main::opt_nostatus;
+$main::send_server_status = 1 if defined $main::opt_status;
+
+$main::framed_ip_address = '0.0.0.0';
+$main::framed_ip_address = $main::opt_framed_ip_address 
+    if defined $main::opt_framed_ip_address;
+
+$main::called_station_id ='123456789';   #default
+$main::called_station_id = $main::opt_called_station_id
+    if defined $main::opt_called_station_id;
+
+$main::calling_station_id ='987654321';    #default
+$main::calling_station_id = $main::opt_calling_station_id
+    if defined $main::opt_calling_station_id;
+
+$main::accounting_record_number = 12345;
+
+$main::protocol = 'tcp';
+$main::protocol = $main::opt_protocol if defined $main::opt_protocol;
+$main::cafile = './certificates/demoCA/cacert.pem';
+$main::cafile = $main::opt_cafile if defined $main::opt_cafile;
+$main::capath = $main::opt_capath if defined $main::opt_capath;
+$main::certificatefile = './certificates/cert-clt.pem';
+$main::certificatefile = $main::opt_certificatefile if defined $main::opt_certificatefile;
+$main::certificatetype = 'PEM';
+$main::certificatetype = $main::opt_certificatetype if defined $main::opt_certificatetype;
+$main::privatekeyfile = './certificates/cert-clt.pem';
+$main::privatekeyfile = $main::opt_privatekeyfile if defined $main::opt_privatekeyfile;
+$main::privatekeypassword = 'whatever';
+$main::privatekeypassword = $main::opt_privatekeypassword if defined $main::opt_privatekeypassword;
+$main::crlfile;
+$main::crlfile = $main::opt_crlfile if defined $main::opt_crlfile;
+$main::expectedpeername = '.+';
+$main::expectedpeername = $main::opt_expectedpeername if defined $main::opt_expectedpeername;
+
+my $eapid = 0;
+my ($class, $eapmd5challenge, $eapotpresponse, $eapgtcresponse, 
+    $pfamily, $client, $peer);
+
+if ($main::opt_rawfile)
+{
+    open(RAW, $main::opt_rawfile) 
+	|| die "Could not open rawfile $main::opt_rawfile: $!";
+    # Slurp the whole file
+    local $/;
+    $main::opt_raw = <RAW>;
+    close RAW;
+}
+
+if ($main::opt_rawfileseq)
+{
+    open(RAW, $main::opt_rawfileseq)
+        || die "Could not open rawfile $main::opt_rawfileseq: $!";
+    # Slurp the whole file
+    local $/;
+    $main::opt_raw_seq = <RAW>;
+    close RAW;
+}
+
+if ($main::opt_gui)
+{
+    # Defer all subsequent processing to the gui
+    # It will return when the main window is destroyed
+#    require "Radius/RadpwtstGui.pm";
+    print STDERR "GUI not available for Diameter yet\n";
+    exit;
+}
+else
+{
+    &sendAll;
+}
+
+# Exit with 2 if errors, 1 if a rejection, 0 if all ok
+exit ($main::errors ? 2 : ($main::reject ? 1 : 0));
+    
+#####################################################################
+# Send the requested number of iterations
+sub sendAll
+{
+    compute_addresses();
+    create_socket();
+
+    my $start_time = time;
+    my $i;
+    $main::stopSending = 0;
+    for ($i = 0; $i < $main::iterations && !$main::stopSending; $i++)
+    {
+	&sendOnce;
+    }
+    my $end_time = time;
+    my $elapsed_time = $end_time - $start_time;
+    announce("time for $main::iterations iterations: $elapsed_time s\n")
+	if $main::opt_time;
+}
+
+#####################################################################
+# Send one iteration of the selected message types
+sub sendOnce
+{
+    $class = $main::opt_class;
+    &sendAuthReq if $main::send_auth;
+    return if $main::stopSending;
+    &sendAcctReq('Start') if $main::send_acct_start;
+    return if $main::stopSending;
+    &sendAcctReq('Stop') if $main::send_acct_stop;
+    return if $main::stopSending;
+    &sendAcctReq('Accounting-On') if $main::send_acct_on;
+    return if $main::stopSending;
+    &sendAcctReq('Accounting-Off') if $main::send_acct_off;
+    return if $main::stopSending;
+    &sendStatusReq if $main::send_server_status;
+    &sendCode($main::opt_code) if $main::opt_code;
+    &sendRaw($main::opt_raw) if defined $main::opt_raw;
+    &sendRawSeq($main::opt_raw_seq) if defined $main::opt_raw_seq;
+    $main::user++ if $main::opt_incrementuser;
+}
+
+#####################################################################
+sub sendAuthReq
+{
+  again:
+    my $m = Radius::DiaMsg->new_request
+	(Code => $Radius::DiaMsg::CODE_AA,
+	 Flags => $Radius::DiaMsg::FLAG_REQUEST,
+	 Aid => $Radius::DiaMsg::APPID_NASREQ,
+	 Dictionary => $main::dict);
+    $m->add_attr($Radius::DiaAttrList::ACODE_SESSION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::session_id);    
+    $m->add_attr($Radius::DiaAttrList::ACODE_AUTH_APPLICATION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $Radius::DiaMsg::APPID_NASREQ);
+    $m->add_attr($Radius::DiaAttrList::ACODE_ORIGIN_HOST, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::originhost);
+    $m->add_attr($Radius::DiaAttrList::ACODE_ORIGIN_REALM, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::originrealm);
+    $m->add_attr($Radius::DiaAttrList::ACODE_DESTINATION_REALM, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::destrealm);
+    $m->add_attr($Radius::DiaAttrList::ACODE_AUTH_REQUEST_TYPE, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		 $Radius::DiaAttrList::AUTH_REQUEST_TYPE_AUTHORIZE_AUTHENTICATE);
+    $m->add_attr($Radius::DiaAttrList::ACODE_USER_NAME, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::user);
+    if ($main::chap)
+    {
+	# Make a CHAP-Auth grouped attribute
+	my $chap_id = '5';
+	my $chap_challenge = '1234567890123456';
+	my $chap_response = Digest::MD5::md5($chap_id . $main::password . $chap_challenge);
+	my $g = Radius::DiaAttrList->new();
+	$g->add_attr($Radius::DiaAttrList::ACODE_CHAP_ALGORITHM, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $Radius::DiaAttrList::CHAP_ALGORITHM_CHAP_WITH_MD5);
+	$g->add_attr($Radius::DiaAttrList::ACODE_CHAP_IDENT, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $chap_id);
+	$g->add_attr($Radius::DiaAttrList::ACODE_CHAP_RESPONSE, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $chap_response);
+	$m->add_attr($Radius::DiaAttrList::ACODE_CHAP_AUTH, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $g);
+	$m->add_attr($Radius::DiaAttrList::ACODE_CHAP_CHALLENGE, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $chap_challenge);
+    }
+    elsif ($main::opt_mschapv2)
+    {
+	# Pack as per draft-ietf-radius-ms-vsa-01.txt,
+	# and RFC 2548
+	require Radius::MSCHAP;
+	my $ident = 1;
+	my $authchallenge = pack('H*', '5B5D7C7D7B3F2F3E3C2C602132262628');
+	my $peerchallenge = pack('H*', '21402324255E262A28295F2B3A337C7E');
+	my $flags = 0;
+	my $ntresponse = 
+	  Radius::MSCHAP::GenerateNTResponse($authchallenge, $peerchallenge, $main::user, Radius::MSCHAP::ASCIItoUnicode($main::password));
+	$m->add_attr($Radius::DiaAttrList::ACODE_MS_CHAP_CHALLENGE, 
+		     $Radius::DiaAttrList::VCODE_MICROSOFT,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $authchallenge);
+	$m->add_attr($Radius::DiaAttrList::ACODE_MS_CHAP2_RESPONSE, 
+		     $Radius::DiaAttrList::VCODE_MICROSOFT,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     pack('C C a16 a8 a24', $ident, $flags, $peerchallenge, undef, $ntresponse));
+    }
+    elsif ($main::opt_mschap)
+    {
+	# Pack as per draft-ietf-radius-mschap-attr-01.txt
+	# We only use NT-Response type
+	require Radius::MSCHAP;
+	my $ident = 1;
+	my $challenge = pack('H*', '102DB5DF085D3041');
+	my $flags = 1; # use NT-Response
+	my $ntresponse = 
+	  Radius::MSCHAP::NtChallengeResponse
+	      ($challenge, 
+	     Radius::MSCHAP::ASCIItoUnicode($main::password));
+	$m->add_attr($Radius::DiaAttrList::ACODE_MS_CHAP_CHALLENGE, 
+		     $Radius::DiaAttrList::VCODE_MICROSOFT,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $challenge);
+	$m->add_attr($Radius::DiaAttrList::ACODE_MS_CHAP_RESPONSE, 
+		     $Radius::DiaAttrList::VCODE_MICROSOFT,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     pack('C C a24 a24', $ident, $flags, undef, $ntresponse));
+    }
+    elsif ($main::opt_sip)
+    {
+	my (@attrs, $attrs);
+	$attrs[1] = 'test realm'; # realm
+	$attrs[2] = unpack('h*', &Radius::Util::random_string(16)); # nonce
+	$attrs[3] = 'GET';   # method
+	$attrs[4] = '/test'; # uri
+	$attrs[10] = $main::user;
+	my $ha1 = Digest::MD5::md5_hex("$attrs[10]:$attrs[1]:$main::password");
+	my $ha2 = Digest::MD5::md5_hex("$attrs[3]:$attrs[4]");
+	my $response = Digest::MD5::md5_hex("$ha1:$attrs[2]:$ha2");
+	foreach (1 .. 10)
+	{
+	    next unless defined $attrs[$_];
+	    $attrs .= pack('C C a*', $_, length($attrs[$_]) + 2, $attrs[$_]);
+	}
+	$m->add_attr($Radius::DiaAttrList::ACODE_SIP_DIGEST_RESPONSE, 
+		     0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $response);
+	$m->add_attr($Radius::DiaAttrList::ACODE_SIP_DIGEST_ATTRIBUTES, 
+		     0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $attrs);
+    }
+    elsif ($eapmd5challenge)
+    {
+	# Send an EAP MD5 response
+	my $response = Digest::MD5::md5(chr($eapid) . $main::password . $eapmd5challenge);
+	my $message = pack('C C n C C a16 a*',
+			  2,
+			  $eapid,
+			  length($main::user) + 22,
+			  4,
+			  16,
+			  $response,
+			  $main::user);
+	$m->add_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, $message);
+	$m->set_code($Radius::DiaMsg::CODE_DER);
+    }
+    elsif ($eapotpresponse)
+    {
+	# Send an EAP MD5 response
+	my $message = pack('C C n C a*',
+			   2,
+			   $eapid,
+			   length($eapotpresponse) + 5,
+			   5, # EAP type
+			   $eapotpresponse);
+	$m->add_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, $message);
+	$m->set_code($Radius::DiaMsg::CODE_DER);
+    }
+    elsif ($eapgtcresponse)
+    {
+	# Send an EAP MD5 response
+	my $message = pack('C C n C a*',
+			   2,
+			   $eapid,
+			   length($eapotpresponse) + 5,
+			   6, # EAP type
+			   $eapgtcresponse);
+	$m->add_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, $message);
+	$m->set_code($Radius::DiaMsg::CODE_DER);
+    }
+    elsif ($main::opt_eapmd5 || $main::opt_eapotp|| $main::opt_eapgtc)
+    {
+	# Send the EAP Identity
+	my $message = pack('C C n C a*', 2, $eapid++, length($main::user) + 5, 1, $main::user);
+	$eapid = $eapid % 256;
+	$m->add_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD, 0,
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, $message);
+	$m->set_code($Radius::DiaMsg::CODE_DER);
+    }
+    else
+    {
+	$m->add_attr($Radius::DiaAttrList::ACODE_USER_PASSWORD, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, $main::password);
+    }
+    $m->add_attr($Radius::DiaAttrList::ACODE_CALLED_STATION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::called_station_id);
+    $m->add_attr($Radius::DiaAttrList::ACODE_CALLING_STATION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::calling_station_id);
+    $m->add_attr($Radius::DiaAttrList::ACODE_NAS_PORT, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::nas_port);
+
+    &addExtraAttributes($m);
+    &announceSending('AA Request');
+    my $reply = $client->sendAndWait($m);
+
+    if ($reply 
+	&& ($reply->code() == $Radius::DiaMsg::CODE_AA
+	    || $reply->code() == $Radius::DiaMsg::CODE_DER))
+    {
+	my $replyMessage = $reply->get_attr($Radius::DiaAttrList::ACODE_REPLY_MESSAGE);
+	my $resultCode = $reply->get_attr($Radius::DiaAttrList::ACODE_RESULT_CODE);
+	if ($resultCode eq 'DIAMETER_MULTI_ROUND_AUTH')
+	{
+	    if ($main::opt_interactive)
+	    {
+		# a challenge to give to the user
+		print "$replyMessage\n";
+		$main::password = <STDIN>;
+		chomp $main::password;
+		goto again;
+	    }
+	    elsif ($main::opt_eapmd5)
+	    {
+		my $message = $reply->get_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD);
+		my ($code, $eapid, $length, $type, $chlen, $ch) 
+		    = unpack('C C n C C a*', $message);
+		if ($code == 1 && $type == 4)
+		{
+		    my ($challenge, $host) = unpack("a$chlen, a*", $ch);
+		    $eapmd5challenge = $challenge;
+		    goto again;
+		}
+		else
+		{
+		    announceFailure("Bad EAP-MD5 Challenge");
+		}
+	    }
+	    elsif ($main::opt_eapotp)
+	    {
+		my $message = $reply->get_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD);
+		my ($code, $eapid, $length, $type, $ch) 
+		    = unpack('C C n C a*', $message);
+		if ($code == 1 && $type == 5)
+		{
+		    print "$ch: ";
+		    $eapotpresponse = <STDIN>;
+		    chomp $eapotpresponse;
+		    goto again;
+		}
+		else
+		{
+		    announceFailure("Bad EAP-OTP Challenge");
+		}
+	    }
+	    elsif ($main::opt_eapgtc)
+	    {
+		my $message = $reply->get_attr($Radius::DiaAttrList::ACODE_EAP_PAYLOAD);
+		my ($code, $eapid, $length, $type, $ch) 
+		    = unpack('C C n C a*', $message);
+		if ($code == 1 && $type == 6)
+		{
+		    print "$ch: ";
+		    $eapgtcresponse = <STDIN>;
+		    chomp $eapgtcresponse;
+		    goto again;
+		}
+		else
+		{
+		    announceFailure("Bad EAP-GTC Challenge");
+		}
+	    }
+	    else
+	    {
+		announceRejection("Challenge: $replyMessage");
+	    }
+	}
+	elsif ($resultCode eq 'DIAMETER_SUCCESS')
+	{
+	    announceSuccess("OK");
+	}
+	elsif ($resultCode eq 'DIAMETER_AUTHENTICATION_REJECTED')
+	{
+	    announceRejection("Rejected: $replyMessage");
+	}
+	else
+	{
+	    announceRejection("Unexpected result code: $resultCode");
+	}
+    }
+    else
+    {
+	announceFailure("No reply")
+    }
+}
+
+#####################################################################
+sub sendStatusReq
+{
+}
+
+#####################################################################
+sub sendAcctReq
+{
+    my ($type) = @_;
+
+    my $m = Radius::DiaMsg->new_request
+	(Code => $Radius::DiaMsg::CODE_ACCOUNTING,
+	 Flags => $Radius::DiaMsg::FLAG_REQUEST,
+	 Aid => $Radius::DiaMsg::APPID_NASREQ,
+	 Dictionary => $main::dict);
+    $m->add_attr($Radius::DiaAttrList::ACODE_SESSION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::session_id);
+    $m->add_attr($Radius::DiaAttrList::ACODE_ORIGIN_HOST, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::originhost);
+    $m->add_attr($Radius::DiaAttrList::ACODE_ORIGIN_REALM, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::originrealm);
+    $m->add_attr($Radius::DiaAttrList::ACODE_USER_NAME, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::user);
+    $m->add_attr($Radius::DiaAttrList::ACODE_CALLED_STATION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::called_station_id);
+    $m->add_attr($Radius::DiaAttrList::ACODE_CALLING_STATION_ID, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::calling_station_id);
+    $m->add_attr($Radius::DiaAttrList::ACODE_NAS_PORT, 0, 
+		 $Radius::DiaAttrList::AFLAG_MANDATORY, $main::nas_port);
+    if  ($type eq 'Start')
+    {
+	$m->add_attr($Radius::DiaAttrList::ACODE_ACCOUNTING_RECORD_TYPE, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $Radius::DiaAttrList::ACCOUNTING_RECORD_TYPE_START_RECORD);
+	$m->add_attr($Radius::DiaAttrList::ACODE_ACCOUNTING_RECORD_NUMBER, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $main::accounting_record_number);
+    }
+    elsif ($type eq 'Stop')
+    {
+	$m->add_attr($Radius::DiaAttrList::ACODE_ACCOUNTING_INPUT_OCTETS, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $main::input_octets++);
+	$m->add_attr($Radius::DiaAttrList::ACODE_ACCOUNTING_OUTPUT_OCTETS, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY, 
+		     $main::output_octets++);
+	$m->add_attr($Radius::DiaAttrList::ACODE_ACCOUNTING_RECORD_TYPE, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $Radius::DiaAttrList::ACCOUNTING_RECORD_TYPE_STOP_RECORD);
+	$m->add_attr($Radius::DiaAttrList::ACODE_ACCOUNTING_RECORD_NUMBER, 0, 
+		     $Radius::DiaAttrList::AFLAG_MANDATORY,
+		     $main::accounting_record_number);
+    }
+
+    &addExtraAttributes($m);
+    &announceSending("AC Request $type");
+    my $reply = $client->sendAndWait($m);
+
+    if ($reply && $reply->code() == $Radius::DiaMsg::CODE_ACCOUNTING)
+    {
+	my $resultCode = $reply->get_attr($Radius::DiaAttrList::ACODE_RESULT_CODE);
+	if ($resultCode eq 'DIAMETER_SUCCESS')
+	{
+	    announceSuccess("OK");
+	}
+	else
+	{
+	    announceRejection("Unexpected result code: $resultCode");
+	}
+    }
+    else
+    {
+	announceFailure("No reply")
+    }
+}
+
+
+#####################################################################
+# Send an aribtrary request code
+sub sendCode
+{
+    my ($code) = @_;
+    # REVISIT?
+}
+
+
+#####################################################################
+# Send an aribtrary data
+sub sendRaw
+{
+    my ($raw) = @_;
+
+    &announceSending('raw');
+    $raw =~ s/\s//g;
+    my $m = Radius::DiaMsg->new(Data => pack('H*', $raw));
+    my $reply = $client->sendAndWait($m);
+    if ($reply)
+    {
+	announceSuccess("OK");
+    }
+    else
+    {
+	announceFailure("No reply");
+    }
+}
+
+####################################################################
+sub sendRawSeq
+{
+    my ($raw_seq) = @_;
+
+    $raw_seq =~ s/\s//g;
+    foreach (split(/NewPacket/, $raw_seq))
+    {
+	&sendRaw($_);
+    }
+}
+
+#####################################################################
+# Add all the extra attributes described on the command line
+# each one is in the form name=value
+sub addExtraAttributes
+{
+    my ($p) = @_;
+
+    my $arg;
+
+    foreach $arg (@ARGV)
+    {
+	if ($arg =~ /([^=]*)=(.*)/)
+	{
+	    # Permit octal escapes in value
+	    my ($attr, $value) = ($1, $2);
+	    $value =~ s/\\(\d{3})/chr(oct($1))/ge; # Convert escaped octal
+	    my ($name, $type, $number, $vendorid, $flags) 
+		= $main::dict->attrByName($attr);
+	    $p->add_attr($number, $vendorid, 0, $value);
+	}
+    }
+}
+
+#####################################################################
+# Read command line args from a file, one arg per line
+# Its not an error if it does not exist.
+sub readFileOptions
+{
+    my ($file) = @_;
+
+    if (open(FILE, $file))
+    {
+	# Slurp the file, one arg per line
+	my @args = <FILE>;
+	chomp @args;
+	# Append these args to the current comand line args
+	push @ARGV, @args;
+    }
+}
+
+#####################################################################
+sub usage
+{
+    print "usage: $0 [-h] [-time] [-iterations n] 
+          [-trace [level]] [-s server]
+          [-noauth] [-noacct][-nostart] [-nostop] [-status] 
+          [-chap] [-mschap] [-mschapv2] [-eapmd5] [-eapotp] [-eapgtc] [-sip]
+          [-eaphex xxxxxxxxxxxxx]
+          [-accton] [-acctoff] [-framed_ip_address address]
+          [-auth_port port] [-acct_port port]
+          [-user username] [-password password] 
+          [-nas_ip_address address] [-nas_identifier string]
+          [-nas_port port] [-nas_port_type type] [-service_type service] 
+          [-calling_station_id string] [-called_station_id string] 
+          [-session_id string] [-interactive]
+          [-delay_time n] [-session_time n] [-input_octets n]
+          [-output_octets n] [-timeout n] [-dictionary file]
+          [-gui] [-class string] [-useoldascendpasswords]
+          [-code requestcode] [-raw data] [-rawfile filename] 
+	  [-rawfileseq filename]
+          [-outport port] [-bind_address dotted-ip-address]
+          [-originhost originhostname] [-originrealm originrealmname] 
+          [-destrealm destrealm]
+          [-protocol tcp|sctp] [-usetls] [-cafile cafilename] [capath directory]
+          [-certificatefile filename] [-certificatetype PEM|ASN1]
+          [-privatekeyfile filename] [-privatekeypassword password]
+          [-crlcheck] [-crlfile filename] [-sessionresumption] 
+          [-expectedpeername regexp]
+          [attribute=value]... \n";
+    exit;
+}
+
+sub announceSending
+{
+    my ($msg) = @_;
+    print 'sending ' . $msg . "...\n" if $main::trace_level;
+}
+
+sub announceSuccess
+{
+    my ($msg) = @_;
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub announceFailure
+{
+    my ($msg) = @_;
+    
+    $main::errors++;
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub announceRejection
+{
+    my ($msg) = @_;
+    
+    $main::reject++;
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub showdump
+{
+    my ($p) = @_;
+
+    print $p->format;
+}
+
+sub announce
+{
+    my ($msg) = @_;
+    
+    print $msg . "\n" if $main::trace_level;
+}
+
+sub compute_addresses
+{
+}
+
+sub create_socket
+{
+    # REVISIT BindAddress?
+    $client = Radius::DiaClient->new
+	(Host                   => $main::desthost,
+	 Port                   => Radius::Util::get_port($main::port),
+	 Dictionary             => $main::dict,
+	 OriginHost             => $main::originhost,
+	 OriginRealm            => $main::originrealm,
+	 Trace                  => $main::trace,
+	 LogStdout              => 1,
+	 Protocol               => $main::protocol,
+	 UseTLS                 => $main::opt_usetls,
+	 TLS_CAFile             => $main::cafile,
+	 TLS_CAPath             => $main::capath,
+	 TLS_CertificateFile    => $main::certificatefile,
+	 TLS_CertificateType    => $main::certificatetype,
+	 TLS_PrivateKeyFile     => $main::privatekeyfile,
+	 TLS_PrivateKeyPassword => $main::privatekeypassword,
+	 TLS_CRLCheck           => $main::opt_crlcheck,
+	 TLS_CRLFile            => defined $main::crlfile ? [$main::crlfile] : undef,
+	 TLS_SessionResumption  => $main::opt_sessionresumption,
+	 TLS_ExpectedPeerName   => $main::expectedpeername,
+	 );
+    $client->activate();
+}
+

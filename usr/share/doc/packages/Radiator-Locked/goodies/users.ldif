@@ -1,0 +1,28 @@
+# users.ldif
+# This is a sample LDIF file that will create an organisation and a user
+# on openLDAP.
+# You can use it with something like
+# ldapadd -x -D "cn=Manager, dc=example, dc=com" -w secret -f goodies/users.ldif
+# On linux, you may need to make some adjustments to your LDAP slapd 
+# configuration before the ldapadd will work:
+# you will need to set the manager secret in /etc/openldap/slapd.conf
+# you may also need to change the ownership of /var/lib/ldap to the user ldap
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2001-2004 Open System Consultants
+# $Id: users.ldif,v 1.3 2004/09/29 23:45:39 mikem Exp $
+
+# These examples work with openldap 2.1 and later
+# This example assumes your slapd.conf is configured for dc=example,dc=com
+dn: dc=example,dc=com
+dc: example
+objectclass: top
+objectclass: dcObject
+objectclass: organization
+o: example.com
+
+dn: cn=mikem,dc=example,dc=com
+cn: mikem
+sn: McCauley
+userPassword: fred
+objectClass: person

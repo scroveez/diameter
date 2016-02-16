@@ -1,0 +1,16 @@
+Here is config file we built for one of our customers with very unusual 
+Digipass token and password requirements. Some of you may be interested in 
+this technique: it is an interesting way to increase the security level of an 
+existing static password based system.
+
+The customer wanted to use both Digipass tokens _and_ LDAP for authentication. 
+The users password had to consist of 6 digits of Digipass tokencode (no PIN) 
+followed by the static password for their LDAP database, eg:
+
+742696fred
+
+The attached config file shows how you can use AuthBy INTERNAL hooks to adjust 
+the decoded password before AuthBy DIGIPASS runs, and then readjust the 
+decoded password before the second AuthBy runs. The result is that AuthBy  
+DIGIPASS only sees the first 6 characters of the submitted password, and the 
+last AuthBy only sees the characters after the 6th.

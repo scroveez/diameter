@@ -1,0 +1,52 @@
+RadiusGINA is a Windows RADIUS login authenticator from LSE
+http://lsexperts.de
+
+RadiusGINA is qualified for interoperation with Radiator.
+
+It is easy to install on Windows XP and 200x, and combines external RADIUS
+authentication with local Windows-based authentication. It is intended for use
+with RADIUS One-Time-Password (OTP) based password protection schemes, such as
+the many supported by Radiator), but can in fact be used with any RADIUS PAP
+password authentication module.
+
+After installation and activation on a Windows host, when a user wishes to log
+on, RadiusGINA presents a custom GINA login dialog with
+
+User name
+Login to (machine name)
+Password
+OTP
+
+When OK is clicked, the username and the OTP will be sent to the Radius server and be
+verified there. Then the username and the windowspassword will be used
+to aquire a ticket from AD and start a Desktop session.
+
+The resulting RADIUS request contains the username and PAP password:
+
+*** Received from 203.63.154.182 port 1027 ....
+Code:       Access-Request
+Identifier: 124
+Authentic:  <252>t<233><25>"7<234>#<237><22><197>=<201><5><137><3>
+Attributes:
+        User-Name = "fred"
+        User-Password = o<157>`<11><11><209><158><183><255>bm}~<1>$%
+
+
+Radiator can authenticate that Access-Request in any PAP compatible way to
+accept or reject the login.
+
+RadiusGINA can be configured to send the User name as either:
+
+Username
+Domain\Username
+Username@Domain
+
+so it can be easily integrated with existing RADIUS authentication policies
+and user databases.
+
+
+LSExperts also publish a OTP product called LinOTP. 
+Radiator can be configured to work with LinOTP, and LSExperts have published
+instructions at 
+http://linotp.org/index.php/howtos/5-community/28-howto-use-osc-radiator-radius-server-with-linotp
+

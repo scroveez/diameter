@@ -1,0 +1,118 @@
+2012-11-02
+
+These instructions show how to build Heimdal Kerberos (http://www.h5l.org/)
+and set up a simple Kerberos KDC and test user database with test user:
+- a service principal radiator@OPEN.COM.AU for Radiator to run as
+- a user principal mikem@OPEN.COM.AU to test RADIUS authentication against
+(you may want to change the Kerberos realm we used 'OPEN.COM.AU' to suit your needs)
+In this test case, Radiator and the Kerberos KDC are on the same host. A
+production Radiator architecture and configuration may be different.
+Tested with heimdal-1.5.1
+
+Based in part from:
+http://www.h5l.org/manual/HEAD/info/heimdal/Creating-the-database.html#Creating-the-database
+
+build and install heimdal-1.5.1 or later from source
+cd .../heimdal-1.5.1
+./configure
+make
+# as root:
+make install
+(installs to /usr/heimdal by default, you can change this with args to
+configure above)
+
+Create /etc/krb5.conf with contents something like this (OPEN.COM.AU is the
+Kerberos test realm, zulu.open.com.au is the host running the KDC and optionally
+kadmind).
+
+######################
+# krb5.conf
+[libdefaults]
+        default_realm = OPEN.COM.AU
+[realms]
+        OPEN.COM.AU = {
+                kdc = zulu.open.com.au
+                admin_server = zulu.open.com.au
+        }
+[kdc]
+        enable-digest = true
+        digests_allowed = chap-md5,ms-chap-v2
+[kadmin]
+        save-password = true
+
+[logging]
+    kdc = FILE:/var/log/krb5/krb5kdc.log
+    admin_server = FILE:/var/log/krb5/kadmind.log
+    default = SYSLOG:NOTICE:DAEMON
+######################
+# end of krb5.conf
+
+# Get the Heimdal executables in our path:
+PATH=$PATH:/usr/heimdal/bin:/usr/heimdal/sbin:/usr/heimdal/lib
+
+
+# As root:
+# Directory for Kerberos user database etc
+mkdir /var/heimdal
+# Create the master key file
+kstash --random-key
+
+# Initialise the database in local mode, and add necessary principals. 
+# mikem@OPEN.COM.AU is a user principal who will do test logins.
+# radiator@OPEN.COM.AU is a service principal, which is required for the
+# Radiator process to access the KDC.
+# The principal digest/OPEN.COM.AU@OPEN.COM.AU only needs to exist. Its
+# password is never used again.
+kadmin -l
+kadmin> init OPEN.COM.AU
+...
+kadmin> add mikem@OPEN.COM.AU
+....
+ (asks for and enter password for mikem@OPEN.COM.AU, which is needed below)
+kadmin> add radiator@OPEN.COM.AU
+....
+ (asks for and enter password for radiator@OPEN.COM.AU, which is needed below)
+kadmin> add digest/OPEN.COM.AU@OPEN.COM.AU
+....
+ (asks for and enter password for digest/OPEN.COM.AU@OPEN.COM.AU, which is not needed again)
+q
+
+# Allow the radiator@OPEN.COM.AU principal to use digest
+kadmin -l modify --attributes=+allow-digest radiator@OPEN.COM.AU
+
+# Run the KDC: it will read /etc/krb5.conf and use the database we set up before
+kdc &
+
+# Now test Radiator
+# As normal user, in the Radiator directory
+# set up the keytab file for a preauth as radiator@OPEN.COM.AU. Do this once
+# before running Radiator multiple times:
+ktutil --keytab=/tmp/radiator.keytab add -p radiator@OPEN.COM.AU -e arcfour-hmac-md5 -V 1
+ (asks for and enter the password for radiator@OPEN.COM.AU you created above)
+
+# use the preauth keytab to run Radiator with the sample Radiator
+#  configuration which will authenticate PAP, EAP-MD5, EAP-MSCHAPV2
+kinit --keytab=/tmp/radiator.keytab radiator ./radiusd -config goodies/heimdaldigest.cfg
+
+# Test user authentication of mikem with password we created above using
+# PAP
+./radpwtst -noacct -user mikem@OPEN.COM.AU -password mikemspasswordasaenteredabove
+#  EAP-MD5
+./radpwtst -noacct -eapmd5 -user mikem@OPEN.COM.AU -password mikemspasswordasaenteredabove
+
+# when you are finished, clean up and delete test databases and keytabs
+killall kdc
+rm -rf /var/heimdal/*
+rm /tmp/radiator.keytab
+
+
+# Hint: you can set up a separate Kerberos principals specially for Radiator logins
+# so you dont have to use your regular Kerberos password. 
+# To do this, use kadmin to create a different principal for, say, ppp logins:
+# mikem/ppp@OPEN.COM.AU
+
+# Hint: Radiator also ships with AuthBy KRB5, which will work with *any*
+# Kerberos server, but is limited for technical reasons to supporting PAP and
+# TTLS-PAP.  AuthBy HEIMDALDIGEST only works with Heimdal Kerberos, but
+# supports a wider range of types of authentication, including PAP,
+# EAP-MSCHAPV2, EAP-MD5 (and TTLS and PEAP equivalents)

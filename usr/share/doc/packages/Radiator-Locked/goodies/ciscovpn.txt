@@ -1,0 +1,50 @@
+Using Digipass tokens with Cisco VPN client and Cisco ASA VPN  
+concentrator
+
+Recently a customer contacted OSC requesting assistance with  
+implementing Radiator in a VPN environment employing Cisco VPN products.
+
+The Cisco products were the ASA VPN concentrator and the Cisco VPN  
+client software for Windows.
+
+The problem was the inability to use Digipass tokens due to the Cisco  
+VPN client never receiving an access challenge.
+
+Investigation revealed that when no password (ie. a null string) was  
+entered into the Cisco VPN client, the RADIUS server actually  
+received a password of one space character.
+
+It was not clear whether the Cisco VPN client, or the Cisco ASA was  
+substituting a space character for a null string.
+
+The solution was to add a PreHandlerHook to the Radiator <Client ...>  
+clause for the Cisco ASA device to check for a password of a single  
+space character and replace it with a null string.
+
+This allows Radiator to correctly identify the initial RADIUS request  
+and issue the correct challenge.
+
+
+Here is the code for the PreHandlerHook:
+
+# removeSpacePassword
+# PreHandlerHook to remove a single space password
+# Hugh Irvine, OSC, 20081103
+
+sub
+{
+     my $p = ${$_[0]};
+
+     my $secret = $p->{Client}->{Secret};
+     my $password = $p->get_attr('User-Password');
+     my $decodedpassword = $p->decode_password($password, $secret);
+
+     if ($decodedpassword eq ' ')
+     {
+         $password = $p->encode_password('', $secret);
+         $p->change_attr('User-Password', $password);
+         &main::log($main::LOG_DEBUG, 'User-Password changed');
+     }
+
+     return;
+}

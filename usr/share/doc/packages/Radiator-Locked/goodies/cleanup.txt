@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+
+use DBI;
+
+$CVXMIB = '.iso.org.dod.internet.private.enterprises.2637';
+$community = 'public';
+
+$dbh = DBI->connect('dbi:mysql:radiusDB:localhost','XXXXX','********') or die "no db connection $DBI::errstr";
+$sth = $dbh->prepare("SELECT acctsessionid,nasipaddress,nasport,framedipaddress,userid FROM radonline") or die "no prepare $DBI::errstr";
+$sth->execute();
+$sth->bind_columns(undef, \($session_id,$nas_id,$nasport,$framedip,$userid));
+
+while($sth->fetch())
+{
+        $nas_session = unpack("N",pack("H16",$session_id));
+        $oid = "$CVXMIB.2.2.102.1.12.$nas_session";
+
+        $result = `/usr/bin/snmpget $nas_id $community $oid 2>/dev/null`;
+        if ($result =~ /=\s+"([^"]+)"/)
+        {
+                $ras_user = lc($1);
+                $userid = lc($userid);
+                $userid = $1    if (($ras_user !~ /@/) && ($userid =~ /([^@]+)@/));
+                if ($userid ne $ras_user)
+                {
+                        $dbh->do("DELETE FROM radonline WHERE nasipaddress='$nas_id' AND nasport='$nasport' AND acctsessionid='$session_id'");
+                }
+        }
+        else
+        {
+                        $dbh->do("DELETE FROM radonline WHERE nasipaddress='$nas_id' AND nasport='$nasport' AND acctsessionid='$session_id'");
+        }
+}
+
+exit 0;
+

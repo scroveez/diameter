@@ -1,0 +1,119 @@
+<REPOSITORYSUMMARY>
+<SOFTPKG NAME="Authen-ACE4" VERSION="1,4,0,0">
+	<TITLE>Authen-ACE4</TITLE>
+	<ABSTRACT></ABSTRACT>
+	<AUTHOR></AUTHOR>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.10" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.12" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.14" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.16" />
+	</IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.8" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.10" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.12" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.14" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.16" />
+        </IMPLEMENTATION>
+</SOFTPKG>
+<SOFTPKG NAME="Authen-Digipass" VERSION="1,9,0,1">
+	<TITLE>Authen-Digipass</TITLE>
+	<ABSTRACT>Perl extension for Vasco Digipass Vacman Controller AAL2 authentication library</ABSTRACT>
+	<AUTHOR>Mike McCauley &lt;mikem@open.com.au&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.10" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.12" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.14" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.16" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.18" />
+	</IMPLEMENTATION>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.20" />
+	</IMPLEMENTATION>
+</SOFTPKG>
+<SOFTPKG NAME="Win32-Lsa" VERSION="1,3,0,1">
+	<TITLE>Win32-Lsa</TITLE>
+	<ABSTRACT>Perl extension for Windows Lsa authentication</ABSTRACT>
+	<AUTHOR>Mike McCauley &lt;mikem@open.com.au&gt;</AUTHOR>
+	<IMPLEMENTATION>
+		<ARCHITECTURE NAME="MSWin32-x86-multi-thread" />
+	</IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.8" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.10" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.12" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.14" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.16" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.18" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x86-multi-thread-5.20" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.8" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.10" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.12" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.14" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.16" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.18" />
+        </IMPLEMENTATION>
+        <IMPLEMENTATION>
+                <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.20" />
+        </IMPLEMENTATION>
+</SOFTPKG>
+</REPOSITORYSUMMARY>

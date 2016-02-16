@@ -1,0 +1,47 @@
+In the process of getting simultaneous use checking working on our
+AIX servers, I have found some workarounds necessary. AIX does not
+include the snmpwalk utility. Perhaps I could have installed it, but
+it seemed easier to use the snmpinfo utility already present. However,
+in addition to different command line options, there are two irritating
+differences which required some coding.
+
+1 - snmpinfo wants a complete OID value on the command line without
+    the leading period. Our version doesn't seem to understand names,
+    only numeric values. It seemed to me easiest to handle this by
+    editing Nas.pm.
+
+2 - snmpinfo returns most text values, including those of interest to
+    Nas.pm, as a series of hex codes separated by colons, for example
+    64:61:76:65 for dave, and without quotation marks. I am handling
+    this issue with a wrapper program installed as /usr/bin/snmpget
+    which I freely contribute back to Radiator. I also edited Nas.pm
+    to remove the =~ mung of the return value as this script already
+    has performed that function.
+
+#! /bin/sh
+
+# Wrapper for use by Radiator Radius
+
+echo ` snmpinfo -m get -h $1 -c $2 -t 3 $3 ` \
+| sed -e '/""/d' -e 's/.* //' -e 's/"//g' -e '/^$/d' \
+      -e "s/41/A/g" -e "s/47/G/g" -e "s/4d/M/g" -e "s/53/S/g" -e "s/59/Y/g" \
+      -e "s/42/B/g" -e "s/48/H/g" -e "s/4e/N/g" -e "s/54/T/g" -e "s/5a/Z/g" \
+      -e "s/43/C/g" -e "s/49/I/g" -e "s/4f/O/g" -e "s/55/U/g" \
+      -e "s/44/D/g" -e "s/4a/J/g" -e "s/50/P/g" -e "s/56/V/g" \
+      -e "s/45/E/g" -e "s/4b/K/g" -e "s/51/Q/g" -e "s/57/W/g" \
+      -e "s/46/F/g" -e "s/4c/L/g" -e "s/52/R/g" -e "s/58/X/g" \
+      -e "s/61/a/g" -e "s/67/g/g" -e "s/6d/m/g" -e "s/73/s/g" -e "s/79/y/g" \
+      -e "s/62/b/g" -e "s/68/h/g" -e "s/6e/n/g" -e "s/74/t/g" -e "s/7a/z/g" \
+      -e "s/63/c/g" -e "s/69/i/g" -e "s/6f/o/g" -e "s/75/u/g" \
+      -e "s/64/d/g" -e "s/6a/j/g" -e "s/70/p/g" -e "s/76/v/g" \
+      -e "s/65/e/g" -e "s/6b/k/g" -e "s/71/q/g" -e "s/77/w/g" \
+      -e "s/66/f/g" -e "s/6c/l/g" -e "s/72/r/g" -e "s/78/x/g" \
+      -e "s/30/0/g" -e "s/32/2/g" -e "s/34/4/g" -e "s/36/6/g" -e "s/38/8/g" \
+      -e "s/31/1/g" -e "s/33/3/g" -e "s/35/5/g" -e "s/37/7/g" -e "s/39/9/g" \
+      -e "s/://g"
+
+--
+        Dave Close              Quik Internet
+        +1 949 548 2171         Costa Mesa California
+        dclose@quik.com         http://www.quik.com/
+

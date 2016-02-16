@@ -1,0 +1,116 @@
+# radiator-ldap.ldif
+#
+# This is a sample LDAP LDIF file that will create sample records for
+# use with the radiator-ldap.schema file and AuthBy LDAPRADIUS and AuthLDAPDIGIPASS.
+# In a production system, you may want to put these records in a distinct
+# cn or ou.
+#
+# You can use it to add these test records with something like
+# ldapadd -x -D "cn=Manager, dc=example, dc=com" -w secret -f goodies/radiator-ldap.ldif
+#
+# you can check that its in the database with:
+# ldapsearch -x -D "cn=Manager, dc=example, dc=com" -w secret -b "dc=example,dc=com" "(oscRadiusTarget=realm1.com)"
+#
+# You can delete them with:
+# ldapdelete -x -D "cn=Manager, dc=example, dc=com" -w secret "cn=Proxy realm 1,dc=example,dc=com" "cn=Proxy realm 2,dc=example,dc=com" "cn=client1,dc=example,dc=com" "cn=client2,dc=example,dc=com" "oscDigipassTokenSerial=0097123456APPL 1,dc=example,dc=com"
+# ldapdelete -x -D "cn=Manager, dc=example, dc=com" -w secret "cn=Proxy realm 1,dc=example,dc=com"
+# ldapdelete -x -D "cn=Manager, dc=example, dc=com" -w secret "cn=Proxy realm 2,dc=example,dc=com"
+# ldapdelete -x -D "cn=Manager, dc=example, dc=com" -w secret "cn=client1,dc=example,dc=com"
+# ldapdelete -x -D "cn=Manager, dc=example, dc=com" -w secret "cn=client2,dc=example,dc=com"
+# ldapdelete -x -D "cn=Manager, dc=example, dc=com" -w secret "oscDigipassTokenSerial=0097123456APPL 1,dc=example,dc=com"
+
+#
+# On linux, you may need to make some adjustments to your LDAP slapd 
+# configuration before the ldapadd will work:
+# you will need to set the manager secret in /etc/openldap/slapd.conf
+# you may also need to change the ownership of /var/lib/ldap to the user ldap
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2004-2006 Open System Consultants
+# $Id: radiator-ldap.ldif,v 1.3 2006/02/20 06:11:01 mikem Exp $
+
+# These examples work with openldap 2.1 and later
+# This example assumes your slapd.conf is configured for dc=example,dc=com
+
+# You will need an organisation something like this before you can create any
+# of the objects in this file. All the objects are inside this name space.  IT
+# may be convenient to invent a specific namespace to hold this application
+# data.
+#dn: dc=example,dc=com
+#dc: example
+#objectclass: top
+#objectclass: dcObject
+#objectclass: organization
+#o: example.com
+
+
+# Here is an example oscRadiusRealm record, whcih defines where to proxy
+# Radius requesrs based on the users realm.  This minimum required attributes
+# are oscRadiusTarget, oscRadiusHost and oscRadiusSecret This is about the
+# shortest record that can be used, but you can provide a number of optional
+# attributes too
+dn: cn=Proxy realm 1,dc=example,dc=com
+objectclass: top
+objectclass: oscRadiusRealm
+cn: Proxy realm 1
+oscRadiusTarget: realm1.com
+oscRadiusHost: oscar.open.com.au
+oscRadiusSecret: mysecret
+#oscRadiusAuthPort: 1812
+#oscRadiusAcctPort: 1813
+#oscRadiusRetries: 2
+#oscRadiusRetryTimeout: 2
+#oscRadiusUseOldAscendPasswords: TRUE
+#oscRadiusServerHasBrokenPortNumbers: TRUE
+#oscRadiusServerHasBrokenAddresses: TRUE
+#oscRadiusIgnoreReplySignature: TRUE
+#oscRadiusFailurePolicy: 1
+
+# Because oscRadiusTarget can be multivalued, you can specify
+# a number of realms to be proxied to the same remote server:
+dn: cn=Proxy realm 2,dc=example,dc=com
+objectclass: top
+objectclass: oscRadiusRealm
+cn: Proxy realm 2
+oscRadiusTarget: realm2a.com
+oscRadiusTarget: realm2b.com
+oscRadiusHost: fred.open.com.au
+oscRadiusSecret: mysecret
+
+# Here are some example oscRadiusClient records. Each one defines one or more
+# Radius clients that Radiator will honour. Used by ClientListLDAP clauses The
+# minimum attributes are oscRadiusClientName and oscRadiusSecret, but others
+# can be optionally defined, see radiator-ldap.schema for some common
+# ones. For example, see that oscRadiusAddToRequest can be used to add
+# arbitrary attributes to the request before further processing.
+
+dn: cn=client1,dc=example,dc=com
+objectclass: top
+objectclass: oscRadiusClient
+cn: client1
+oscRadiusClientName: zulu.open.com.au
+oscRadiusSecret: mysecret
+oscRadiusAddToRequest: OSC-AVPAIR="attrname=value"
+
+dn: cn=client2,dc=example,dc=com
+objectclass: top
+objectclass: oscRadiusClient
+cn: client2
+oscRadiusClientName: oscar.open.com.au
+oscRadiusSecret: mysecret
+
+# This token data is for a standard Digipass demo token. It has been
+# set to be assigned to mikem. You can test this with 
+# radiusd -config goodies/digipass_ldap.cfg
+# radpwtst -noacct -user mikem -password 999999
+#  where 999999 is the number currently displayed by your Digipass demo token.
+# You can import assign, reset tokens etc using the digipass.pl application'
+# provided with the Authen-Digipass module from Open System Consultants.
+dn: oscDigipassTokenSerial=0097123456APPL 1,dc=example,dc=com
+objectclass: top
+objectclass: oscDigipassToken
+oscDigipassTokenSerial: 0097123456APPL 1
+oscDigipassTokenType: DP300
+oscDigipassTokenAlgoType: RO
+oscDigipassTokenData: 0097123456APPL 1      10AFIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAEAAAAgICAAAACx4bwOmRYm8XYHErnjBAJIAWecbdhsRHIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+RmOzmh1lFwAAAYAAQAAAERQMzAwAIIAAAAAAAAAAAC4k06cWbfvTJHkfStxiEha
+oscDigipassTokenAssignedTo: mikem

@@ -1,0 +1,109 @@
+#! /bin/sh
+#
+# Author: Carlos Raul Perasso <carlosrp@idea.com.py>
+#         Taller de Ideas
+#         Asuncion, Paraguay
+#
+# /etc/init.d/radiator
+#
+#   and symbolic its link
+#
+# /usr/sbin/rcradiator
+#
+# LSB compliant service control script; see http://www.linuxbase.org/spec/
+#
+# System startup script that takes care of starting and stopping Radiator
+#
+### BEGIN INIT INFO
+# Provides: Radiator
+# Required-Start: postgresql nscd
+# Required-Stop:
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 6
+# Description:    Start Radiator to provide a radius server
+### END INIT INFO
+#
+# Check for missing binaries (stale symlinks should not happen)
+RADIATOR_BIN=/usr/bin/radiusd
+test -x $RADIATOR_BIN || exit 5
+
+
+# Check for existence of needed config file
+RADIATOR_CONFIG=/etc/radiator/radius.cfg
+test -r $RADIATOR_CONFIG || exit 6
+
+
+# State necessary arguments
+RADIATOR_ARGS=
+
+
+# Shell functions sourced from /etc/rc.status:
+#      rc_check         check and set local and overall rc status
+#      rc_status        check and set local and overall rc status
+#      rc_status -v     ditto but be verbose in local rc status
+#      rc_status -v -r  ditto and clear the local rc status
+#      rc_failed        set local and overall rc status to failed
+#      rc_failed <num>  set local and overall rc status to <num><num>
+#      rc_reset         clear local rc status (overall remains)
+#      rc_exit          exit appropriate to overall rc status
+#      rc_active        checks whether a service is activated by symlinks
+. /etc/rc.status
+
+
+# First reset status of this service
+rc_reset
+
+
+case "$1" in
+    start)
+        echo -n "Starting Radiator"
+        ## Start daemon with startproc(8). If this fails
+        ## the echo return value is set appropriate.
+
+
+        # NOTE: startproc returns 0, even if service is
+        # already running to match LSB spec.
+        startproc $RADIATOR_BIN -config_file $RADIATOR_CONFIG $RADIATOR_ARGS
+
+
+        # Remember status and be verbose
+        rc_status -v
+        ;;
+    stop)
+        echo -n "Shutting down Radiator"
+        ## Stop daemon with killproc(8) and if this fails
+        ## set echo the echo return value.
+
+
+        killproc -TERM $RADIATOR_BIN
+
+
+        # Remember status and be verbose
+        rc_status -v
+        ;;
+    restart)
+        ## Stop the service and regardless of whether it was
+        ## running or not, start it again.
+        $0 stop
+        $0 start
+
+
+        # Remember status and be quiet
+        rc_status
+        ;;
+    status)
+        echo -n "Checking for service Radiator: "
+        ## Check status with checkproc(8), if process is running
+        ## checkproc will return with exit status 0.
+
+
+        # NOTE: checkproc returns LSB compliant status values.
+        checkproc $RADIATOR_BIN
+        rc_status -v
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+rc_exit

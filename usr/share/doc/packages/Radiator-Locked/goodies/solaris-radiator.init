@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Radiator startup script for Solaris
+#
+# Install as /etc/init.d/radiator
+# chown root:sys /etc/init.d/radiator
+# chmod 555 /etc/init.d/radiator
+# ln -s /etc/init.d/radiator /etc/rc2.d/S98radiator
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2000-2005 Open System Consultants
+# $Id: solaris-radiator.init,v 1.4 2012/12/09 10:37:17 mikem Exp $
+
+radiatorconf=/usr/local/etc/radiator/radius.cfg
+pidfile=/var/run/radiator.pid
+
+[ -f /usr/local/bin/radiusd  ] || exit 0
+
+# See how we were called.
+
+case "$1" in
+   start)
+         # Start daemons.
+                 # check if Radiator is running [1] or not [0]
+                 #num=`ps -elf|grep /usr/local/bin/radiusd |grep root|grep -v grep|wc -l|cut -c 8`
+                 #if [ "$num" = "0" ] ;
+                 if [ -r $pidfile ] ; then
+                         echo "There are one or more Radiator radiusd instances running, please stop them manually";
+                 else
+                         echo "Starting Radiator with config $radiatorconf "
+                         /usr/local/bin/radiusd -config_file $radiatorconf -pid_file $pidfile -daemon
+                 fi
+         ;;
+   stop)
+         # Stop daemons.
+         # checking if thereis pid available
+         [ -f $pidfile ] || exit 0
+         echo  "Shutting down Radiator... "
+         kill `cat $pidfile`
+         ;;
+   restart)
+         $0 stop
+         $0 start
+         ;;
+   status)
+        if [ -r $pidfile ] ; then
+                 echo "Radiator is currently running  with pid `cat $pidfile` and ready to serve requests"
+         else
+                 echo "Radiator server is not running" ;
+         fi
+         ;;
+   *)
+         echo "Usage: radiator {start|stop|restart|status}"
+         exit 1
+esac
+
+exit 0
+# EOF

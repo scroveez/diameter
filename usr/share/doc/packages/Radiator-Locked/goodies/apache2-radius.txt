@@ -1,0 +1,157 @@
+This document describes how to configure Apache 2 for Radius
+authentication of some or all web server directories. If you follow
+this method, you can use any Radiator authentication method (including
+AuthBy DIGIPASS) to control access to one or more files, locations or
+directories on your Apache 2 web server.
+
+This method uses the mod_auth_radius Apache plugin module, from
+https://www.gnarst.net/authradius/
+
+The mod_auth_radius module sends conventional Radius PAP requests, and
+can therefore be used with any Radiator authentication module, including
+the one-time-password, OPIE, DIGIPASS, ACE and all other modules.
+
+This method requires the mod_auth_radius Apache module to be
+installed. We did this on Mandrake 10 by installing the
+apache2-mod_auth_radius RPM.
+
+You may instead prefer to compile and install the mod_auth_radius
+for Apache 2 package by hand. See https://www.gnarst.net/authradius/
+for details.
+
+In any case, you should end up with an Apache configuration file,
+typically /etc/httpd/conf.d/14_mod_auth_radius.conf. A default version
+of this file will be installed by the RPM, which you will have to
+edit to get Radius authentication working. In a standard Apache 2
+install, no other Apache config files will need to be checnged to get
+Radius working.
+
+14_mod_auth_radius.conf will require at least one line added inside
+the <IfModule mod_auth_radius.c> clause:
+
+
+<IfModule mod_auth_radius.c>
+# Add this line to specify where the radius server is
+AddRadiusAuth localhost:1645 mysecret
+ ....
+</IfModule>
+
+After changing the config file, dont forget to restart Apache with:
+/etc/init.d/httpd restart
+
+You can then add a .htaccess file to each directory you wish to
+protect, containing something like this:
+
+########################################
+# .htaccess file
+AuthType Basic
+AuthName "RADIUS authentication for localhost"
+require valid-user
+########################################
+
+As an alternative to adding a .htaccess file to each protected dir,
+you can add <Directory> or <Location> clauses to
+14_mod_auth_radius.conf specifiying which directories and files are to
+be protected:
+
+
+########################################
+# Add to 14_mod_auth_radius.conf
+
+IfModule mod_auth_radius.c>
+# This is the name of the directory to be protected:
+<Location /test-digipass>
+    # These can be in .htaccess in the protected dirs if you prefer
+    AuthType Basic
+    AuthName "RADIUS authentication for localhost"
+    require valid-user
+</Location>
+########################################
+
+The mod_auth_radius uses cookies to maintain authentication for a
+configurable period of time. The user will not be required to re-enter
+their password until the cookie expires. This is very useful for token
+authentication systems such as SecurID and Digipass, and it also
+prevents overloading of the Radius server. The default
+behaviour expires cookies after 60 minutes, but this can be configured
+with AddRadiusCookieValid.
+
+The mod_auth_radius module also understands a number of other
+configuration options. See the doc at somewhere like:
+/usr/share/doc/apache2-mod_auth_radius-2.0.50_1.7PR1/mod_auth_radius.html
+
+Here is the entire /etc/httpd/conf.d/14_mod_auth_radius.conf that we
+tested with. It was tested with AuthBy DIGIPASS, using the
+goodies/digipass.cfg file provided in teh Raitor distribution.
+
+#################################################
+# 14_mod_auth_radius.conf
+<IfDefine HAVE_AUTH_RADIUS>
+  <IfModule !mod_auth_radius.c>
+    LoadModule auth_radius_module    extramodules/mod_auth_radius.so
+  </IfModule>
+</IfDefine>
+
+<IfModule mod_auth_radius.c>
+
+# Add this line to specify where the radius server is
+AddRadiusAuth localhost:1645 mysecret
+
+# You can conrol how many minutes the cookie is valid, and therefore
+# how frequently the user will have to reauthenticate. 0 means
+# never expire cookies
+#AddRadiusCookieValid 0
+
+# You can enable logging of Radius traffic with
+#RadiusLog /tmp/radius.log
+
+# You can append a default realm to all user names with
+#RadiusDefaultRealm xxx@com
+
+# Specify a Locaiton thnat is to be protected by Radius
+<Location /test-digipass>
+    # These can be in .htaccess in the protected dirs if you prefer
+    SetHandler auth_radius
+    AuthType Basic
+    AuthName "Digipass authentication"
+    require valid-user
+
+</Location>
+</IfModule>
+#################################################
+
+------------------------------------------------------------------------------------
+Some users have reported problems with these instructions on some
+versions of Apache 2 and with https://www.gnarst.net/authradius/
+
+Here is an alternative version for use with the FreeRadius
+mod_auth_radius module. The FreeRadius version does not have as many
+features as the gnarst one, but it is more likely to work correctly.
+
+Requires the apache source or the apache-devel or http-devel RPMs to
+be installed first.
+In a working directory:
+
+mkdir mod_auth_radius
+cd mod_auth_radius
+wget http://www.freeradius.org/mod_auth_radius/mod_auth_radius-2.0.c
+mv mod_auth_radius-2.0.c mod_auth_radius.c
+/usr/sbin/apxs -i -a -c mod_auth_radius.c
+
+Then adjust the apache config file /etc/httpd/conf/httpd.conf to look
+like this:
+
+LoadModule radius_auth_module /usr/lib/httpd/modules/mod_auth_radius.so
+AddRadiusAuth localhost:1645 mysecret
+<Location /directory/you/wish/to/protect>
+AuthType Basic
+AuthName "Radius authentication"
+AuthAuthoritative off
+AuthRadiusAuthoritative on
+AuthRadiusActive On
+AuthRadiusCookieValid 60
+require valid-user
+</Location>
+
+
+

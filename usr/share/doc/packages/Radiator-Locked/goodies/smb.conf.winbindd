@@ -1,0 +1,40 @@
+# smb.conf.winbindd
+#
+# Sample configuration file for winbindd. Allows ntlm_auth (and
+# Radiator) running on a Unix or Linux host to authenticate to a
+# Windows domain controller.
+#
+# winbindd is part of Samba. On some RPM distributions, winbindd may
+# be included in a separate RPM, eg samba-winbind on Mandrake and
+# others.
+#
+# You will probably also have to entroll your Linux/Unix host in the
+# Windows domain by running the net command (also part of Samba) on the Unix host:
+#  net join -S your_pdc_hostname -U Administrator -s /usr/local/projects/Radiator/goodies/smb.conf.winbindd
+# where  your_pdc_hostname is the hostname of your domain controller
+# and Administrator is the Windows user name of a suitably priveleged Windows
+# user (you will be prompted for their password). This command allows
+# winbindd to contact the domain controller to do authentication any time afterwards.
+#
+# Run winbindd in the foreground during testing in debug mode like this. Debug will be
+# logged in (typically) /var/log/samba/log.winbindd
+#  /usr/sbin/winbindd -F -d 10 -Y -s /usr/local/projects/Radiator/goodies/smb.conf.winbindd
+# or on OpenSuSE 11.1, 12.1
+#  /usr/sbin/winbindd -F -d 10 -s /usr/local/projects/Radiator/goodies/smb.conf.winbindd
+# and test it with:
+#  ntlm_auth --username=mikem --password=fred
+#
+# Consult the samba, winbindd and ntlm_auth documentation for more
+# details on configuration etc.
+#
+# Author: Mike McCauley (mikem@open.com.au)
+# Copyright (C) 2005-2012 Open System Consultants
+# $Id: smb.conf.winbindd,v 1.6 2012/06/27 23:27:18 mikem Exp $
+
+[global]
+   # Replace 'OPEN' with the name of your Windows domain:
+   workgroup = OPEN
+   # You may also need to specify the realm if you are using Kerberos
+   #realm = open.com.au
+   security = domain
+   password server = *

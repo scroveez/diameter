@@ -1,0 +1,430 @@
+dnsroam.txt
+
+This is a brief discussion of the Radiator AuthBy DNSROAM module. It
+should help you to understand and configure AuthBy DNSROAM. You can
+find more detailed reference information in the Radiator reference
+manual, and a samnple configuration file in dnsroam.cfg
+
+DNSROAM is intended to make it easy to set up a secure, reliable, low
+maintenance RADIUS federation. A RADIUS federation (sometimes called a
+RADIUS mesh) is a set of RADIUS servers, operated by a set of
+independent but cooperating organisations. The goal is to permit users
+who belong to one organisation to be able to use RADIUS-controlled
+resources at another organisation, using their home username nad
+password. A typical example is for a group of Universities to
+cooperate to permit a user from one University to connect to the
+wireless network at any other University in the group.
+
+In the past, this type of federation has been implemented with RADIUS
+realm-based proxying. When a RADIUS server receives a request, it
+looks at the Realm suffix of the User-Name (the part following the '@'
+sign), and uses that to determine how to process the request. Requests
+with the server's own realm name are handled locally. Otherwise the
+server uses the realm to determine which server to forward the request
+to. The request is then forwarded as a standard RADIUS request to the
+selected server.
+
+DNSROAM addresses a number of security and scaling problems with this
+standard RADIUS realm-based proxying:
+
+1. Most fields in a RADIUS requests are not encrypted and only the
+   most important fields are encrypted with a faily simple algorithm
+   that relies on a shared secret between cooperating pairs of RADIUS
+   servers. This makes standard RADIUS requests susceptible to
+   sniffing and traffic analysis. If they traverse a hostile
+   environment like the Internet they can easily be compromised.
+
+2. The selection of which RADIUS server to forward a request to
+   usually relies on a hardwired configuration of the RADIUS
+   server. This means that whenever a new organisation joins the
+   federation, every other organisation's RADIUS server has to be
+   reconfigured to include the RADIUS route to the new
+   organisation's RADIUS server. This does not scale very well.
+
+3. There is only very weak mutual authentication between RADIUS
+   servers, based on the shared secret. This means there is
+   only a weak assurance that a RADIUS request really comes from the
+   place it claims to come from, or that the RADIUS server you send a
+   request to is really the server you think it is. This means there
+   are opportunites for rogue RADIUS servers to compromise the RADIUS
+   mesh.
+
+4. RADIUS request (at least the most commonly used forms) do not have
+   an message integrity checks, so there is no assurance that the
+   request has not been tampered with as it traverses the network from
+   server to server as it is being proxied. This means that a
+   man-in-the-middle could compromise RADIUS requests.
+
+DNSROAM uses DNS (Domain Name System) to find the right server to send
+a request to based on the Realm. And it then uses RadSec (a secure
+reliable transport for RADIUS requests over TCP/IP using TLS) to
+forward the request to the appropriate server. TLS provides encryption,
+security, message integrity and strong mutual authentication between
+RadSec servers. Think of RadSec as a secure, reliable RADIUS proxy
+mechanism. More details on the RadSec protocol can be found at
+http://www.open.com.au/radiator/radsec-whitepaper.pdf, and in the
+Radiator reference manual under AuthBy RADSEC.
+
+DNSROAM cooperates well with existing RADIUS infrastructure, and can
+interoperate with other RADIUS servers and clients, as well as other
+RadSec servers and clients. It supports hardwired preconfigured RADIUS
+and RadSec routes as well as DNS discovered routes. It can provide a
+default fallback, so that Realms that are neither discovered nor
+hardwired can be fowarded to some catchall server (or dropped). It
+supports forwarding to IPV4 and/or IPV6 addresses. RadSec can use TCP
+or SCTP protocol for transport over IPV4 or IPV6. DNSROAM supports
+discovering RADIUS proxy servers as well as RadSec proxy servers.
+
+AuthBy DNSROAM uses the following algorithm when it receives a RADIUS
+request for handling:
+
+1. Extract the Realm from the User-Name in the RADIUS request. (The
+   username and/or realm can be configured to be rewritten by patterns
+   in the enclosing Handler or Client clause).
+
+2a. Look for a preconfigured target server <Route> clause for that Realm.
+
+2b. If no preconfigured target server <Route> clause is found for that
+    Realm, try to discover a target server name or address using DNS
+    (more below on exactly how this is done).
+
+2c. If no target server is preconfigured or discovered, try to find a
+    DEFAULT preconfigured target server <Route> clause.
+
+2d. If there is _still_ no target server found, log and drop the request.
+
+3a. If the target server is a RadSec server (Protocol=radsec)
+    establish a RadSec connection to the target server, and if so
+    configured, set up TLS tunnel and perform mutual authentication
+    based on PKI certificates.
+
+3b. If the target server is a RADIUS server (Protocol=radius) forward
+    the request using RADIUS protocol over UDP.
+
+4. When a reply is received from the target server, send the reply
+   back to wherever the request originally came from. (there may be
+   multiple proxying hops until the request reaches the home RADIUS
+   server for that Realm).
+
+The following algorithm is used to discover a target server from a
+Realm using DNS:
+
+1. Look for NAPTR records for the Realm. 
+
+2. For each NAPTR found record, examine the Service field and use that
+   to determine the transport, protocol and TLS requirements for the
+   server. The Service field starts with 'AAA' for insecure and 'AAAS'
+   for TLS secured. The Service field contains '+RADSECS' for RadSec
+   over SCTP, '+RADSECT' for RadSec over TCP or '+RADIUS' for RADIUS
+   protocol over UDP. The most common Service field you will see will
+   be 'AAAS+RADSECT' for TLS secured RadSec over TCP.
+
+2a. If the NAPTR-Pattern parameter is defined, and matches a NAPTR
+   record, it will be used to determine the 
+   protocol and transport to be used. The regex is expected to match 2
+   substrings. The first is the protocol and can be 'radsec' or 'radius'. The
+   second is the transport to use, and can be 'tls', 'tcp' or 'udp'. 
+
+2b. If the NAPTR has the 'S' flag, look for SRV records for the
+    name. For each SRV record found, note the Port number and then
+    look for A and AAAA records corresponding to the name in the SRV
+    record.
+
+2c. If the NAPTR has the 'A' flag, look for a A and AAAA records for
+    the name.
+
+3. If no NAPTR records are found, look for A and AAAA records based
+   directly on the realm name. For example, if the realm is
+   'examplerealm.edu', it looks for records such as
+   '_radsec._tcp.examplerealm.edu', '_radsec._sctp.examplerealm.edu'
+   and '_radius._udp.examplerealm.edu',
+
+4. All A and AAAA records found are ordered according to their Order
+   and Preference fields. The most preferable server address is used
+   as the target server address, along with any other server
+   attributes discovered from DNS. If no SRV records was found for the
+   address, the DNSROAM configured Port is used.
+
+For example, if the User-Name realm was 'examplerealm.edu', and DNS contained
+the following records:
+
+examplerealm.edu. IN NAPTR 50 50 "s" "AAAS+RADSECT" "" _radsec._tcp.examplerealm.edu.
+_radsec._tcp.examplerealm.edu. IN SRV 0 10 2083 radsec.examplerealm.edu.
+radsec.examplerealm.edu.  IN AAAA 2001::202:44ff:fe0a:f704
+
+Then the target selected would be a RadSec server on port 2083 at IPV6
+address 2001::202:44ff:fe0a:f704. The connection would be made over
+TCP/IP, and TLS encryption would be used. This complete specification
+of the realm is the most flexible and is recommended. However, other,
+more concise DNS configuraitons are possible, as descibed below:
+
+If the DNS contained these records:
+
+examplerealm.edu. IN NAPTR 50 50 "a" "AAAS+RADSECS" "" radsec.examplerealm.edu.
+radsec.examplerealm.edu. IN AAAA 2001::202:44ff:fe0a:f704
+
+Then the target selected would be a RadSec server at IPV6
+address 2001::202:44ff:fe0a:f704. The connection would be made over
+SCTP, and TLS encryption would be used. The port used would be the
+default Port configured into AuthBy DNSROAM.
+
+If the DNS contained just this record:
+
+_radius._udp.examplerealm.edu.  IN A 203.63.154.10
+
+Then the target selected would be a RADIUS server at IPV4 address
+203.63.154.10. The connection would be made over UDP. The Port and
+Secret used would be the defaults configured into AuthBy DNSROAM.
+
+Using DNS to hold information about the target server for each Realm
+permits convenient and scalable administration of the routing topology
+within the Radius/RadSec mesh:
+
+1. Some federations may permit each member organisation to manage its
+   own DNS and to join or exit the federation at will (provided that
+   the organisaiton has an appropriate TLS certificate is available
+   for the federation). This means that a new organisation could join
+   the federation by getting a TLS server certificate from the
+   federation's PKI Certificate Authority and publishing the server
+   details in their home DNS server. Thereafter all other servers in
+   the federation would be able to proxy to the new server at will.
+
+2. Other federations may wish to run a private DNS server that all
+   servers in the federation must consult for discovery, and which
+   contains DNS records for every authorised Realm in the
+   federation. The permits central control over which realms and
+   servers are allowed to join the federation. With a private
+   forwarding DNS server, each end organisation could still have
+   control over the actual port and address of their server, while the
+   central DNS controls a kind of symbolic routing.
+
+3. Clever DNS configurations could also permit interesting
+   combinations of these options to overcome unusual political or
+   practical constraints to the roaming infrastructure.
+
+
+------------------------------
+TLS Certificates
+
+Most federations will probably want to select RadSec as the transport
+between servers in the federation, due to its ability to provide
+encryption, reliability, message integrity and mutual
+authentication. RadSec uses TLS (Transport Layer Security, RFC2246) to
+provide all these features. It establishes a TLS connection from the
+originating Radiator server (Acting as a RadSec client)
+to the destination Radiator server, and then sends the
+RADIUS request through the TLS tunnel to the destination
+server. Although it is possible to not use TLS for a RadSec
+connection, it is recommended that RadSec connections always be
+configured to use TLS.
+
+TLS permits each end of a TLS connection to authenticate itself to the
+other end with a PKI certificate. Although it is possible to
+disable client authentication in TLS, it is recommended that client
+authentication always be required within a federation.
+
+The best way to achive mutual authentication of RadSec servers within
+a federation is to issue a PKI certificate for each RadSec server
+within the federation, and to use that certificate when both intiating
+RadSec connections (ie when acting as a TLS client) or receiving
+RadSec connections (ie when acting as a TLS server). It is probably
+most convenient for all the certificates for all servers in the
+federation to be issued by a single Certificate Authority (CA)
+responsible for all the servers in the federation. That way, whenever
+a RadSec server conects to another RadSec server, it need only check
+that the other end has a valid certificate issued by the federation CA
+to be assured that it is a genuine member of the federation.
+Caution: to be able to be used as both client and server TLS
+certificate, the certificate must be created with the usage extensions
+for both client and server usages (ie it must include the X509v3
+extensions for 'TLS Web Server Authentication' and 'TLS Web Client
+Authentication'.
+
+
+More complicated PKI certificate issuing arrangements can also be
+accommodated with suitable configuration of the TLS_CAFile and
+TLS_CAPath parameters in a RadSec connection. For example, it may be
+desirable to have a separate CA for each country or region, who would
+be responsible for issuing RadSec server certificates to those
+organisations only within their region. This can be done be ensuring
+that each RadSec server has the root certificates for each region's CA
+installed in its TLS_CAPath.
+
+------------------------------
+<Resolver>
+
+AuthBy DNSROAM uses a new Radiator module called Resolver. Resolver is
+a DNS resolver that is responsible for discovering names and addresses
+for a realm. In order to use AuthBy DNS, you _must_ include a Resolver
+clause in your configuration (although it is not yet required by any
+other Raditor module). The default behaviour of Resolver is to consult
+DNS using the standard resolver configuration for your host (eg on
+Unix/Linux, it find the resolver details by consulting
+/etc/resolv.conf, $HOME/.resolv.conf or ./.resolv.conf). However, you
+can override these defaults and specify the DNS nameserver to use, the
+search path etc.
+
+Resolver requires the Net::DNS Perl module which in turn requires the
+Socket6 module (and the IO::Socket::INET6 module if you wish to
+consult a DNS server via IPV6). These are all available as source
+from CPAN, or as binary PPM packages for ActivePerl on Windows.
+
+The simplest Resolver clause you can have is:
+<Resolver>
+</Resolver>
+which gets all its configuration from /etc/resolv.conf or similar.
+
+If you wanted Resolver to consult a special private DNS server just
+for discovering target servers, you could have:
+<Resolver>
+	# This can be a symbolic name, or an IPV4 or IPV6 address
+	Nameservers 203.63.154.198
+</Resolver>
+
+There are a number of other configurable parameters supported by
+Resolver. Consult the Radiator reference manual for more details.
+
+------------------------------
+<AuthBy DNSROAM>
+
+In the AuthBy DNSROAM clause, you can specify hardwired proxy routes,
+a DEFAULT route and default configuration parameters for each target
+server. AuthBy DNSROAM will then follow the algorithm described above
+to deliver RADIUS requests.
+
+<AuthBy DNSROAM> needs the Net_SSLeay module from CPAN in order to
+establish TLS connections. A binary PPM package is available for
+ActiveState perl on WEindows from Open System Consultants.
+
+The simplest DNSROAM forwarding configuration would be:
+
+<Resolver>
+</Resolver>
+<AuthBy DNSROAM>
+	UseTLS 1
+	TLS_CAFile %D/yourfederationCAroot.pem
+	TLS_CertificateFile %D/servercertificate.pem
+	TLS_CertificateType PEM
+	TLS_PrivateKeyFile %D/servercertificate.pem
+	TLS_PrivateKeyPassword whatever
+	TLS_RequireClientCert
+	TLS_ExpectedPeerName .*\.yourfederation.org
+	Secret mysecret
+</AuthBy>
+
+This would look up DNS for each request and forward to to the most
+prefereable server discovered, using RadSec TLS over TCP. When connected it
+would present the certificate in the file %D/servercertificate.pem to
+the other server, and confirm that the other server has a certificate
+issued to a server that ends in 'yourfederation.org', and that the
+certificate is a valid certificate issued by the root certificate in
+%D/yourfederationCAroot.pem.
+
+If necessary, you could add some hardwired routes for some realms, and
+use DNS to discover the rest. You can also add a DEFAULT route to a
+catchall server:
+
+<AuthBy DNSROAM>
+	TLS_CAFile %D/yourfederationCAroot.pem
+	TLS_CertificateFile %D/servercertificate.pem
+	TLS_CertificateType PEM
+	TLS_PrivateKeyFile %D/servercertificate.pem
+	TLS_PrivateKeyPassword whatever
+	TLS_ExpectedPeerName .*\.yourfederation\.org
+	Secret mysecret
+	<Route>
+		Realm org1.yourfederation.org
+		Address radsecserver.org1.yourfederation.org
+		Port 2083
+		Transport tcp
+		Protocol radsec
+	</Route>
+	<Route>
+		Realm org2.yourfederation.org
+		Address radsecserver.org2.yourfederation.org
+		Port 2083
+		Transport tcp
+		Protocol radsec
+	</Route>
+	# This is the default route
+	<Route>
+		Realm DEFAULT
+		Address centralserver.yourfederation.org
+		Port 2083
+		Transport tcp
+		Protocol radsec
+	</Route>
+</AuthBy>
+
+Naturally, each server also needs to be able to accept request from
+other servers in its federation, so it needs to act as a RadSec server
+too:
+
+<ServerRADSEC>
+	UseTLS 1
+	TLS_CAFile %D/yourfederationCAroot.pem
+	TLS_CertificateFile %D/servercertificate.pem
+	TLS_CertificateType PEM
+	TLS_PrivateKeyFile %D/servercertificate.pem
+	TLS_PrivateKeyPassword whatever
+	TLS_ExpectedPeerName .*\.yourfederation\.org
+	Secret mysecret
+</ServerRADSEC>
+
+Puting this all together in a practical configuration file, you would
+end up with something like this:
+
+##########################################
+# Rough outline of a RadSec federated server configuration file for Radiator
+Foreground
+LogStdout
+LogDir		/var/log/radiator
+DbDir		/etc/radiator
+Trace 		4
+
+# Accept request from all local Radius clients ( in reality you would
+# be more specific)
+<Client DEFAULT>
+	Secret	mysecret
+</Client>
+
+# Accept radsec connections from other servers in your federation:
+<ServerRADSEC>
+	UseTLS 1
+	TLS_CAFile %D/yourfederationCAroot.pem
+	TLS_CertificateFile %D/servercertificate.pem
+	TLS_CertificateType PEM
+	TLS_PrivateKeyFile %D/servercertificate.pem
+	TLS_PrivateKeyPassword whatever
+	TLS_ExpectedPeerName .*\.yourfederation\.org
+	Secret mysecret
+</ServerRADSEC>
+
+
+# Handle all request for our own realm locally against a flat FILE
+# Radiator has about 60 options for the user database. This is the
+# simplest one.
+<Realm myorg.yourfederation.org>
+       <AuthBy FILE>
+	       Filename %D/users
+	</AuthBy>
+</Realm>
+
+# Use DNS discovery with Resolver for all other realms:
+<Resolver>
+</Resolver>
+<Realm DEFAULT>
+       <AuthBy DNSROAM>
+	       	UseTLS 1
+		TLS_CAFile %D/yourfederationCAroot.pem
+		TLS_CertificateFile %D/servercertificate.pem
+		TLS_CertificateType PEM
+		TLS_PrivateKeyFile %D/servercertificate.pem
+		TLS_PrivateKeyPassword whatever
+		TLS_ExpectedPeerName .*\.yourfederation\.org
+		Secret mysecret
+	</AuthBy>
+</Realm>
+
+# End sample config
+#################################################
